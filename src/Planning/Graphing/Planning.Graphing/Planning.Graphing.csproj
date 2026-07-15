@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+	<PackageReference Include="ScottPlot" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\..\Model\Planning.Model\Planning.Model.csproj" />
+  </ItemGroup>
+
+</Project>

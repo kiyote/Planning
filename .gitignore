@@ -1,0 +1,97 @@
+# Binaries
+*.exe
+*.msi
+*.jar
+*.dll
+*.nupkg
+*.pdb
+*.zip
+*.tar
+*.class
+*.7z
+*.rar
+*.iso
+*.sqlite
+*.bin
+
+# Media
+*.mp3
+*.mp4
+*.mpg
+*.mpeg
+*.wmv
+*.webm
+*.mov
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.xls
+
+# Local Terraform
+.terraform
+
+# Package managers
+node_modules/
+bower_components/
+packages/
+.gems
+npm-debug.log
+
+# IDE/editor stuff
+.vs
+.vsp
+.suo
+launchSettings.json
+*.csproj.user
+*.DotSettings
+*.DotSettings.user
+.vscode
+_[Rr]e[Ss]harper*
+UpgradeLog*.XML
+UpgradeLog*.htm
+.idea
+
+# Vim
+*.swp
+*.swo
+.netrwhist
+
+# Build output
+bin/
+obj/
+.generated/
+TestResult.xml
+TestResults/
+*.binlog
+/compiled.csv
+/calculated.csv
+Lms.sln
+Packages.g.props
+
+# Misc
+*.orig
+.settings
+.svn
+*.bak
+Thumbs.db
+__pycache__/
+.DS_Store
+/debug.log
+
+# Bazel (temporary?)
+BUILD.bazel
+WORKSPACE
+.bazelrc
+bazel-*/
+
+# Project specific exclusions
+lp/framework/web/Sprites/BUILD
+lp-devappregistry-config
+
+# customization has their own scripts to generate a solution filter
+src/lib/custom/custom.slnf
+
+# Legacy projects mixed with the Roslyn analyzers have a bug causing these files to be written to the wrong location
+# https://github.com/dotnet/roslyn/pull/48781
+*.GeneratedMSBuildEditorConfig.editorconfig

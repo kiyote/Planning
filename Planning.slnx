@@ -1,0 +1,42 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Planning/" />
+  <Folder Name="/src/Planning/Calculator/">
+    <Project Path="src/Planning/Calculator/Planning.Calculator/Planning.Calculator.csproj" />
+  </Folder>
+  <Folder Name="/src/Planning/Cli/">
+    <Project Path="src/Planning/Cli/Planning.Cli/Planning.Cli.csproj" />
+  </Folder>
+  <Folder Name="/src/Planning/Compiler/">
+    <Project Path="src/Planning/Compiler/Planning.Compiler/Planning.Compiler.csproj" Id="f6158395-2f0e-4380-9b40-8538019039fa" />
+  </Folder>
+  <Folder Name="/src/Planning/Graphing/">
+    <Project Path="src/Planning/Graphing/Planning.Graphing/Planning.Graphing.csproj" />
+  </Folder>
+  <Folder Name="/src/Planning/Model/">
+    <Project Path="src/Planning/Model/Planning.Model/Planning.Model.csproj" Id="0ccb40fc-4317-474f-9a17-e9fb579dc5ee" />
+  </Folder>
+  <Folder Name="/src/Planning/Reporter/">
+    <Project Path="src/Planning/Reporter/Planning.Reporter/Planning.Reporter.csproj" Id="b87eb969-f385-49ae-83ea-06b8ac0fe806" />
+  </Folder>
+  <Folder Name="/test/" />
+  <Folder Name="/test/Planning/" />
+  <Folder Name="/test/Planning/Calculator/">
+    <Project Path="test/Planning/Calculator/Planning.Calculator.Tests/Planning.Calculator.Tests.csproj" Id="1d141f57-b5c1-4666-b31c-41f15fa7b2ea" />
+  </Folder>
+  <Folder Name="/test/Planning/Compiler/">
+    <Project Path="test/Planning/Compiler/Planning.Compiler.Tests/Planning.Compiler.Tests.csproj" Id="ca29e0e9-9ca9-460c-9bf9-63b43c1860b5" />
+  </Folder>
+  <Folder Name="/test/Planning/Graphing/">
+    <Project Path="test/Planning/Graphing/Planning.Graphing.Tests/Planning.Graphing.Tests.csproj" />
+  </Folder>
+  <Folder Name="/test/Planning/Model/">
+    <Project Path="test/Planning/Model/Planning.Model/Planning.Model.Tests/Planning.Model.Tests.csproj" Id="7ff1f484-81d4-4e60-99a6-290f6ada7390" />
+  </Folder>
+  <Folder Name="/test/Planning/Reporter/">
+    <Project Path="test/Planning/Reporter/Planning.Reporter.Tests/Planning.Reporter.Tests.csproj" Id="f24ae868-93ac-4fad-96db-0860b6cd0e69" />
+  </Folder>
+  <Folder Name="/test/Planning/TestSupport/">
+    <Project Path="test/Planning/TestSupport/Planning.TestSupport/Planning.TestSupport.csproj" Id="472fe0ee-ecc7-4f25-8576-b3217088a99e" />
+  </Folder>
+</Solution>

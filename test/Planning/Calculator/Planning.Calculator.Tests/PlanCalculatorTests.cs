@@ -1,0 +1,666 @@
+using Planning.Compiler;
+using Planning.Model.CalculatedPlans;
+using Planning.Model.CompiledPlans;
+using Planning.Model.Plans;
+using Planning.TestSupport;
+
+namespace Planning.Calculator.Tests;
+
+public class PlanCalculatorTests {
+
+	[Test]
+	public void Calculate_FirstPeriod_AppliesReturnAndContributionToBalances() {
+		Plan plan = TestPlanFactory.Create();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+		CalculatedAsset toddRrsp = period.EndingAssets.Single( a => a.AssetId == 1 );
+		CalculatedAsset tinaRrsp = period.EndingAssets.Single( a => a.AssetId == 2 );
+
+		Assert.Multiple( () => {
+			Assert.That( period.StartingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 520_000m ) );
+			Assert.That( period.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( period.Withdrawals.Sum( w => w.Amount ), Is.Zero );
+			Assert.That( toddRrsp.Amount, Is.EqualTo( 525_366.66666666666666666666667m ) );
+			Assert.That( tinaRrsp.Amount, Is.EqualTo( 30_125m ) );
+			Assert.That( period.TotalAssets, Is.EqualTo( 555_491.66666666666666666666667m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_RetirementShortfall_UsesCharacterizedWithdrawalOrder() {
+		Plan plan = CreateWithdrawalPlan(
+			assets: [
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Todd", 25m ),
+				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Todd", 25m ),
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Tina", 25m ),
+				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Tina", 125m )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+		CalculatedWithdrawal[] withdrawals = [.. period.Withdrawals.OrderBy( w => w.AssetId )];
+
+		Assert.Multiple( () => {
+			Assert.That( period.DesiredRetirementIncome, Is.EqualTo( 200m ) );
+			Assert.That( period.RetirementIncomeShortfall, Is.EqualTo( 200m ) );
+			Assert.That( withdrawals.Select( w => w.AssetId.Value ), Is.EqualTo( new[] { 1, 2, 3, 4 } ) );
+			Assert.That( withdrawals.Select( w => w.Amount ), Is.EqualTo( new[] { 25m, 25m, 25m, 125m } ) );
+			Assert.That( period.EndingAssets.All( a => a.Amount == 0m ), Is.True );
+			Assert.That( period.TotalAssets, Is.Zero );
+		} );
+	}
+
+	[Test]
+	public void Calculate_InsufficientAssets_CharacterizesUnfundedShortfall() {
+		Plan plan = CreateWithdrawalPlan(
+			assets: [
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Todd", 20m ),
+				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Tina", 30m )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			Assert.That( period.RetirementIncomeShortfall, Is.EqualTo( 200m ) );
+			Assert.That( period.Withdrawals.Sum( w => w.Amount ), Is.EqualTo( 50m ) );
+			Assert.That( period.TotalAssets, Is.Zero );
+		} );
+	}
+
+	[Test]
+	public void Calculate_Income_ClassifiesTaxableAndNonTaxable() {
+		Plan plan = TestPlanFactory.Create();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			Assert.That(
+				period.TaxableIncome.Select( i => i.Name ).Distinct(),
+				Is.EquivalentTo( new[] { "CPP", "OAS", "CPP Survivor" } )
+			);
+			Assert.That(
+				period.NonTaxableIncome.Select( i => i.Name ).Distinct(),
+				Is.EquivalentTo( new[] { "Todd Life Insurance", "Tina Life Insurance" } )
+			);
+		} );
+	}
+
+	[Test]
+	public void Calculate_Income_ComputesTotalsDesiredIncomeAndShortfall() {
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2025, 2, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m )
+			],
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 5000m,
+				SlowGo: 0m,
+				SlowGoYears: 0,
+				NoGo: 0m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			Assert.That( period.TotalTaxableIncome, Is.EqualTo( 4501.40m ) );
+			Assert.That( period.TotalNonTaxableIncome, Is.Zero );
+			Assert.That( period.TotalIncome, Is.EqualTo( 4501.40m ) );
+			Assert.That( period.DesiredRetirementIncome, Is.EqualTo( 5000m ) );
+			Assert.That( period.RetirementIncomeShortfall, Is.EqualTo( 498.60m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_FirstPeriod_AppliesContributionsToEndingBalances() {
+		Plan plan = TestPlanFactory.Create( annualReturnPercent: 0m );
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			// Todd RRSP contributes 3200 from 2026; Tina RRSP starts in 2028 so contributes nothing yet.
+			// Asset-level returns (5%) now apply per decision D004 even though the plan return is 0%.
+			Assert.That( period.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( period.Contribution.Single( c => c.AssetId == 2 ).Amount, Is.Zero );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 525_366.66666666666666666666667m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 2 ).Amount, Is.EqualTo( 30_125m ) );
+			Assert.That( period.TotalAssets, Is.EqualTo( 555_491.66666666666666666666667m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_ExhaustedAssets_NeverProducesNegativeBalances() {
+		Plan plan = CreateWithdrawalPlan(
+			assets: [
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Todd", 20m ),
+				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Tina", 30m )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		Assert.That(
+			calculatedPlan.Periods.SelectMany( p => p.EndingAssets ).All( a => a.Amount >= 0m ),
+			Is.True
+		);
+	}
+
+	[Test]
+	public void Calculate_MultipleWithdrawalsFromOneAsset_AreCombined() {
+		Plan plan = CreateWithdrawalPlan(
+			assets: [
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Todd", 1000m )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			// Todd draws his 100 share from his own asset; Tina draws her 100 share from the
+			// same asset as another member's taxable account. The two are repacked into one.
+			Assert.That( period.Withdrawals.Count(), Is.EqualTo( 1 ) );
+			Assert.That( period.Withdrawals.Single( w => w.AssetId == 1 ).Amount, Is.EqualTo( 200m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_SingleAssetCoversShortfall_WithdrawsFullShortfall() {
+		Plan plan = CreateWithdrawalPlan(
+			assets: [
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Todd", 1000m )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			// Asset-level returns (5%) now apply per decision D004: 800 grows by 5%/12 = 3.333...
+			Assert.That( period.Withdrawals.Sum( w => w.Amount ), Is.EqualTo( 200m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 803.3333333333333333333333333m ) );
+			Assert.That( period.TotalAssets, Is.EqualTo( 803.3333333333333333333333333m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_NoAssets_ProducesNoWithdrawals() {
+		Plan plan = CreateWithdrawalPlan( assets: [] );
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			Assert.That( period.Withdrawals, Is.Empty );
+			Assert.That( period.RetirementIncomeShortfall, Is.EqualTo( 200m ) );
+			Assert.That( period.TotalAssets, Is.Zero );
+		} );
+	}
+
+	[Test]
+	public void Calculate_SingleMember_WithdrawsFromThatMembersAsset() {
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m ),
+				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Todd", 1000m )
+			],
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 200m,
+				SlowGo: 200m,
+				SlowGoYears: 0,
+				NoGo: 200m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+
+		Assert.Multiple( () => {
+			// A single member draws the entire shortfall (no split across members).
+			// Asset-level returns (5%) now apply per decision D004: 800 grows by 5%/12 = 3.333...
+			Assert.That( period.Withdrawals.Single( w => w.AssetId == 1 ).Amount, Is.EqualTo( 200m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 803.3333333333333333333333333m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_MoreThanTwoMembers_ThrowsBecauseSurvivorAssumesTwo() {
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 70, 60, 65, 80m ),
+				new Member( "Tina", new DateOnly( 1960, 1, 1 ), 90, 60, 65, 50m ),
+				new Member( "Theo", new DateOnly( 1960, 1, 1 ), 90, 60, 65, 50m )
+			],
+			annualInflationPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Theo", 100m )
+			],
+			lifeInsurance: [],
+			contributions: []
+		);
+
+		// More than two members now fails plan validation (household must be exactly
+		// two per decision D001) before calculation begins.
+		Assert.That(
+			() => new PlanCalculator().Calculate( plan, new PlanCompiler().Compile( plan ) ),
+			Throws.TypeOf<PlanValidationException>()
+		);
+	}
+
+	[Test]
+	public void Calculate_AfterMemberDeath_ContinuesWithSurvivorIncome() {
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2025, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m )
+			],
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 0m,
+				SlowGo: 0m,
+				SlowGoYears: 0,
+				NoGo: 0m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+		// Todd (target age 70) dies end of January 2025; February is the first widowed month.
+		CalculatedPeriod afterDeath = calculatedPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2025, 2, 1 ) );
+
+		Assert.Multiple( () => {
+			Assert.That( afterDeath.TaxableIncome.Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.Zero );
+			Assert.That( afterDeath.TaxableIncome.Single( i => i.MemberId == 2 && i.Name == "CPP Survivor" ).Amount, Is.GreaterThan( 0m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_LifeInsurancePayout_BumpsTotalAssets() {
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2025, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100m )
+			],
+			lifeInsurance: [
+				new LifeInsurance( "Todd", 250_000m )
+			],
+			retirementIncome: new RetirementIncome(
+				GoGo: 0m,
+				SlowGo: 0m,
+				SlowGoYears: 0,
+				NoGo: 0m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+		// Todd (target age 70) dies end of January 2025, so the payout lands that month.
+		CalculatedPeriod deathMonth = calculatedPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2025, 1, 1 ) );
+		CalculatedAsset survivorTfsa = deathMonth.EndingAssets.Single( a => a.AssetId == 2 );
+
+		Assert.Multiple( () => {
+			// The $250,000 payout is retained in the surviving member's non-taxable (TFSA) account.
+			Assert.That( survivorTfsa.Amount, Is.GreaterThanOrEqualTo( 250_000m ) );
+			Assert.That( deathMonth.TotalAssets, Is.GreaterThan( 250_000m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_SolventPlan_ReportsNoInsufficientFunds() {
+		Plan plan = TestPlanFactory.Create(
+			retirementIncome: new RetirementIncome(
+				GoGo: 0m,
+				SlowGo: 0m,
+				SlowGoYears: 0,
+				NoGo: 0m,
+				NoGoYears: 0
+			)
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+		InsufficientFundsSummary summary = calculatedPlan.InsufficientFunds;
+
+		Assert.Multiple( () => {
+			Assert.That( summary.HasShortfall, Is.False );
+			Assert.That( summary.FirstShortfallDate, Is.Null );
+			Assert.That( summary.FirstShortfallPeriod, Is.Null );
+			Assert.That( summary.ShortfallPeriodCount, Is.Zero );
+			Assert.That( summary.TotalUnfundedShortfall, Is.Zero );
+		} );
+	}
+
+	[Test]
+	public void Calculate_InsolventPlan_ReportsInsufficientFundsSummary() {
+		Plan plan = CreateWithdrawalPlan( assets: [] );
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+		InsufficientFundsSummary summary = calculatedPlan.InsufficientFunds;
+		CalculatedPeriod firstExhausted = calculatedPlan.Periods.First( p => p.PlanExhausted );
+
+		Assert.Multiple( () => {
+			Assert.That( summary.HasShortfall, Is.True );
+			Assert.That( summary.FirstShortfallDate, Is.EqualTo( firstExhausted.PeriodDate ) );
+			Assert.That( summary.FirstShortfallPeriod, Is.EqualTo( firstExhausted.PeriodNumber ) );
+			Assert.That( summary.ShortfallPeriodCount, Is.EqualTo( calculatedPlan.Periods.Count( p => p.PlanExhausted ) ) );
+			Assert.That( summary.TotalUnfundedShortfall, Is.EqualTo( calculatedPlan.Periods.Sum( p => p.UnfundedShortfall ) ) );
+			Assert.That( summary.TotalUnfundedShortfall, Is.GreaterThan( 0m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_TaxSettlesInDecemberOnly() {
+		Plan plan = CreateTaxPlan();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		IReadOnlyList<CalculatedPeriod> firstYear = [.. calculatedPlan.Periods.Where( p => p.PeriodDate.Year == 2026 )];
+
+		Assert.Multiple( () => {
+			foreach( CalculatedPeriod period in firstYear.Where( p => p.PeriodDate.Month != 12 ) ) {
+				Assert.That( period.Taxes, Is.Empty, $"{period.PeriodDate:yyyy-MM} should have no tax" );
+				Assert.That( period.TotalTax, Is.Zero );
+			}
+
+			CalculatedPeriod december = firstYear.Single( p => p.PeriodDate.Month == 12 );
+			Assert.That( december.Taxes, Is.Not.Empty );
+			Assert.That( december.TotalTax, Is.GreaterThan( 0m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_TaxUsesTaxableWithdrawalsAndProgressiveRates() {
+		Plan plan = CreateTaxPlan();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		IReadOnlyList<CalculatedPeriod> firstYear = [.. calculatedPlan.Periods.Where( p => p.PeriodDate.Year == 2026 )];
+		CalculatedPeriod december = firstYear.Single( p => p.PeriodDate.Month == 12 );
+
+		// Each member's taxable base for the year equals the sum of their taxable-account
+		// withdrawals (there is no other taxable income in this plan).
+		decimal toddWithdrawals = firstYear
+			.SelectMany( p => p.Withdrawals )
+			.Where( w => w.AssetId == 1 )
+			.Sum( w => w.Amount );
+
+		CalculatedTax toddTax = december.Taxes.Single( t => t.MemberId == 1 );
+
+		Assert.Multiple( () => {
+			// The pipeline wires the year's taxable-account withdrawals into the member's
+			// taxable base; the progressive-rate arithmetic itself is covered directly by
+			// TaxCalculatorTests.
+			Assert.That( toddTax.TaxableAmount, Is.EqualTo( toddWithdrawals ) );
+			Assert.That( toddTax.FederalTax, Is.GreaterThan( 0m ) );
+			Assert.That( toddTax.ProvincialTax, Is.GreaterThan( 0m ) );
+			Assert.That( toddTax.TotalTax, Is.EqualTo( toddTax.FederalTax + toddTax.ProvincialTax ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_CapitalGainsAsset_TaxesFiftyPercentInclusion() {
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m ),
+				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
+			],
+			assets: [
+				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Todd", 100_000m, returnPercentage: 0m ),
+				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Tina", 100_000m, returnPercentage: 0m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 500m,
+				SlowGo: 500m,
+				SlowGoYears: 0,
+				NoGo: 500m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		IReadOnlyList<CalculatedPeriod> firstYear = [.. calculatedPlan.Periods.Where( p => p.PeriodDate.Year == 2026 )];
+		CalculatedPeriod december = firstYear.Single( p => p.PeriodDate.Month == 12 );
+
+		decimal toddWithdrawals = firstYear
+			.SelectMany( p => p.Withdrawals )
+			.Where( w => w.AssetId == 1 )
+			.Sum( w => w.Amount );
+
+		CalculatedTax toddTax = december.Taxes.Single( t => t.MemberId == 1 );
+
+		// Only 50% of a capital-gains withdrawal is included in the taxable base.
+		Assert.That( toddTax.TaxableAmount, Is.EqualTo( toddWithdrawals * 0.5m ) );
+	}
+
+	[Test]
+	public void Calculate_PensionSplitting_ReducesCombinedTax() {
+		static Plan CreateSplittingPlan( bool allowSplitting ) {
+			TaxPolicy basePolicy = TestPlanFactory.CreateTaxPolicy();
+			return TestPlanFactory.Create(
+				startDate: new DateOnly( 2026, 1, 1 ),
+				members: [
+					new Member( "Todd", new DateOnly( 1955, 1, 1 ), 90, 60, 70, 80m ),
+					new Member( "Tina", new DateOnly( 1956, 1, 1 ), 90, 60, 70, 50m )
+				],
+				assets: [
+					TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 2_000_000m, returnPercentage: 0m ),
+					TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, returnPercentage: 0m )
+				],
+				annualInflationPercent: 0m,
+				annualReturnPercent: 0m,
+				lifeInsurance: [],
+				retirementIncome: new RetirementIncome(
+					GoGo: 8000m,
+					SlowGo: 8000m,
+					SlowGoYears: 0,
+					NoGo: 8000m,
+					NoGoYears: 0
+				),
+				contributions: [],
+				taxPolicy: basePolicy with { AllowPensionSplitting = allowSplitting }
+			);
+		}
+
+		Plan withoutSplitting = CreateSplittingPlan( allowSplitting: false );
+		Plan withSplitting = CreateSplittingPlan( allowSplitting: true );
+
+		CalculatedPlan withoutResult = new PlanCalculator().Calculate( withoutSplitting, new PlanCompiler().Compile( withoutSplitting ) );
+		CalculatedPlan withResult = new PlanCalculator().Calculate( withSplitting, new PlanCompiler().Compile( withSplitting ) );
+
+		Assert.Multiple( () => {
+			// Shifting RRSP income to the lower-income spouse lowers the combined progressive tax.
+			Assert.That( withResult.TaxSummary.TotalTax, Is.LessThan( withoutResult.TaxSummary.TotalTax ) );
+			Assert.That( withResult.TaxSummary.TotalTax, Is.GreaterThan( 0m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_TaxSummary_AggregatesAllYears() {
+		Plan plan = CreateTaxPlan();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		decimal expectedFederal = calculatedPlan.Periods.SelectMany( p => p.Taxes ).Sum( t => t.FederalTax );
+		decimal expectedProvincial = calculatedPlan.Periods.SelectMany( p => p.Taxes ).Sum( t => t.ProvincialTax );
+
+		Assert.Multiple( () => {
+			Assert.That( calculatedPlan.TaxSummary.TotalFederalTax, Is.EqualTo( expectedFederal ) );
+			Assert.That( calculatedPlan.TaxSummary.TotalProvincialTax, Is.EqualTo( expectedProvincial ) );
+			Assert.That( calculatedPlan.TaxSummary.TotalTax, Is.EqualTo( expectedFederal + expectedProvincial ) );
+			Assert.That( calculatedPlan.TaxSummary.TotalTax, Is.GreaterThan( 0m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_TaxIsDeductedFromEndingAssets() {
+		Plan plan = CreateTaxPlan();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		IReadOnlyList<CalculatedPeriod> firstYear = [.. calculatedPlan.Periods.Where( p => p.PeriodDate.Year == 2026 )];
+		CalculatedPeriod november = firstYear.Single( p => p.PeriodDate.Month == 11 );
+		CalculatedPeriod december = firstYear.Single( p => p.PeriodDate.Month == 12 );
+
+		// With no return or inflation, the only reason December total assets fall faster than
+		// the flat monthly withdrawal is the tax deduction settled in December.
+		decimal novemberToDecemberDrop = november.TotalAssets - december.TotalAssets;
+
+		Assert.That(
+			novemberToDecemberDrop,
+			Is.GreaterThan( december.TotalTax ),
+			"December assets should reflect both the monthly withdrawal and the tax deduction" );
+	}
+
+	[Test]
+	public void Calculate_TaxFundingWithdrawal_MatchesFundedTax() {
+		Plan plan = CreateTaxPlan();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		CalculatedPeriod december = calculatedPlan.Periods.Single( p => p.PeriodDate.Year == 2026 && p.PeriodDate.Month == 12 );
+
+		Assert.Multiple( () => {
+			Assert.That( december.TotalTax, Is.GreaterThan( 0m ) );
+			// Assets fully cover the tax bill, so the funding withdrawal equals the tax and nothing is unfunded.
+			Assert.That( december.TaxFundingWithdrawal, Is.EqualTo( december.TotalTax ) );
+			Assert.That( december.UnfundedTax, Is.EqualTo( 0m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_TaxFundedFromTaxableAccount_DefersTaxableIncomeToNextYear() {
+		Plan plan = CreateTaxPlan();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		CalculatedPeriod firstDecember = calculatedPlan.Periods.Single( p => p.PeriodDate.Year == 2026 && p.PeriodDate.Month == 12 );
+		CalculatedPeriod secondDecember = calculatedPlan.Periods.Single( p => p.PeriodDate.Year == 2027 && p.PeriodDate.Month == 12 );
+
+		// The first year's taxable-account funding withdrawal is carried into the second year's
+		// taxable base, so the taxed amount in the second year exceeds the plain withdrawals.
+		decimal secondYearTaxable = secondDecember.Taxes.Sum( t => t.TaxableAmount );
+		decimal secondYearWithdrawals = calculatedPlan.Periods
+			.Where( p => p.PeriodDate.Year == 2027 )
+			.SelectMany( p => p.Withdrawals )
+			.Sum( w => w.Amount );
+
+		Assert.Multiple( () => {
+			Assert.That( firstDecember.TaxFundingWithdrawal, Is.GreaterThan( 0m ) );
+			Assert.That( secondYearTaxable, Is.GreaterThan( secondYearWithdrawals ) );
+		} );
+	}
+
+	private static Plan CreateTaxPlan() {
+		// Two retired members, each with their own taxable RRSP and no government income yet,
+		// running a full calendar year so December settlement can be observed. Zero inflation
+		// and zero return keep withdrawals flat and the taxable base inside the lowest brackets.
+		return TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m ),
+				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
+			],
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100_000m, returnPercentage: 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100_000m, returnPercentage: 0m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 500m,
+				SlowGo: 500m,
+				SlowGoYears: 0,
+				NoGo: 500m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+	}
+
+	private static Plan CreateWithdrawalPlan(
+		IEnumerable<Asset> assets
+	) {
+		return TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m ),
+				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
+			],
+			assets: assets,
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 200m,
+				SlowGo: 200m,
+				SlowGoYears: 0,
+				NoGo: 200m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+	}
+}

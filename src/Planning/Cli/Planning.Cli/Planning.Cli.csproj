@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<OutputType>Exe</OutputType>
+	<AssemblyName>planning</AssemblyName>
+	<RootNamespace>Planning.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\..\Model\Planning.Model\Planning.Model.csproj" />
+	<ProjectReference Include="..\..\Compiler\Planning.Compiler\Planning.Compiler.csproj" />
+	<ProjectReference Include="..\..\Calculator\Planning.Calculator\Planning.Calculator.csproj" />
+	<ProjectReference Include="..\..\Reporter\Planning.Reporter\Planning.Reporter.csproj" />
+	<ProjectReference Include="..\..\Graphing\Planning.Graphing\Planning.Graphing.csproj" />
+  </ItemGroup>
+
+</Project>
