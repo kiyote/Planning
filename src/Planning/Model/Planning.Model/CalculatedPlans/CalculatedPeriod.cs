@@ -25,5 +25,10 @@ public record CalculatedPeriod(
 	IReadOnlyList<CalculatedTax> Taxes,
 	decimal TotalTax,
 	decimal TaxFundingWithdrawal,
-	decimal UnfundedTax
+	decimal UnfundedTax,
+	decimal BurndownWithdrawal,
+	decimal BurndownTax,
+	decimal BurndownTransfer,
+	decimal RrifMinimumWithdrawal = 0m,
+	decimal RrifMinimumTransfer = 0m
 );

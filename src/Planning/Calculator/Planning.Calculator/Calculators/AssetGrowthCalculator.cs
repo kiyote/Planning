@@ -16,36 +16,28 @@ internal sealed class AssetGrowthCalculator {
 		IEnumerable<CalculatedWithdrawal> withdrawals,
 		IEnumerable<CalculatedContribution> contributions
 	) {
-		decimal assetAmount = asset.Amount;
-		assetAmount -= withdrawals.Where( w => w.AssetId == asset.AssetId ).Sum( w => w.Amount );
-		decimal annualReturnPercent = ResolveAnnualReturnPercent( plan, compiledPlan, asset.AssetId, periodDate );
+		decimal withdrawnAmount = withdrawals.Where( w => w.AssetId == asset.AssetId ).Sum( w => w.Amount );
+
+		// A withdrawal consumes cost base in proportion to the fraction of the balance taken,
+		// leaving the remaining balance and remaining cost base in the same ratio as before.
+		decimal costBase = asset.CostBase;
+		if( withdrawnAmount > 0m && asset.Amount > 0m ) {
+			decimal fraction = Math.Min( 1m, withdrawnAmount / asset.Amount );
+			costBase -= asset.CostBase * fraction;
+		}
+
+		decimal assetAmount = asset.Amount - withdrawnAmount;
+		decimal annualReturnPercent = AssetReturnResolver.ResolveAnnualReturnPercent( plan, compiledPlan, asset.AssetId, periodDate );
 		decimal returnAmount = assetAmount * ( annualReturnPercent / 100 ) / 12;
 		decimal newAmount = assetAmount + returnAmount;
 
 		decimal contributedAmount = contributions.Where( c => c.AssetId == asset.AssetId ).Sum( c => c.Amount );
 
+		// Growth is an accrued gain and does not affect cost base, but a contribution is made
+		// with already-taxed money and so adds to it dollar for dollar.
+		costBase += contributedAmount;
+
 		assetAmount = newAmount + contributedAmount;
-		return new CalculatedAsset( asset.AssetId, assetAmount );
-	}
-
-	private static decimal ResolveAnnualReturnPercent(
-		Plan plan,
-		CompiledPlan compiledPlan,
-		AssetId assetId,
-		DateOnly periodDate
-	) {
-		CompiledAsset compiledAsset = compiledPlan.Assets.Single( a => a.AssetId == assetId );
-
-		// Asset-level returns override the plan-level return when present; otherwise fall back to the plan-level return.
-		RangedValue? assetReturn = compiledAsset.ReturnPercentages?
-			.Where( r => r.StartDate <= periodDate )
-			.OrderByDescending( r => r.StartDate )
-			.FirstOrDefault();
-
-		if( assetReturn is not null ) {
-			return assetReturn.Value;
-		}
-
-		return plan.AnnualReturnPercent;
+		return new CalculatedAsset( asset.AssetId, assetAmount, asset.ContributionBacklog, asset.TaxStatus, costBase );
 	}
 }

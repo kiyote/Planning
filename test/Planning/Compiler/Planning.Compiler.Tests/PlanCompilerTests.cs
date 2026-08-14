@@ -90,10 +90,48 @@ public class PlanCompilerTests {
 		CompiledPeriod retirement = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2034, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.AssetId == 2 ).Amount, Is.Zero );
-			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 3283.2m ) );
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 2 ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3283.2m ) );
 			Assert.That( compiledPlan.Contribution[retirement].All( c => c.Amount == 0m ), Is.True );
+		} );
+	}
+
+	[Test]
+	public void Compile_UnindexedContribution_UsesConfiguredAmountForEntirePlan() {
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( "Todd", 3200m, 2026, Indexed: false )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
+		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
+		CompiledPeriod january2033 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2033, 1, 1 ) );
+
+		Assert.Multiple( () => {
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2033].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
+		} );
+	}
+
+	[Test]
+	public void Compile_IndexedContribution_GrowsAmountWithInflation() {
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( "Todd", 3200m, 2026, Indexed: true )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
+		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
+
+		Assert.Multiple( () => {
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3283.2m ) );
 		} );
 	}
 

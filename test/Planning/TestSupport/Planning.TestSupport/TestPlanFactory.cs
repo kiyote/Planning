@@ -17,7 +17,8 @@ public static class TestPlanFactory {
 		IEnumerable<LifeInsurance>? lifeInsurance = null,
 		RetirementIncome? retirementIncome = null,
 		IEnumerable<Contribution>? contributions = null,
-		TaxPolicy? taxPolicy = null
+		TaxPolicy? taxPolicy = null,
+		Burndown? burndown = null
 	) {
 		return new Plan(
 			StartDate: startDate ?? new DateOnly( 2026, 7, 1 ),
@@ -37,7 +38,8 @@ public static class TestPlanFactory {
 				NoGoYears: 10
 			),
 			Contributions: contributions ?? CreateContributions(),
-			TaxPolicy: taxPolicy ?? CreateTaxPolicy()
+			TaxPolicy: taxPolicy ?? CreateTaxPolicy(),
+			Burndown: burndown
 		);
 	}
 
@@ -130,15 +132,15 @@ public static class TestPlanFactory {
 		return [
 			new Contribution(
 				Member: "Todd",
-				Asset: "RRSP",
 				Amount: 3200.0m,
-				StartYear: 2026
+				StartYear: 2026,
+				Indexed: true
 			),
 			new Contribution(
 				Member: "Tina",
-				Asset: "RRSP",
 				Amount: 3000.0m,
-				StartYear: 2028
+				StartYear: 2028,
+				Indexed: true
 			)
 		];
 	}

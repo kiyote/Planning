@@ -131,16 +131,29 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
-	public void Validate_ContributionReferencesUnknownAsset_ReportsError() {
+	public void Validate_MemberWithPartialAssets_HasEveryTaxStatusSynthesized() {
+		// A member given only a Taxable account still ends up holding one account of every tax
+		// status, so contributions and rollovers always have a destination.
 		Plan plan = TestPlanFactory.Create(
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m )
+			],
 			contributions: [
-				new Contribution( "Todd", "DoesNotExist", 1000m, 2030 )
+				new Contribution( "Todd", 1000m, 2030, Indexed: false )
 			]
 		);
 
 		PlanValidationResult result = new PlanValidator().Validate( plan );
 
-		Assert.That( result.Errors, Has.Some.Contains( "references unknown asset" ) );
+		Assert.Multiple( () => {
+			Assert.That( result.IsValid, Is.True );
+
+			foreach( string memberName in new[] { "Todd", "Tina" } ) {
+				Assert.That(
+					plan.Assets.Where( a => a.Member == memberName ).Select( a => a.TaxStatus ),
+					Is.EquivalentTo( Enum.GetValues<AssetTaxStatus>() ) );
+			}
+		} );
 	}
 
 	[Test]

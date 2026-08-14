@@ -39,10 +39,11 @@ internal sealed class WithdrawalPolicy {
 		}
 
 		// Now, re-pack the withdrawals so that all withdrawals from the same asset are combined into one withdrawal for that asset.
-		List<CalculatedWithdrawal> repackedResult = result
+		// Every asset keeps an entry even when nothing was drawn from it, so that the per-asset
+		// vector is stable across periods; reporting derives its columns from this shape.
+		List<CalculatedWithdrawal> repackedResult = [.. result
 			.GroupBy( w => w.AssetId )
-			.Select( g => new CalculatedWithdrawal( g.Key, g.Sum( w => w.Amount ) ) )
-			.ToList();
+			.Select( g => new CalculatedWithdrawal( g.Key, g.Sum( w => w.Amount ) ) )];
 
 		return repackedResult;
 	}

@@ -4,6 +4,6 @@ namespace Planning.Model.CompiledPlans;
 
 public record CompiledContribution(
 	int ContributionId,
-	AssetId AssetId,
+	MemberId MemberId,
 	decimal Amount
 );

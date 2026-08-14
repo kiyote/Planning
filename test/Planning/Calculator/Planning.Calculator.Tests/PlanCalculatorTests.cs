@@ -1,6 +1,7 @@
 using Planning.Compiler;
 using Planning.Model.CalculatedPlans;
 using Planning.Model.CompiledPlans;
+using Planning.Model.Identifiers;
 using Planning.Model.Plans;
 using Planning.TestSupport;
 
@@ -40,7 +41,11 @@ public class PlanCalculatorTests {
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
-		CalculatedWithdrawal[] withdrawals = [.. period.Withdrawals.OrderBy( w => w.AssetId )];
+		// Accounts that were not drawn from still carry a zero entry; only the funded ones
+		// characterize the order.
+		CalculatedWithdrawal[] withdrawals = [.. period.Withdrawals
+			.Where( w => w.Amount != 0m )
+			.OrderBy( w => w.AssetId )];
 
 		Assert.Multiple( () => {
 			Assert.That( period.DesiredRetirementIncome, Is.EqualTo( 200m ) );
@@ -135,13 +140,89 @@ public class PlanCalculatorTests {
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
 
 		Assert.Multiple( () => {
-			// Todd RRSP contributes 3200 from 2026; Tina RRSP starts in 2028 so contributes nothing yet.
+			// Todd contributes 3200 from 2026; Tina starts in 2028 so contributes nothing yet.
+			// Contributions follow the Taxable, TaxExempt, CapitalGains priority order, so Todd's
+			// RRSP (asset 1) receives the amount while it still has room.
 			// Asset-level returns (5%) now apply per decision D004 even though the plan return is 0%.
 			Assert.That( period.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( period.Contribution.Single( c => c.AssetId == 2 ).Amount, Is.Zero );
+			Assert.That( period.Contribution.Single( c => c.AssetId == 3 ).Amount, Is.Zero );
 			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 525_366.66666666666666666666667m ) );
 			Assert.That( period.EndingAssets.Single( a => a.AssetId == 2 ).Amount, Is.EqualTo( 30_125m ) );
 			Assert.That( period.TotalAssets, Is.EqualTo( 555_491.66666666666666666666667m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_UnlimitedContributionRoom_AbsorbsOverflowWithoutConsumingBacklog() {
+		Plan plan = TestPlanFactory.Create(
+			annualReturnPercent: 0m,
+			assets: [
+				// Taxable room is capped and exhausted by the first contribution, so the
+				// remainder overflows into the unlimited CapitalGains account.
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 1_000m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m )
+			],
+			contributions: [
+				new Contribution( "Todd", 5_000m, 2026, Indexed: false )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+		CalculatedPeriod first = calculatedPlan.Periods.First();
+
+		Assert.Multiple( () => {
+			Assert.That( first.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 1_000m ) );
+			Assert.That( first.Contribution.Single( c => c.AssetId == 2 ).Amount, Is.EqualTo( 4_000m ) );
+			Assert.That( first.EndingAssets.Single( a => a.AssetId == 1 ).ContributionBacklog, Is.Zero );
+
+			// The unlimited backlog is never consumed and never accrues.
+			Assert.That(
+				calculatedPlan.Periods.All( p => p.EndingAssets.Single( a => a.AssetId == 2 ).ContributionBacklog == -1m ),
+				Is.True
+			);
+
+			// With no room left in the capped account, later periods route everything to the
+			// unlimited account.
+			CalculatedPeriod second = calculatedPlan.Periods.ElementAt( 1 );
+			Assert.That( second.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.Zero );
+			Assert.That( second.Contribution.Single( c => c.AssetId == 2 ).Amount, Is.EqualTo( 5_000m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_TaxableRoom_StopsAccruingAfterRetirementYear() {
+		Plan plan = TestPlanFactory.Create(
+			annualReturnPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 1_000m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 500m )
+			],
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		decimal TaxableBacklogAt( int year ) => calculatedPlan.Periods
+			.First( p => p.PeriodDate.Year == year && p.PeriodDate.Month == 1 )
+			.EndingAssets.Single( a => a.AssetId == 1 ).ContributionBacklog;
+
+		decimal TaxExemptBacklogAt( int year ) => calculatedPlan.Periods
+			.First( p => p.PeriodDate.Year == year && p.PeriodDate.Month == 1 )
+			.EndingAssets.Single( a => a.AssetId == 2 ).ContributionBacklog;
+
+		Assert.Multiple( () => {
+			// Todd retires 2034-01-01, so room accrues each January through the retirement year.
+			Assert.That( TaxableBacklogAt( 2033 ), Is.EqualTo( 7_000m ) );
+			Assert.That( TaxableBacklogAt( 2034 ), Is.EqualTo( 8_000m ) );
+
+			// Every January after the retirement year adds nothing.
+			Assert.That( TaxableBacklogAt( 2035 ), Is.EqualTo( 8_000m ) );
+			Assert.That( TaxableBacklogAt( 2040 ), Is.EqualTo( 8_000m ) );
+
+			// Non-taxable accounts keep accruing after retirement.
+			Assert.That( TaxExemptBacklogAt( 2035 ), Is.EqualTo( TaxExemptBacklogAt( 2034 ) + 500m ) );
 		} );
 	}
 
@@ -177,7 +258,7 @@ public class PlanCalculatorTests {
 		Assert.Multiple( () => {
 			// Todd draws his 100 share from his own asset; Tina draws her 100 share from the
 			// same asset as another member's taxable account. The two are repacked into one.
-			Assert.That( period.Withdrawals.Count(), Is.EqualTo( 1 ) );
+			Assert.That( period.Withdrawals.Count( w => w.Amount != 0m ), Is.EqualTo( 1 ) );
 			Assert.That( period.Withdrawals.Single( w => w.AssetId == 1 ).Amount, Is.EqualTo( 200m ) );
 		} );
 	}
@@ -209,7 +290,9 @@ public class PlanCalculatorTests {
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
 
 		Assert.Multiple( () => {
-			Assert.That( period.Withdrawals, Is.Empty );
+			// The plan defines no assets, so every account is a synthesized zero-balance one and
+			// nothing can actually be drawn.
+			Assert.That( period.Withdrawals.Where( w => w.Amount != 0m ), Is.Empty );
 			Assert.That( period.RetirementIncomeShortfall, Is.EqualTo( 200m ) );
 			Assert.That( period.TotalAssets, Is.Zero );
 		} );
@@ -325,7 +408,9 @@ public class PlanCalculatorTests {
 			annualReturnPercent: 0m,
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100m )
+				// The TFSA needs contribution room for the payout to be sheltered there; without
+				// it the deposit would legitimately have to spill elsewhere.
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100m, 250_000m )
 			],
 			lifeInsurance: [
 				new LifeInsurance( "Todd", 250_000m )
@@ -344,12 +429,80 @@ public class PlanCalculatorTests {
 		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
 		// Todd (target age 70) dies end of January 2025, so the payout lands that month.
 		CalculatedPeriod deathMonth = calculatedPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2025, 1, 1 ) );
-		CalculatedAsset survivorTfsa = deathMonth.EndingAssets.Single( a => a.AssetId == 2 );
+
+		MemberId tinaId = compiledPlan.Members.Single( m => m.Name == "Tina" ).MemberId;
+		AssetId tinaTfsaId = compiledPlan.Assets
+			.Single( a => a.MemberId == tinaId && a.TaxStatus == AssetTaxStatus.TaxExempt )
+			.AssetId;
+
+		CalculatedPeriod afterDeath = calculatedPlan.Periods.First( p => p.PeriodDate > new DateOnly( 2025, 1, 1 ) );
+		CalculatedAsset survivorTfsa = afterDeath.EndingAssets.Single( a => a.AssetId == tinaTfsaId );
 
 		Assert.Multiple( () => {
-			// The $250,000 payout is retained in the surviving member's non-taxable (TFSA) account.
-			Assert.That( survivorTfsa.Amount, Is.GreaterThanOrEqualTo( 250_000m ) );
+			// The $250,000 payout is retained in a non-taxable (TFSA) account and, once the
+			// rollover has run, sits with the surviving member.
 			Assert.That( deathMonth.TotalAssets, Is.GreaterThan( 250_000m ) );
+			Assert.That( survivorTfsa.Amount, Is.GreaterThanOrEqualTo( 250_000m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_MemberDies_ExtinguishesTheirUnusedContributionRoomButNotTheSurvivorsRoom() {
+		// Unused contribution room is personal: it dies with the member and is never inherited,
+		// while a successor-holder rollover leaves the survivor's own room untouched.
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2024, 1, 1 ),
+			members: [
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m )
+			],
+			annualInflationPercent: 0m,
+			annualReturnPercent: 0m,
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 100m, 50_000m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100m, 40_000m )
+			],
+			lifeInsurance: [],
+			retirementIncome: new RetirementIncome(
+				GoGo: 0m,
+				SlowGo: 0m,
+				SlowGoYears: 0,
+				NoGo: 0m,
+				NoGoYears: 0
+			),
+			contributions: []
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		MemberId toddId = compiledPlan.Members.Single( m => m.Name == "Todd" ).MemberId;
+		MemberId tinaId = compiledPlan.Members.Single( m => m.Name == "Tina" ).MemberId;
+		AssetId toddTfsaId = compiledPlan.Assets
+			.Single( a => a.MemberId == toddId && a.TaxStatus == AssetTaxStatus.TaxExempt )
+			.AssetId;
+		AssetId tinaTfsaId = compiledPlan.Assets
+			.Single( a => a.MemberId == tinaId && a.TaxStatus == AssetTaxStatus.TaxExempt )
+			.AssetId;
+
+		CalculatedPeriod afterDeath = calculatedPlan.Periods.First( p => p.PeriodDate > new DateOnly( 2025, 1, 1 ) );
+
+		// The survivor's room is consumed normally by surplus deposits over time, so the test is
+		// that it never *increases* — inheriting the account must not hand her Todd's room.
+		decimal maxSurvivorRoom = calculatedPlan.Periods
+			.Select( p => p.EndingAssets.Single( a => a.AssetId == tinaTfsaId ).ContributionBacklog )
+			.Max();
+
+		Assert.Multiple( () => {
+			Assert.That(
+				afterDeath.EndingAssets.Single( a => a.AssetId == toddTfsaId ).ContributionBacklog,
+				Is.Zero,
+				"The deceased member's unused room must be extinguished." );
+			Assert.That(
+				maxSurvivorRoom,
+				Is.LessThanOrEqualTo( 40_000m ),
+				"The survivor must never inherit the deceased member's contribution room." );
 		} );
 	}
 
@@ -486,8 +639,10 @@ public class PlanCalculatorTests {
 
 		CalculatedTax toddTax = december.Taxes.Single( t => t.MemberId == 1 );
 
-		// Only 50% of a capital-gains withdrawal is included in the taxable base.
-		Assert.That( toddTax.TaxableAmount, Is.EqualTo( toddWithdrawals * 0.5m ) );
+		// These accounts have no cost base, so their entire balance is accrued gain and 50% of
+		// every dollar withdrawn is included in the taxable base. The tolerance absorbs the
+		// residue from expressing the withdrawal as a proportion of the balance.
+		Assert.That( toddTax.TaxableAmount, Is.EqualTo( toddWithdrawals * 0.5m ).Within( 0.01m ) );
 	}
 
 	[Test]

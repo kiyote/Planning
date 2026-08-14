@@ -8,7 +8,6 @@ internal sealed class ContributionCompiler {
 	public IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> Compile(
 		Plan plan,
 		IEnumerable<CompiledMember> members,
-		IEnumerable<CompiledAsset> assets,
 		IEnumerable<CompiledPeriod> periods
 	) {
 		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> result = new Dictionary<CompiledPeriod, IEnumerable<CompiledContribution>>();
@@ -17,23 +16,22 @@ internal sealed class ContributionCompiler {
 			foreach( Contribution contribution in plan.Contributions ) {
 				decimal contributionAmount = 0.0m;
 				CompiledMember member = members.Single( m => m.Name == contribution.Member );
-				CompiledAsset asset = assets
-					.Where( a => a.Name == contribution.Asset )
-					.Single( ca => ca.MemberId == member.MemberId );
 
 				if( period.PeriodDate.Year >= contribution.StartYear
 					&& period.PeriodDate.Year < member.RetirementDate.Year
 				) {
-					int elapsedYears = period.PeriodDate.Year - plan.StartDate.Year;
-					double inflation = (double)(1 + plan.AnnualInflationPercent / 100);
-					decimal inflatedAmount = contribution.Amount * (decimal)Math.Pow( inflation, elapsedYears );
+					if( contribution.Indexed ) {
+						int elapsedYears = period.PeriodDate.Year - plan.StartDate.Year;
+						double inflation = (double)(1 + plan.AnnualInflationPercent / 100);
 
-					contributionAmount = inflatedAmount;
-
+						contributionAmount = contribution.Amount * (decimal)Math.Pow( inflation, elapsedYears );
+					} else {
+						contributionAmount = contribution.Amount;
+					}
 				}
 				CompiledContribution cc = new CompiledContribution(
 					contributions.Count + 1,
-					asset.AssetId,
+					member.MemberId,
 					contributionAmount
 				);
 

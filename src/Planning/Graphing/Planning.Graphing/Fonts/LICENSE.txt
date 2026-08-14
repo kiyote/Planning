@@ -1,0 +1,12 @@
+Roboto-Regular.ttf is distributed under the Apache License, Version 2.0.
+
+Source: https://github.com/googlefonts/roboto-2
+Copyright 2011 The Roboto Project Authors.
+
+The font is embedded in this assembly so that generated charts render identically
+on every platform. Without it, ScottPlot resolves fonts against the host operating
+system's installed font set, which differs between Windows and Linux and produces
+visibly different output.
+
+A copy of the Apache License, Version 2.0 may be obtained at:
+http://www.apache.org/licenses/LICENSE-2.0

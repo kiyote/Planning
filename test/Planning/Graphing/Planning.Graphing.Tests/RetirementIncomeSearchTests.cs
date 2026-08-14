@@ -95,8 +95,8 @@ public class RetirementIncomeSearchTests {
 				NoGoYears: 10
 			),
 			contributions: [
-				new Contribution( "Todd", "RRSP", 3500, 2026 ),
-				new Contribution( "Tina", "RRSP", 3000, 2028 )
+				new Contribution( "Todd", 3500, 2026, Indexed: false ),
+				new Contribution( "Tina", 3000, 2028, Indexed: false )
 			]
 		);
 	}

@@ -10,6 +10,7 @@ public record CompiledPlan(
 	IDictionary<CompiledPeriod, decimal> RetirementIncome,
 	IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> Contribution,
 	TaxPolicy TaxPolicy,
-	RetirementPhaseSchedule RetirementPhaseSchedule
+	RetirementPhaseSchedule RetirementPhaseSchedule,
+	Burndown? Burndown
 
 );

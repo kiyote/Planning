@@ -21,6 +21,7 @@ public sealed class PlanValidator {
 		ValidateAssets( plan, members, result );
 		ValidateLifeInsurance( plan, members, result );
 		ValidateContributions( plan, members, result );
+		ValidateBurndown( plan, result );
 
 		return result;
 	}
@@ -126,6 +127,51 @@ public sealed class PlanValidator {
 			.Where( g => g.Count() > 1 ) ) {
 			result.AddError( $"Member '{duplicate.Key.Member}' has more than one asset named '{duplicate.Key.Name}'; assets must be unique within a member's scope." );
 		}
+
+		ValidateAssetTaxStatusCoverage( plan, members, result );
+	}
+
+	/// <summary>
+	/// Asserts that every member holds an account of each tax status. <see cref="Plan"/> synthesizes
+	/// any account a plan does not define, so this can only fail if that normalization is bypassed or
+	/// removed. Downstream code relies on the invariant - most notably the rollover to a surviving
+	/// spouse, which needs a destination of matching tax status - so the plan is rejected rather than
+	/// allowed to proceed with balances that would land in an account of the wrong tax treatment.
+	/// </summary>
+	private static void ValidateAssetTaxStatusCoverage(
+		Plan plan,
+		Member[] members,
+		PlanValidationResult result
+	) {
+		foreach( Member member in members ) {
+			HashSet<AssetTaxStatus> memberStatuses = [
+				.. plan.Assets.Where( a => a.Member == member.Name ).Select( a => a.TaxStatus )
+			];
+
+			foreach( AssetTaxStatus status in Enum.GetValues<AssetTaxStatus>() ) {
+				if( !memberStatuses.Contains( status ) ) {
+					result.AddError( $"Member '{member.Name}' must have a {status} asset defined, even if its amount is 0." );
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// The burndown strategy is optional, but when configured it needs a positive year count. The
+	/// taxable account it draws down and the capital-gains account that receives the proceeds are
+	/// guaranteed to exist by the tax status coverage invariant.
+	/// </summary>
+	private static void ValidateBurndown(
+		Plan plan,
+		PlanValidationResult result
+	) {
+		if( plan.Burndown is null ) {
+			return;
+		}
+
+		if( plan.Burndown.BurndownYears <= 0 ) {
+			result.AddError( $"Burndown years ({plan.Burndown.BurndownYears}) must be positive." );
+		}
 	}
 
 	private static void ValidateOrderedRangedValues(
@@ -165,23 +211,18 @@ public sealed class PlanValidator {
 		PlanValidationResult result
 	) {
 		HashSet<string> memberNames = [.. members.Select( m => m.Name )];
-		HashSet<(string Member, string Asset)> assetKeys = [.. plan.Assets.Select( a => ( a.Member, a.Name ) )];
 
 		foreach( Contribution contribution in plan.Contributions ) {
 			if( !memberNames.Contains( contribution.Member ) ) {
 				result.AddError( $"Contribution references unknown member '{contribution.Member}'." );
 			}
 
-			if( !assetKeys.Contains( ( contribution.Member, contribution.Asset ) ) ) {
-				result.AddError( $"Contribution references unknown asset '{contribution.Asset}' for member '{contribution.Member}'." );
-			}
-
 			if( contribution.Amount < 0m ) {
-				result.AddError( $"Contribution to '{contribution.Asset}' for '{contribution.Member}' amount ({contribution.Amount}) must be nonnegative." );
+				result.AddError( $"Contribution for '{contribution.Member}' amount ({contribution.Amount}) must be nonnegative." );
 			}
 
 			if( contribution.StartYear <= 0 ) {
-				result.AddError( $"Contribution to '{contribution.Asset}' for '{contribution.Member}' start year ({contribution.StartYear}) must be a valid year." );
+				result.AddError( $"Contribution for '{contribution.Member}' start year ({contribution.StartYear}) must be a valid year." );
 			}
 		}
 	}

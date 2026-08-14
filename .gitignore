@@ -1,3 +1,7 @@
+sample-plan.csv
+sample-plan.png
+coverage.ps1
+
 # Binaries
 *.exe
 *.msi
@@ -63,6 +67,9 @@ obj/
 .generated/
 TestResult.xml
 TestResults/
+CoverageReport/
+fine-code-coverage/
+*.cobertura.xml
 *.binlog
 /compiled.csv
 /calculated.csv

@@ -8,10 +8,12 @@
   "CPPCombinedSurvivorMaximum": 1531.56,
   "OASMaximum": 743.05,
   "Assets": [
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 0, "AnnualContributionLimit": 0 },
-    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 0, "AnnualContributionLimit": 0 },
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 0, "AnnualContributionLimit": 0 },
-    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 0, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 0, "AnnualContributionLimit": 0 }
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 219081, "AnnualContributionLimit": 22000 },
+    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 109000, "AnnualContributionLimit": 7000 },
+    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": -1, "AnnualContributionLimit": -1 },
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 147614, "AnnualContributionLimit": 10800 },
+    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 0, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": 109000, "AnnualContributionLimit": 7000 },
+    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Tina", "Amount": 0, "ReturnPercentages": [ { "StartDate": "0001-01-01", "Value": 6 } ], "StartDate": "0001-01-01", "ContributionBacklog": -1, "AnnualContributionLimit": -1 }
   ],
   "AnnualInflationPercent": 3.0,
   "AnnualReturnPercent": 6.0,
@@ -20,17 +22,22 @@
     { "MemberName": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
-    "GoGo": 5700,
-    "SlowGo": 4500,
+    "GoGo": 6000,
+    "SlowGo": 5000,
     "SlowGoYears": 10,
-    "NoGo": 5100,
+    "NoGo": 5500,
     "NoGoYears": 10
   },
   "Contributions": [
-    { "Member": "Todd", "Asset": "RRSP", "Amount": 3500, "StartYear": 2026 },
-    { "Member": "Tina", "Asset": "RRSP", "Amount": 3000, "StartYear": 2028 }
+    { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": false },
+    { "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false }
   ],
+  "Burndown": {
+    "BurndownYears": 0
+  },
   "TaxPolicy": {
+    "OasClawbackThreshold": 90997,
+    "OasClawbackRate": 15.0,
     "FederalBrackets": [
       { "LowerBound": 0, "Rate": 15.0 },
       { "LowerBound": 55867, "Rate": 20.5 },
@@ -44,6 +51,40 @@
       { "LowerBound": 102894, "Rate": 11.16 },
       { "LowerBound": 150000, "Rate": 12.16 },
       { "LowerBound": 220000, "Rate": 13.16 }
+    ],
+    "RRIFMinimums": [
+      { "Age": 65, "Percent": 4.00 },
+      { "Age": 66, "Percent": 4.17 },
+      { "Age": 67, "Percent": 4.35 },
+      { "Age": 68, "Percent": 4.55 },
+      { "Age": 69, "Percent": 4.76 },
+      { "Age": 70, "Percent": 5.00 },
+      { "Age": 71, "Percent": 5.28 },
+      { "Age": 72, "Percent": 5.40 },
+      { "Age": 73, "Percent": 5.53 },
+      { "Age": 74, "Percent": 5.67 },
+      { "Age": 75, "Percent": 5.82 },
+      { "Age": 76, "Percent": 5.98 },
+      { "Age": 77, "Percent": 6.17 },
+      { "Age": 78, "Percent": 6.36 },
+      { "Age": 79, "Percent": 6.58 },
+      { "Age": 80, "Percent": 6.82 },
+      { "Age": 81, "Percent": 7.08 },
+      { "Age": 82, "Percent": 7.38 },
+      { "Age": 83, "Percent": 7.71 },
+      { "Age": 84, "Percent": 8.08 },
+      { "Age": 85, "Percent": 8.51 },
+      { "Age": 86, "Percent": 8.99 },
+      { "Age": 87, "Percent": 9.55 },
+      { "Age": 88, "Percent": 10.21 },
+      { "Age": 89, "Percent": 10.99 },
+      { "Age": 90, "Percent": 11.92 },
+      { "Age": 91, "Percent": 13.06 },
+      { "Age": 92, "Percent": 14.49 },
+      { "Age": 93, "Percent": 16.34 },
+      { "Age": 94, "Percent": 18.79 },
+      { "Age": 95, "Percent": 20.00 }
     ]
   }
 }
+

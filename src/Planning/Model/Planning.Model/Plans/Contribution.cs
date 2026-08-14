@@ -2,7 +2,7 @@
 
 public record Contribution(
 	string Member,
-	string Asset,
 	decimal Amount,
-	int StartYear
+	int StartYear,
+	bool Indexed
 );

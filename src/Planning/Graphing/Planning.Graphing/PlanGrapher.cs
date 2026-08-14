@@ -1,4 +1,5 @@
 using Planning.Model.CalculatedPlans;
+using Planning.Model.Plans;
 
 namespace Planning.Graphing;
 
@@ -6,6 +7,27 @@ public class PlanGrapher {
 
 	private const int DefaultWidth = 1200;
 	private const int DefaultHeight = 700;
+
+	/// <summary>
+	/// A year's aggregated plot values, including the ending asset value broken down by
+	/// tax status so the makeup of the total can be shown as a stacked bar.
+	/// </summary>
+	private sealed record YearlyTotal(
+		int Year,
+		IReadOnlyDictionary<AssetTaxStatus, double> AssetsByTaxStatus,
+		double TotalAssets,
+		double Shortfall,
+		double TotalTax,
+		double BenefitIncome,
+		double TotalWithdrawals
+	);
+
+	// Bottom-to-top ordering of the asset stack, with a distinct colour per tax status.
+	private static readonly (AssetTaxStatus Status, string Label, ScottPlot.Color Color)[] AssetStackOrder = [
+		( AssetTaxStatus.Taxable, "Taxable Assets", ScottPlot.Colors.Blue ),
+		( AssetTaxStatus.CapitalGains, "Capital Gains Assets", ScottPlot.Colors.Green ),
+		( AssetTaxStatus.TaxExempt, "Tax Exempt Assets", ScottPlot.Colors.Orange )
+	];
 
 	/// <summary>
 	/// Generates a bar graph of the household's total asset value by year and
@@ -24,35 +46,60 @@ public class PlanGrapher {
 		ArgumentNullException.ThrowIfNull( calculatedPlan );
 		ArgumentException.ThrowIfNullOrWhiteSpace( filePath );
 
-		IReadOnlyList<(int Year, double TotalAssets, double Shortfall, double TotalTax, double BenefitIncome, double TotalWithdrawals)> yearlyTotals = BuildYearlyTotals( calculatedPlan );
+		IReadOnlyList<YearlyTotal> yearlyTotals = BuildYearlyTotals( calculatedPlan );
+
+		// Registered before the plot is created so that every text element picks up the
+		// embedded font rather than whatever the host operating system happens to provide.
+		ChartFont.EnsureRegistered();
 
 		ScottPlot.Plot plot = new ScottPlot.Plot();
+		plot.Axes.Title.Label.FontName = ChartFont.FamilyName;
+		plot.Axes.Bottom.Label.FontName = ChartFont.FamilyName;
+		plot.Axes.Left.Label.FontName = ChartFont.FamilyName;
+		plot.Axes.Right.Label.FontName = ChartFont.FamilyName;
+		plot.Axes.Bottom.TickLabelStyle.FontName = ChartFont.FamilyName;
+		plot.Axes.Left.TickLabelStyle.FontName = ChartFont.FamilyName;
+		plot.Axes.Right.TickLabelStyle.FontName = ChartFont.FamilyName;
+		plot.Legend.FontName = ChartFont.FamilyName;
 
-		ScottPlot.Color assetColor = ScottPlot.Colors.Blue;
 		ScottPlot.Color shortfallColor = ScottPlot.Colors.Red;
 		ScottPlot.Color taxColor = ScottPlot.Colors.Black;
 		ScottPlot.Color benefitColor = ScottPlot.Colors.Gray;
 		ScottPlot.Color withdrawalColor = ScottPlot.Colors.LightBlue;
 
 		List<ScottPlot.Bar> bars = [];
-		foreach( (int _, double totalAssets, double shortfall, double _, double _, double _) in yearlyTotals ) {
-			int index = bars.Count / 2;
+		for( int index = 0; index < yearlyTotals.Count; index++ ) {
+			YearlyTotal yearlyTotal = yearlyTotals[index];
+			double stackBase = 0;
 
-			// Blue asset segment sits at the base of the stack.
-			bars.Add( new ScottPlot.Bar {
-				Position = index,
-				ValueBase = 0,
-				Value = totalAssets,
-				FillColor = assetColor
-			} );
+			// Each tax status contributes a coloured segment, stacked bottom-to-top so the
+			// composition of the year's total assets is visible at a glance.
+			foreach( (AssetTaxStatus status, string _, ScottPlot.Color color) in AssetStackOrder ) {
+				double amount = yearlyTotal.AssetsByTaxStatus.GetValueOrDefault( status );
 
-			// Red shortfall segment stacks on top of the asset segment.
-			bars.Add( new ScottPlot.Bar {
-				Position = index,
-				ValueBase = totalAssets,
-				Value = totalAssets + shortfall,
-				FillColor = shortfallColor
-			} );
+				if( amount == 0 ) {
+					continue;
+				}
+
+				bars.Add( new ScottPlot.Bar {
+					Position = index,
+					ValueBase = stackBase,
+					Value = stackBase + amount,
+					FillColor = color
+				} );
+
+				stackBase += amount;
+			}
+
+			// Red shortfall segment stacks on top of the whole asset stack.
+			if( yearlyTotal.Shortfall != 0 ) {
+				bars.Add( new ScottPlot.Bar {
+					Position = index,
+					ValueBase = stackBase,
+					Value = stackBase + yearlyTotal.Shortfall,
+					FillColor = shortfallColor
+				} );
+			}
 		}
 
 		plot.Add.Bars( bars );
@@ -68,6 +115,8 @@ public class PlanGrapher {
 		taxLine.MarkerSize = 5;
 		taxLine.Axes.YAxis = taxAxis;
 		taxAxis.Label.Text = "Total Tax";
+		taxAxis.Label.FontName = ChartFont.FamilyName;
+		taxAxis.TickLabelStyle.FontName = ChartFont.FamilyName;
 
 		// Gray line overlay of the household's total income (all sources) each year, plotted
 		// against the same secondary (right) Y axis as the tax line.
@@ -99,13 +148,19 @@ public class PlanGrapher {
 		plot.Axes.Bottom.TickLabelStyle.Rotation = 45;
 		plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.MiddleLeft;
 
-		ScottPlot.LegendItem[] legendItems = [
-			new ScottPlot.LegendItem { LabelText = "Assets", FillColor = assetColor },
+		// Only show asset segments that actually occur in this plan so the legend stays honest.
+		List<ScottPlot.LegendItem> legendItems = [
+			.. AssetStackOrder
+				.Where( entry => yearlyTotals.Any( t => t.AssetsByTaxStatus.GetValueOrDefault( entry.Status ) != 0 ) )
+				.Select( entry => new ScottPlot.LegendItem { LabelText = entry.Label, FillColor = entry.Color } )
+		];
+
+		legendItems.AddRange( [
 			new ScottPlot.LegendItem { LabelText = "Shortfall", FillColor = shortfallColor },
 			new ScottPlot.LegendItem { LabelText = "Total Tax", LineColor = taxColor, LineWidth = 2 },
 			new ScottPlot.LegendItem { LabelText = "Total Income", LineColor = benefitColor, LineWidth = 2 },
 			new ScottPlot.LegendItem { LabelText = "Total Withdrawals", LineColor = withdrawalColor, LineWidth = 2 }
-		];
+		] );
 		plot.Legend.ManualItems.Clear();
 		plot.Legend.ManualItems.AddRange( legendItems );
 		plot.ShowLegend( ScottPlot.Edge.Bottom );
@@ -115,6 +170,12 @@ public class PlanGrapher {
 		plot.XLabel( "Year" );
 		plot.YLabel( "Total Assets" );
 		plot.Axes.Margins( bottom: 0 );
+
+		// The title and axis labels are replaced by the calls above, so the font is reapplied
+		// here rather than relying on the styles set when the plot was created.
+		plot.Axes.Title.Label.FontName = ChartFont.FamilyName;
+		plot.Axes.Bottom.Label.FontName = ChartFont.FamilyName;
+		plot.Axes.Left.Label.FontName = ChartFont.FamilyName;
 
 		plot.SavePng( filePath, width, height );
 	}
@@ -127,7 +188,7 @@ public class PlanGrapher {
 	/// </summary>
 	private static void AddEventMarkers(
 		ScottPlot.Plot plot,
-		IReadOnlyList<(int Year, double TotalAssets, double Shortfall, double TotalTax, double BenefitIncome, double TotalWithdrawals)> yearlyTotals,
+		IReadOnlyList<YearlyTotal> yearlyTotals,
 		IReadOnlyList<PlanEvent> events
 	) {
 		if( yearlyTotals.Count == 0 ) {
@@ -177,11 +238,7 @@ public class PlanGrapher {
 		string label,
 		ScottPlot.Color color
 	) {
-		// Bars are positioned by year index (0-based); map the event date to a fractional
-		// index using its position within the calendar year.
-		double daysInYear = DateTime.IsLeapYear( eventDate.Year ) ? 366.0 : 365.0;
-		double yearFraction = ( eventDate.DayOfYear - 1 ) / daysInYear;
-		double position = eventDate.Year - firstYear + yearFraction;
+		double position = EventPosition( firstYear, eventDate );
 
 		ScottPlot.Plottables.VerticalLine line = plot.Add.VerticalLine( position );
 		line.Color = color;
@@ -191,6 +248,7 @@ public class PlanGrapher {
 		// Draw the label rotated 90 degrees, running vertically down the line it belongs to,
 		// as white text inside a filled green box.
 		ScottPlot.Plottables.Text text = plot.Add.Text( label, position, labelY );
+		text.LabelFontName = ChartFont.FamilyName;
 		text.LabelFontColor = ScottPlot.Colors.White;
 		text.LabelRotation = -90;
 		text.LabelAlignment = ScottPlot.Alignment.MiddleRight;
@@ -212,9 +270,7 @@ public class PlanGrapher {
 		string label,
 		ScottPlot.Color color
 	) {
-		double daysInYear = DateTime.IsLeapYear( eventDate.Year ) ? 366.0 : 365.0;
-		double yearFraction = ( eventDate.DayOfYear - 1 ) / daysInYear;
-		double position = eventDate.Year - firstYear + yearFraction;
+		double position = EventPosition( firstYear, eventDate );
 
 		ScottPlot.Plottables.VerticalLine line = plot.Add.VerticalLine( position );
 		line.Color = color;
@@ -223,6 +279,7 @@ public class PlanGrapher {
 
 		// Draw the label rotated 90 degrees as green text with no background box.
 		ScottPlot.Plottables.Text text = plot.Add.Text( label, position, labelY );
+		text.LabelFontName = ChartFont.FamilyName;
 		text.LabelFontColor = color;
 		text.LabelRotation = -90;
 		text.LabelAlignment = ScottPlot.Alignment.MiddleRight;
@@ -231,24 +288,48 @@ public class PlanGrapher {
 	}
 
 	/// <summary>
+	/// Maps an event date onto the X axis position used by the yearly bars.
+	///
+	/// Each bar summarises a whole calendar year and is drawn at the integer index of that
+	/// year, so the bar spans roughly index-0.5 to index+0.5. An event is therefore aligned to
+	/// the centre of the bar for the year it falls in, rather than to the fraction of the year
+	/// elapsed. Using the elapsed fraction placed a late-year event such as a December death
+	/// almost a full bar to the right of the bar that actually reports its consequences, which
+	/// made the marker appear to lag the year it belongs to.
+	/// </summary>
+	private static double EventPosition(
+		int firstYear,
+		DateOnly eventDate
+	) {
+		return eventDate.Year - firstYear;
+	}
+
+	/// <summary>
 	/// Aggregates the household's total asset value, unfunded shortfall, total tax, total
 	/// income, and total withdrawals to a single value per calendar year. Total assets use the
 	/// final period recorded within each year; shortfall, total tax, total income, and total
 	/// withdrawals are summed across all periods in the year.
 	/// </summary>
-	private static IReadOnlyList<(int Year, double TotalAssets, double Shortfall, double TotalTax, double BenefitIncome, double TotalWithdrawals)> BuildYearlyTotals(
+	private static IReadOnlyList<YearlyTotal> BuildYearlyTotals(
 		CalculatedPlan calculatedPlan
 	) {
 		return [.. calculatedPlan.Periods
 			.GroupBy( p => p.PeriodDate.Year )
 			.OrderBy( g => g.Key )
-			.Select( g => (
-				Year: g.Key,
-				TotalAssets: (double)g.OrderBy( p => p.PeriodDate ).Last().TotalAssets,
-				Shortfall: (double)g.Sum( p => p.UnfundedShortfall ),
-				TotalTax: (double)g.Sum( p => p.TotalTax ),
-				BenefitIncome: (double)g.Sum( p => p.TotalIncome ),
-				TotalWithdrawals: (double)g.Sum( p => p.Withdrawals.Sum( w => w.Amount ) )
-			) )];
+			.Select( g => {
+				CalculatedPeriod lastPeriod = g.OrderBy( p => p.PeriodDate ).Last();
+
+				return new YearlyTotal(
+					Year: g.Key,
+					AssetsByTaxStatus: lastPeriod.EndingAssets
+						.GroupBy( a => a.TaxStatus )
+						.ToDictionary( ag => ag.Key, ag => (double)ag.Sum( a => a.Amount ) ),
+					TotalAssets: (double)lastPeriod.TotalAssets,
+					Shortfall: (double)g.Sum( p => p.UnfundedShortfall ),
+					TotalTax: (double)g.Sum( p => p.TotalTax ),
+					BenefitIncome: (double)g.Sum( p => p.TotalIncome ),
+					TotalWithdrawals: (double)g.Sum( p => p.Withdrawals.Sum( w => w.Amount ) )
+				);
+			} )];
 	}
 }

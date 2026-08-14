@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+
+  <RunConfiguration>
+	<!-- Ensure tests run on the classic VSTest pipeline that coverlet's data collector and Fine Code Coverage hook into. -->
+	<CollectSourceInformation>true</CollectSourceInformation>
+  </RunConfiguration>
+
+  <DataCollectionRunSettings>
+	<DataCollectors>
+	  <DataCollector friendlyName="XPlat Code Coverage" uri="datacollector://Microsoft/CodeCoverage/2.0">
+		<Configuration>
+		  <!-- Cobertura is the format Fine Code Coverage consumes. -->
+		  <Format>cobertura</Format>
+
+		  <!-- Only measure the production assemblies, not the test/support projects. -->
+		  <Include>[Planning.*]*</Include>
+		  <Exclude>[*.Tests]*,[Planning.TestSupport]*</Exclude>
+
+		  <!-- Skip auto-generated and compiler-generated members. -->
+		  <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+
+		  <SingleHit>false</SingleHit>
+		  <UseSourceLink>true</UseSourceLink>
+		  <IncludeTestAssembly>false</IncludeTestAssembly>
+		</Configuration>
+	  </DataCollector>
+	</DataCollectors>
+  </DataCollectionRunSettings>
+
+</RunSettings>

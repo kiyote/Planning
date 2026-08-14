@@ -67,7 +67,10 @@ internal sealed class TaxCalculator {
 		bool isEligible,
 		decimal inflationIndex
 	) {
-		if( !isEligible || policy is null || policy.AgeAmountBase <= 0m ) {
+		if( !isEligible
+			|| policy is null
+			|| policy.AgeAmountBase <= 0m
+		) {
 			return 0m;
 		}
 
@@ -102,13 +105,52 @@ internal sealed class TaxCalculator {
 		decimal eligiblePensionIncome,
 		decimal inflationIndex
 	) {
-		if( policy is null || policy.PensionIncomeAmount <= 0m || eligiblePensionIncome <= 0m ) {
+		if( policy is null
+			|| policy.PensionIncomeAmount <= 0m
+			|| eligiblePensionIncome <= 0m
+		) {
 			return 0m;
 		}
 
 		decimal eligibleAmount = Math.Min( policy.PensionIncomeAmount * inflationIndex, eligiblePensionIncome );
 		decimal lowestRate = LowestBracketRate( policy.FederalBrackets );
 		return eligibleAmount * ( lowestRate / 100m );
+	}
+
+	/// <summary>
+	/// Computes the OAS recovery tax (clawback) for a member.
+	/// Unlike the Age Amount and Pension Income Amount, this is not a credit: it is an additional
+	/// federal tax charged on net income above the policy threshold. The recovered amount is
+	/// capped at the OAS actually received in the year, because a member can never repay more
+	/// OAS than they were paid. The threshold is expressed in nominal start-year dollars and is
+	/// indexed by inflation for the year being calculated.
+	/// </summary>
+	/// <param name="policy">The tax policy carrying the clawback threshold and rate.</param>
+	/// <param name="netIncome">The member's net income for the year (their taxable base).</param>
+	/// <param name="oasReceived">The OAS income the member received during the year.</param>
+	/// <param name="inflationIndex">Multiplier applied to the threshold to index it for the year.</param>
+	/// <returns>The additional federal tax (never negative) owed as OAS recovery tax.</returns>
+	public decimal CalculateOasClawback(
+		TaxPolicy policy,
+		decimal netIncome,
+		decimal oasReceived,
+		decimal inflationIndex
+	) {
+		if( policy is null
+			|| policy.OasClawbackThreshold <= 0m
+			|| policy.OasClawbackRate <= 0m
+			|| oasReceived <= 0m
+		) {
+			return 0m;
+		}
+
+		decimal threshold = policy.OasClawbackThreshold * inflationIndex;
+		if( netIncome <= threshold ) {
+			return 0m;
+		}
+
+		decimal recovered = ( netIncome - threshold ) * ( policy.OasClawbackRate / 100m );
+		return Math.Min( recovered, oasReceived );
 	}
 
 	private static decimal LowestBracketRate( IEnumerable<TaxBracket> brackets ) {

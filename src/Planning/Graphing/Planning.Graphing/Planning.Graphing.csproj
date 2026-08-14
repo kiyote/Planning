@@ -5,6 +5,18 @@
   </ItemGroup>
 
   <ItemGroup>
+	<InternalsVisibleTo Include="Planning.Graphing.Tests" />
+  </ItemGroup>
+
+  <!--
+	The chart font is embedded rather than resolved from the host operating system, so that
+	generated images render identically on Windows and Linux.
+  -->
+  <ItemGroup>
+	<EmbeddedResource Include="Fonts\Roboto-Regular.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
 	<ProjectReference Include="..\..\Model\Planning.Model\Planning.Model.csproj" />
   </ItemGroup>
 

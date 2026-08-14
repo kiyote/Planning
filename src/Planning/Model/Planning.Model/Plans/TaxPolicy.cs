@@ -44,6 +44,23 @@ namespace Planning.Model.Plans;
 /// The age (in years, at year end) at which a member's RRIF income becomes eligible for the
 /// Pension Income Amount. Defaults to 65.
 /// </param>
+/// <param name="RrifMinimums">
+/// The mandatory minimum RRIF withdrawal factors by age, ordered ascending by age. A member
+/// must withdraw at least the factor for their age at the start of the year, applied to the
+/// account's January 1 balance. When empty, no minimum withdrawal is imposed.
+/// </param>
+/// <param name="OasClawbackThreshold">
+/// The net income threshold above which the OAS recovery tax (clawback) applies, in nominal
+/// start-year dollars. Unlike the Age Amount, this is a recovery tax rather than a credit: it
+/// is added to federal tax rather than reducing it. Defaults to the CRA value ($90,997).
+/// Set to zero to disable the clawback.
+/// </param>
+/// <param name="OasClawbackRate">
+/// The rate, as a percentage, at which OAS is recovered on net income above
+/// <see cref="OasClawbackThreshold"/>. The recovered amount is capped at the OAS actually
+/// received in the year, so a member can never repay more than they were paid. Defaults to
+/// the CRA value (15%).
+/// </param>
 public record TaxPolicy(
 	IEnumerable<TaxBracket> FederalBrackets,
 	IEnumerable<TaxBracket> ProvincialBrackets,
@@ -53,5 +70,8 @@ public record TaxPolicy(
 	decimal AgeAmountReductionRate = 15m,
 	int AgeAmountEligibilityAge = 65,
 	decimal PensionIncomeAmount = 2_000m,
-	int PensionIncomeEligibilityAge = 65
+	int PensionIncomeEligibilityAge = 65,
+	IEnumerable<RrifMinimum>? RrifMinimums = null,
+	decimal OasClawbackThreshold = 90_997m,
+	decimal OasClawbackRate = 15m
 );

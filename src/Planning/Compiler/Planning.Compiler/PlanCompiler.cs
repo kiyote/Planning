@@ -18,7 +18,7 @@ public class PlanCompiler {
 		IEnumerable<CompiledAsset> assets = new Compilers.AssetCompiler().Compile( plan, members );
 		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> income = new Compilers.IncomeCompiler().Compile( plan, periods, members );
 		IDictionary<CompiledPeriod, decimal> retirementIncome = new Compilers.RetirementIncomeCompiler().Compile( plan, members, periods, out RetirementPhaseSchedule retirementPhaseSchedule );
-		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new Compilers.ContributionCompiler().Compile( plan, members, assets, periods );
+		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new Compilers.ContributionCompiler().Compile( plan, members, periods );
 
 		return new CompiledPlan(
 			periods,
@@ -28,7 +28,8 @@ public class PlanCompiler {
 			retirementIncome,
 			contributions,
 			plan.TaxPolicy,
-			retirementPhaseSchedule
+			retirementPhaseSchedule,
+			plan.Burndown
 		);
 	}
 }

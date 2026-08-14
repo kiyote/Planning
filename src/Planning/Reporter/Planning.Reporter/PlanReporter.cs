@@ -54,10 +54,16 @@ public class PlanReporter {
 			header.AddRange( firstPeriod.Withdrawals.Select( w => AssetLabel( w.AssetId, " Withdrawl" ) ) );
 			header.AddRange( firstPeriod.Contribution.Select( c => AssetLabel( c.AssetId, " Contribution" ) ) );
 			header.AddRange( firstPeriod.EndingAssets.Select( a => AssetLabel( a.AssetId, " [End]" ) ) );
+			header.AddRange( firstPeriod.EndingAssets.Select( a => AssetLabel( a.AssetId, " Backlog" ) ) );
 			header.Add( "Total Assets" );
 			header.Add( "Total Tax" );
 			header.Add( "Tax Funding Withdrawal" );
 			header.Add( "Unfunded Tax" );
+			header.Add( "Burndown Withdrawal" );
+			header.Add( "Burndown Tax" );
+			header.Add( "Burndown Transfer" );
+			header.Add( "RRIF Minimum Withdrawal" );
+			header.Add( "RRIF Minimum Transfer" );
 		}
 
 		WriteRow( writer, header );
@@ -81,16 +87,38 @@ public class PlanReporter {
 			row.AddRange( period.Withdrawals.Select( w => w.Amount.FormatRounded() ) );
 			row.AddRange( period.Contribution.Select( c => c.Amount.FormatRounded() ) );
 			row.AddRange( period.EndingAssets.Select( a => a.Amount.FormatRounded() ) );
+			row.AddRange( period.EndingAssets.Select( a => a.ContributionBacklog.FormatRounded() ) );
 			row.Add( period.TotalAssets.FormatRounded() );
 			row.Add( period.TotalTax.FormatRounded() );
 			row.Add( period.TaxFundingWithdrawal.FormatRounded() );
 			row.Add( period.UnfundedTax.FormatRounded() );
+			row.Add( period.BurndownWithdrawal.FormatRounded() );
+			row.Add( period.BurndownTax.FormatRounded() );
+			row.Add( period.BurndownTransfer.FormatRounded() );
+			row.Add( period.RrifMinimumWithdrawal.FormatRounded() );
+			row.Add( period.RrifMinimumTransfer.FormatRounded() );
 
 			WriteRow( writer, row );
 		}
 
 		WriteInsufficientFundsSummary( writer, calculatedPlan.InsufficientFunds );
 		WriteTaxSummary( writer, calculatedPlan.TaxSummary );
+		WriteEstateSummary( writer, calculatedPlan.EstateSummary );
+	}
+
+	private static void WriteEstateSummary(
+		TextWriter writer,
+		EstateSummary summary
+	) {
+		writer.WriteLine();
+		WriteRow( writer, [ "Estate Summary" ] );
+		WriteRow( writer, [ "Gross Estate", summary.GrossEstate.FormatRounded() ] );
+		WriteRow( writer, [ "Terminal Tax", summary.TerminalTax.FormatRounded() ] );
+		WriteRow( writer, [ "Net Estate", summary.NetEstate.FormatRounded() ] );
+		WriteRow( writer, [
+			$"Net Estate ({summary.PlanStartYear} Dollars)",
+			summary.NetEstateInPlanStartDollars.FormatRounded()
+		] );
 	}
 
 	private static void WriteTaxSummary(
@@ -102,6 +130,10 @@ public class PlanReporter {
 		WriteRow( writer, [ "Total Federal Tax", summary.TotalFederalTax.FormatRounded() ] );
 		WriteRow( writer, [ "Total Provincial Tax", summary.TotalProvincialTax.FormatRounded() ] );
 		WriteRow( writer, [ "Total Tax", summary.TotalTax.FormatRounded() ] );
+		WriteRow( writer, [ "Terminal Federal Tax", summary.TerminalFederalTax.FormatRounded() ] );
+		WriteRow( writer, [ "Terminal Provincial Tax", summary.TerminalProvincialTax.FormatRounded() ] );
+		WriteRow( writer, [ "Terminal Tax", summary.TerminalTax.FormatRounded() ] );
+		WriteRow( writer, [ "Total Tax Including Terminal", summary.TotalTaxIncludingTerminal.FormatRounded() ] );
 	}
 
 	private static void WriteInsufficientFundsSummary(
@@ -146,9 +178,8 @@ public class PlanReporter {
 			}
 
 			foreach( CompiledContribution contribution in compiledPlan.Contribution[firstPeriod] ) {
-				CompiledAsset asset = assetsById[contribution.AssetId];
-				CompiledMember member = membersById[asset.MemberId];
-				header.Add( $"{asset.Name} ({member.Name}) Contribution" );
+				CompiledMember member = membersById[contribution.MemberId];
+				header.Add( $"{member.Name} Contribution" );
 			}
 
 			header.Add( "Retirement Income" );

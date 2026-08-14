@@ -11,6 +11,22 @@ public class PlanCalculator {
 
 	private readonly IncomeCalculator _incomeCalculator = new();
 	private readonly WithdrawalPolicy _withdrawalPolicy = new();
+	private readonly ContributionPolicy _contributionPolicy = new();
+	private readonly BurndownPolicy _burndownPolicy = new();
+	private readonly RrifMinimumPolicy _rrifMinimumPolicy = new();
+
+	/// <summary>
+	/// Sentinel indicating an account has no contribution cap; it absorbs any amount without
+	/// consuming room.
+	/// </summary>
+	private const decimal UnlimitedContributionRoom = ShelterAllocator.Unlimited;
+
+	/// <summary>
+	/// The income name the compiler assigns to Old Age Security. Used to isolate OAS from the
+	/// rest of the taxable base so the recovery tax can be capped at the amount received.
+	/// </summary>
+	private const string OasIncomeName = "OAS";
+
 	private readonly AssetGrowthCalculator _assetGrowthCalculator = new();
 	private readonly TaxCalculator _taxCalculator = new();
 
@@ -19,7 +35,7 @@ public class PlanCalculator {
 		CompiledPlan compiledPlan
 	) {
 		List<CalculatedPeriod> periods = [];
-		List<CalculatedAsset> currentAssets = [.. compiledPlan.Assets.Select( a => new CalculatedAsset( a.AssetId, a.Amount ) )];
+		List<CalculatedAsset> currentAssets = [.. compiledPlan.Assets.Select( a => new CalculatedAsset( a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus ) )];
 
 		int planStartYear = plan.StartDate.Year;
 
@@ -30,8 +46,26 @@ public class PlanCalculator {
 		// this income is eligible for pension splitting between spouses.
 		Dictionary<MemberId, decimal> yearlySplittableByMember = [];
 
-		foreach( CompiledPeriod period in compiledPlan.Periods) {
+		// The OAS portion of the taxable base, tracked separately because the OAS recovery tax
+		// (clawback) can never recover more than the OAS actually received in the year.
+		Dictionary<MemberId, decimal> yearlyOasByMember = [];
+
+		// The RRIF minimum is a percentage of the January 1 balance, measured against what the
+		// account has already given up during the year, so both are tracked per calendar year.
+		Dictionary<AssetId, decimal> yearStartBalances = [];
+		Dictionary<AssetId, decimal> withdrawnThisYear = [];
+		int currentTrackingYear = 0;
+
+		foreach( CompiledPeriod period in compiledPlan.Periods ) {
 			List<CalculatedAsset> startingAssets = [.. currentAssets];
+
+			// A new calendar year resets the RRIF measurement window: the opening balances become
+			// the base for this year's minimum and the withdrawal tally starts again.
+			if( period.PeriodDate.Year != currentTrackingYear ) {
+				currentTrackingYear = period.PeriodDate.Year;
+				yearStartBalances = currentAssets.ToDictionary( a => a.AssetId, a => a.Amount );
+				withdrawnThisYear = [];
+			}
 
 			IReadOnlyList<CalculatedIncome> taxableIncome = [.. _incomeCalculator.CalculateTaxableIncome( period, compiledPlan )];
 			IReadOnlyList<CalculatedIncome> nonTaxableIncome = [.. _incomeCalculator.CalculateNonTaxableIncome( period, compiledPlan )];
@@ -42,9 +76,21 @@ public class PlanCalculator {
 			decimal desiredRetirementIncome = compiledPlan.RetirementIncome[period];
 			decimal retirementIncomeShortfall = Math.Max( desiredRetirementIncome - totalIncome, 0 );
 
-			IReadOnlyList<CalculatedContribution> contributions = [.. compiledPlan.Contribution[period].Select( c => new CalculatedContribution( c.AssetId, c.Amount ) )];
+			// Accrue this year's contribution room and allocate the period's contributions against it,
+			// spilling into the member's next most tax-efficient account when room runs out.
+			bool isFirstPeriod = periods.Count == 0;
+			ContributionAllocation allocation = _contributionPolicy.AllocateContributions( compiledPlan, currentAssets, period.PeriodDate, isFirstPeriod, compiledPlan.Contribution[period] );
+			IReadOnlyList<CalculatedContribution> contributions = allocation.Contributions;
+			currentAssets = [.. allocation.Assets];
 
 			IReadOnlyList<CalculatedWithdrawal> withdrawals = [.. _withdrawalPolicy.CalculateWithdrawals( period, compiledPlan, currentAssets, retirementIncomeShortfall )];
+
+			foreach( CalculatedWithdrawal withdrawal in withdrawals ) {
+				if( withdrawal.Amount > 0m ) {
+					withdrawnThisYear[withdrawal.AssetId] =
+						withdrawnThisYear.GetValueOrDefault( withdrawal.AssetId ) + withdrawal.Amount;
+				}
+			}
 
 			List<CalculatedAsset> endingAssets = [];
 			decimal totalAssets = 0.0m;
@@ -56,32 +102,98 @@ public class PlanCalculator {
 			decimal requestedWithdrawal = retirementIncomeShortfall;
 			decimal actualWithdrawal = withdrawals.Sum( w => w.Amount );
 
-			// Retirement income and benefit amounts are inflation-compounded decimals that carry
-			// many fractional digits, so the requested-versus-actual comparison can leave a
-			// sub-cent residual even when the plan is fully funded. Currency is only meaningful to
-			// the cent, so resolve the unfunded amount at cent precision to avoid reporting phantom
-			// shortfalls when assets clearly cover the requested withdrawal.
+			// Round to the cent in order to prevent sub-cent residuals from inflation-compounded amounts being reported as a shortfall
 			decimal unfundedShortfall = Math.Round( Math.Max( requestedWithdrawal - actualWithdrawal, 0 ), 2, MidpointRounding.AwayFromZero );
 			decimal actualRetirementIncome = totalIncome + actualWithdrawal;
 			bool planExhausted = unfundedShortfall > 0m;
 
-			// Income beyond what is needed to meet the desired retirement income (for example a
-			// life insurance payout) is retained by depositing the surplus into a living member's
-			// non-taxable (TFSA) account rather than being discarded.
 			decimal surplusIncome = Math.Max( totalIncome - desiredRetirementIncome, 0 );
 			if( surplusIncome > 0 ) {
 				DepositSurplus( compiledPlan, endingAssets, period.PeriodDate, surplusIncome );
 			}
 
-			AccrueTaxableAmounts( compiledPlan, taxableIncome, withdrawals, yearlyTaxableByMember, yearlySplittableByMember );
+			// A deceased member's balances pass to the surviving spouse, after which all income
+			// and tax fall on the survivor alone.
+			RollOverAssetsOnDeath( compiledPlan, endingAssets, period.PeriodDate );
+
+			AccrueTaxableAmounts( compiledPlan, taxableIncome, withdrawals, currentAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember );
 
 			IReadOnlyList<CalculatedTax> taxes = [];
 			decimal totalTax = 0m;
 			decimal taxFundingWithdrawal = 0m;
 			decimal unfundedTax = 0m;
+			decimal burndownWithdrawal = 0m;
+			decimal burndownTax = 0m;
+			decimal burndownTransfer = 0m;
+			decimal rrifMinimumWithdrawal = 0m;
+			decimal rrifMinimumTransfer = 0m;
+
+			// Tax already covered by proceeds retained from the burndown withdrawal, so that the
+			// annual settlement does not fund the same liability from assets a second time.
+			Dictionary<MemberId, decimal> preFundedTaxByMember = [];
+
 			bool isYearEnd = period.PeriodDate.Month == 12;
+
+			if( isYearEnd ) {
+				// The mandatory minimum is settled before the burndown, because it is compulsory
+				// and the burndown is discretionary. The forced amount is income the plan did not
+				// ask for, so it is moved into shelter rather than spent.
+				RrifMinimumWithdrawals rrif = _rrifMinimumPolicy.CalculateWithdrawals(
+					compiledPlan, endingAssets, period.PeriodDate, yearStartBalances, withdrawnThisYear );
+
+				if( rrif.Total > 0m ) {
+					// The forced withdrawal is fully taxable income to the account's owner, so it
+					// must be accrued before the year's tax is settled below.
+					AccrueTaxableAmounts( compiledPlan, [], rrif.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember );
+
+					rrifMinimumTransfer = _rrifMinimumPolicy.ApplyWithdrawals(
+						compiledPlan, endingAssets, rrif.Withdrawals, period.PeriodDate );
+					rrifMinimumWithdrawal = rrif.Total;
+
+					foreach( CalculatedWithdrawal withdrawal in rrif.Withdrawals ) {
+						withdrawnThisYear[withdrawal.AssetId] =
+							withdrawnThisYear.GetValueOrDefault( withdrawal.AssetId ) + withdrawal.Amount;
+					}
+				}
+			}
+
+			if( isYearEnd ) {
+				// The burndown draws the taxable accounts down on their amortized schedule, in
+				// excess of the retirement-income withdrawals already taken. The tax it triggers
+				// is retained from the proceeds and only the remainder is reinvested.
+				BurndownWithdrawals burndown = _burndownPolicy.CalculateWithdrawals(
+					plan, compiledPlan, endingAssets, period.PeriodDate );
+
+				if( burndown.Total > 0m ) {
+					decimal inflationIndex = InflationIndex( plan.AnnualInflationPercent, period.PeriodDate, planStartYear );
+
+					Dictionary<MemberId, decimal> taxableWithoutBurndown = new( yearlyTaxableByMember );
+					Dictionary<MemberId, decimal> splittableWithoutBurndown = new( yearlySplittableByMember );
+
+					AccrueTaxableAmounts( compiledPlan, [], burndown.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember );
+
+					Dictionary<MemberId, decimal> burndownTaxByMember = CalculateBurndownTax(
+						plan, compiledPlan,
+						yearlyTaxableByMember, yearlySplittableByMember,
+						taxableWithoutBurndown, splittableWithoutBurndown,
+						yearlyOasByMember,
+						period.PeriodDate, inflationIndex );
+
+					burndownWithdrawal = burndown.Total;
+					burndownTax = burndownTaxByMember.Values.Sum();
+
+					// Every taxable account is drawn down on the same schedule, so the tax cost can
+					// be spread proportionally across the proceeds.
+					decimal netProportion = Math.Max( 0m, 1m - burndownTax / burndownWithdrawal );
+					burndownTransfer = _burndownPolicy.ApplyTransfers(
+						compiledPlan, endingAssets, burndown.Withdrawals, netProportion, period.PeriodDate );
+
+					preFundedTaxByMember = burndownTaxByMember;
+				}
+			}
+
 			if( isYearEnd && yearlyTaxableByMember.Count > 0 ) {
-				TaxSettlement settlement = SettleAnnualTax( plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, period.PeriodDate, planStartYear, plan.AnnualInflationPercent, endingAssets );
+				TaxSettlement settlement = SettleAnnualTax( plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, planStartYear, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember );
 				taxes = settlement.Taxes;
 				totalTax = taxes.Sum( t => t.TotalTax );
 				taxFundingWithdrawal = settlement.TaxFundingWithdrawal;
@@ -91,6 +203,7 @@ public class PlanCalculator {
 				// taxable income in the following year for the account's owner.
 				yearlyTaxableByMember = [];
 				yearlySplittableByMember = [];
+				yearlyOasByMember = [];
 				foreach( KeyValuePair<MemberId, decimal> deferred in settlement.DeferredTaxableByMember ) {
 					Add( yearlyTaxableByMember, deferred.Key, deferred.Value );
 				}
@@ -121,21 +234,87 @@ public class PlanCalculator {
 				taxes,
 				totalTax,
 				taxFundingWithdrawal,
-				unfundedTax
+				unfundedTax,
+				burndownWithdrawal,
+				burndownTax,
+				burndownTransfer,
+				rrifMinimumWithdrawal,
+				rrifMinimumTransfer
 			);
 			periods.Add( newPeriod );
 
 			currentAssets = endingAssets;
 		}
 
+		MemberTax terminalTax = CalculateTerminalTax( plan, compiledPlan, periods, planStartYear );
+
 		CalculatedPlan calculatedPlan = new CalculatedPlan(
 			periods,
 			BuildInsufficientFundsSummary( periods ),
-			BuildTaxSummary( periods ),
+			BuildTaxSummary( periods, terminalTax ),
+			BuildEstateSummary( plan, periods, terminalTax, planStartYear ),
 			BuildEvents( compiledPlan ),
 			plan.RetirementIncome
 		);
 		return calculatedPlan;
+	}
+
+	/// <summary>
+	/// Calculates the tax falling due on the final return of the last member to die. On death
+	/// with no surviving spouse, the estate is deemed to have disposed of everything still
+	/// held: registered (Taxable) balances are included in income in full, non-registered
+	/// (CapitalGains) balances realize their accrued gain at the capital-gains inclusion rate,
+	/// and TFSA (TaxExempt) balances pass tax-free. The result is charged at the same brackets,
+	/// inflation indexing and credits used for annual settlement.
+	/// </summary>
+	private MemberTax CalculateTerminalTax(
+		Plan plan,
+		CompiledPlan compiledPlan,
+		IReadOnlyList<CalculatedPeriod> periods,
+		int planStartYear
+	) {
+		if( periods.Count == 0 ) {
+			return new MemberTax( 0m, 0m );
+		}
+
+		CalculatedPeriod finalPeriod = periods[^1];
+		DateOnly deathDate = compiledPlan.Members.Max( m => m.DeathDate );
+		decimal inflationIndex = InflationIndex(
+			plan.AnnualInflationPercent, finalPeriod.PeriodDate, planStartYear );
+
+		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
+
+		// Attribute each remaining balance's deemed income to the member who owns the account.
+		// The estate is deemed to dispose of the whole balance, so the full amount is realized.
+		Dictionary<MemberId, decimal> deemedIncomeByMember = [];
+		foreach( CalculatedAsset asset in finalPeriod.EndingAssets ) {
+			CompiledAsset compiledAsset = assetsById[asset.AssetId];
+			decimal deemedIncome = Realize( asset, asset.Amount ).TaxableIncome;
+			if( deemedIncome > 0m ) {
+				Add( deemedIncomeByMember, compiledAsset.MemberId, deemedIncome );
+			}
+		}
+
+		decimal federalTax = 0m;
+		decimal provincialTax = 0m;
+
+		foreach( CompiledMember member in compiledPlan.Members ) {
+			if( !deemedIncomeByMember.TryGetValue( member.MemberId, out decimal deemedIncome ) || deemedIncome <= 0m ) {
+				continue;
+			}
+
+			// A deemed disposition is not eligible pension income, so no splittable income is
+			// carried in and the Pension Income Amount does not apply to the terminal bill.
+			// No OAS is carried in either: the deemed disposition is settled at death and the
+			// year's OAS clawback is already assessed in the normal annual settlement.
+			MemberTax memberTax = ComputeMemberTax(
+				compiledPlan, member, deemedIncome, [], [], deathDate, inflationIndex );
+
+			federalTax += memberTax.FederalTax;
+			provincialTax += memberTax.ProvincialTax;
+		}
+
+		return new MemberTax( federalTax, provincialTax );
 	}
 
 	/// <summary>
@@ -163,56 +342,126 @@ public class PlanCalculator {
 		return [.. events.OrderBy( e => e.Date )];
 	}
 
+	/// <summary>
+	/// Rolls a deceased member's assets over to the surviving spouse. Balances move into the
+	/// survivor's account of the same tax status, preserving the tax treatment of the balance,
+	/// and the deceased member's accounts are left at zero so that no further growth, withdrawals
+	/// or tax accrue against them. Validation guarantees every member holds an account of each
+	/// tax status, so a destination always exists.
+	/// </summary>
+	private static void RollOverAssetsOnDeath(
+		CompiledPlan compiledPlan,
+		List<CalculatedAsset> endingAssets,
+		DateOnly periodDate
+	) {
+		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
+
+		foreach( CompiledMember deceased in compiledPlan.Members.Where( m => periodDate >= m.DeathDate ) ) {
+			// Unused contribution room is personal and is never inherited: it is extinguished on
+			// death rather than passing to the survivor. This runs regardless of whether a
+			// survivor exists, and regardless of whether the account still holds a balance.
+			for( int i = 0; i < endingAssets.Count; i++ ) {
+				CalculatedAsset asset = endingAssets[i];
+
+				if( assetsById[asset.AssetId].MemberId != deceased.MemberId ) {
+					continue;
+				}
+
+				if( asset.ContributionBacklog != UnlimitedContributionRoom && asset.ContributionBacklog != 0m ) {
+					endingAssets[i] = asset with { ContributionBacklog = 0m };
+				}
+			}
+
+			CompiledMember? survivor = compiledPlan.Members
+				.Where( m => m.MemberId != deceased.MemberId && m.DeathDate > periodDate )
+				.OrderByDescending( m => m.DeathDate )
+				.FirstOrDefault();
+
+			if( survivor is null ) {
+				continue;
+			}
+
+			for( int i = 0; i < endingAssets.Count; i++ ) {
+				CalculatedAsset asset = endingAssets[i];
+
+				if( assetsById[asset.AssetId].MemberId != deceased.MemberId || asset.Amount <= 0m ) {
+					continue;
+				}
+
+				CompiledAsset target = compiledPlan.Assets
+					.First( a => a.MemberId == survivor.MemberId && a.TaxStatus == asset.TaxStatus );
+
+				int targetIndex = endingAssets.FindIndex( a => a.AssetId == target.AssetId );
+
+				// The surviving spouse inherits the cost base along with the balance, so the
+				// accrued gain rolls over untaxed rather than being realized on death.
+				endingAssets[targetIndex] = endingAssets[targetIndex] with {
+					Amount = endingAssets[targetIndex].Amount + asset.Amount,
+					CostBase = endingAssets[targetIndex].CostBase + asset.CostBase
+				};
+				endingAssets[i] = asset with { Amount = 0m, CostBase = 0m };
+			}
+		}
+	}
+
 	private static void DepositSurplus(
 		CompiledPlan compiledPlan,
 		List<CalculatedAsset> endingAssets,
 		DateOnly periodDate,
 		decimal surplus
 	) {
-		// Prefer a living member's non-taxable (TFSA) account. Members are considered living
-		// while the period falls on or before their death month.
-		CompiledMember? livingMember = compiledPlan.Members
-			.Where( m => periodDate <= m.DeathDate )
-			.OrderBy( m => m.DeathDate )
-			.FirstOrDefault();
+		// Surplus income belongs to the household rather than to one member, so there is no
+		// preferred owner; it simply fills whatever sheltered room is available.
+		decimal deposited = ShelterAllocator.Deposit(
+			compiledPlan, endingAssets, periodDate, surplus, preferredMemberId: null );
 
-		CompiledAsset? target = null;
-		if( livingMember is not null ) {
-			target = compiledPlan.Assets
-				.FirstOrDefault( a => a.MemberId == livingMember.MemberId && a.TaxStatus == AssetTaxStatus.TaxExempt );
-		}
-
-		// Fall back to any non-taxable account, then to any account at all, so the surplus is
-		// always retained somewhere in the household's assets.
-		target ??= compiledPlan.Assets.FirstOrDefault( a => a.TaxStatus == AssetTaxStatus.TaxExempt );
-		target ??= compiledPlan.Assets.FirstOrDefault();
-
-		if( target is null ) {
+		decimal remaining = surplus - deposited;
+		if( remaining <= 0m ) {
 			return;
 		}
 
-		int index = endingAssets.FindIndex( a => a.AssetId == target.AssetId );
-		if( index < 0 ) {
+		// No sheltered account had room. The surplus is still the household's money, so it is
+		// retained in any remaining account rather than being discarded.
+		int fallbackIndex = endingAssets.FindIndex( a => a.Amount >= 0m );
+		if( fallbackIndex < 0 ) {
 			return;
 		}
 
-		endingAssets[index] = endingAssets[index] with { Amount = endingAssets[index].Amount + surplus };
+		endingAssets[fallbackIndex] = endingAssets[fallbackIndex] with {
+			Amount = endingAssets[fallbackIndex].Amount + remaining,
+			CostBase = endingAssets[fallbackIndex].CostBase + remaining
+		};
 	}
 
+	/// <summary>
+	/// Accumulates the year's taxable base. Withdrawals are measured against
+	/// <paramref name="assetsBeforeWithdrawal"/>, because the taxable gain depends on the
+	/// balance and cost base as they stood before the withdrawal was taken.
+	/// </summary>
 	private static void AccrueTaxableAmounts(
 		CompiledPlan compiledPlan,
 		IReadOnlyList<CalculatedIncome> taxableIncome,
 		IReadOnlyList<CalculatedWithdrawal> withdrawals,
+		IReadOnlyList<CalculatedAsset> assetsBeforeWithdrawal,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
-		Dictionary<MemberId, decimal> yearlySplittableByMember
+		Dictionary<MemberId, decimal> yearlySplittableByMember,
+		Dictionary<MemberId, decimal> yearlyOasByMember
 	) {
 		foreach( CalculatedIncome income in taxableIncome ) {
 			Add( yearlyTaxableByMember, income.MemberId, income.Amount );
+
+			// The clawback is capped at the OAS actually received, so it must be tracked apart
+			// from the rest of the taxable base.
+			if( income.Name == OasIncomeName ) {
+				Add( yearlyOasByMember, income.MemberId, income.Amount );
+			}
 		}
 
 		foreach( CalculatedWithdrawal withdrawal in withdrawals ) {
 			CompiledAsset asset = compiledPlan.Assets.Single( a => a.AssetId == withdrawal.AssetId );
-			decimal taxable = withdrawal.Amount * TaxableInclusionRate( asset.TaxStatus );
+			CalculatedAsset snapshot = assetsBeforeWithdrawal.Single( a => a.AssetId == withdrawal.AssetId );
+
+			decimal taxable = Realize( snapshot, withdrawal.Amount ).TaxableIncome;
 			if( taxable != 0m ) {
 				Add( yearlyTaxableByMember, asset.MemberId, taxable );
 
@@ -225,17 +474,60 @@ public class PlanCalculator {
 	}
 
 	/// <summary>
-	/// The fraction of a withdrawal that is added to the taxable base: 100% for FullTax,
-	/// 50% for CapitalGains (capital gains inclusion rate), and 0% for TaxExempt.
+	/// The taxable income realized by withdrawing <paramref name="withdrawn"/> from
+	/// <paramref name="asset"/>, together with the cost base that withdrawal consumes.
+	///
+	/// RRSP (Taxable) withdrawals are fully taxable and carry no cost base. TFSA (TaxExempt)
+	/// withdrawals are never taxable. Non-registered (CapitalGains) withdrawals realize a
+	/// proportional share of the accrued gain: taking a fraction of the balance realizes that
+	/// same fraction of the gain and consumes that same fraction of the cost base. Only half of
+	/// the realized gain is included in income, per the capital-gains inclusion rate.
 	/// </summary>
-	private static decimal TaxableInclusionRate( AssetTaxStatus status ) {
-		return status switch {
-			AssetTaxStatus.Taxable => 1m,
-			AssetTaxStatus.CapitalGains => 0.5m,
-			AssetTaxStatus.TaxExempt => 0m,
-			_ => throw new ArgumentOutOfRangeException( nameof( status ), status, null )
-		};
+	private static RealizedAmounts Realize(
+		CalculatedAsset asset,
+		decimal withdrawn
+	) {
+		if( withdrawn <= 0m ) {
+			return new RealizedAmounts( 0m, 0m );
+		}
+
+		switch( asset.TaxStatus ) {
+			case AssetTaxStatus.Taxable:
+				return new RealizedAmounts( withdrawn, 0m );
+
+			case AssetTaxStatus.TaxExempt:
+				return new RealizedAmounts( 0m, 0m );
+
+			case AssetTaxStatus.CapitalGains:
+				// Guard the degenerate case: nothing can be realized from an empty account.
+				if( asset.Amount <= 0m ) {
+					return new RealizedAmounts( 0m, 0m );
+				}
+
+				// A withdrawal can never exceed the balance, so the fraction is capped at one.
+				decimal fraction = Math.Min( 1m, withdrawn / asset.Amount );
+				decimal realizedGain = asset.AccruedGain * fraction;
+				decimal costBaseConsumed = asset.CostBase * fraction;
+
+				return new RealizedAmounts( realizedGain * CapitalGainsInclusionRate, costBaseConsumed );
+
+			default:
+				throw new ArgumentOutOfRangeException( nameof( asset ), asset.TaxStatus, null );
+		}
 	}
+
+	/// <summary>
+	/// The portion of a realized capital gain that is included in taxable income.
+	/// </summary>
+	private const decimal CapitalGainsInclusionRate = 0.5m;
+
+	/// <summary>
+	/// The taxable income produced by a withdrawal and the cost base it consumes.
+	/// </summary>
+	private sealed record RealizedAmounts(
+		decimal TaxableIncome,
+		decimal CostBaseConsumed
+	);
 
 	private static void Add(
 		Dictionary<MemberId, decimal> accumulator,
@@ -273,7 +565,9 @@ public class PlanCalculator {
 		CompiledMember second = members[1];
 
 		// Both spouses must be alive and at least 65 at year end for splitting to apply.
-		if( periodDate < first.BirthDate.AddYears( 65 ) || periodDate < second.BirthDate.AddYears( 65 ) ) {
+		if( periodDate < first.BirthDate.AddYears( 65 )
+			|| periodDate < second.BirthDate.AddYears( 65 )
+		) {
 			return result;
 		}
 		if( first.DeathDate <= periodDate || second.DeathDate <= periodDate ) {
@@ -310,14 +604,14 @@ public class PlanCalculator {
 		CompiledPlan compiledPlan,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
+		Dictionary<MemberId, decimal> yearlyOasByMember,
 		DateOnly periodDate,
 		int planStartYear,
 		decimal annualInflationPercent,
-		List<CalculatedAsset> endingAssets
+		List<CalculatedAsset> endingAssets,
+		IReadOnlyDictionary<MemberId, decimal> preFundedTaxByMember
 	) {
-		decimal inflationIndex = (decimal)Math.Pow(
-			(double)(1m + annualInflationPercent / 100m),
-			periodDate.Year - planStartYear );
+		decimal inflationIndex = InflationIndex( annualInflationPercent, periodDate, planStartYear );
 
 		// Reallocate eligible RRSP income between spouses to minimize combined tax.
 		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
@@ -333,56 +627,167 @@ public class PlanCalculator {
 				continue;
 			}
 
-			decimal federalTax = _taxCalculator.CalculateTax( compiledPlan.TaxPolicy.FederalBrackets, taxableAmount, inflationIndex );
-			decimal provincialTax = _taxCalculator.CalculateTax( compiledPlan.TaxPolicy.ProvincialBrackets, taxableAmount, inflationIndex );
+			MemberTax memberTax = ComputeMemberTax(
+				compiledPlan, member, taxableAmount, yearlySplittableByMember, yearlyOasByMember, periodDate, inflationIndex );
 
-			// Reduce federal tax by the non-refundable federal Age Amount credit for members who
-			// are old enough at year end. The credit can only reduce federal tax to zero.
-			int ageAtYearEnd = periodDate.Year - member.BirthDate.Year;
-			if( periodDate < member.BirthDate.AddYears( ageAtYearEnd ) ) {
-				ageAtYearEnd--;
-			}
-			bool ageAmountEligible = ageAtYearEnd >= compiledPlan.TaxPolicy.AgeAmountEligibilityAge;
-			decimal ageAmountCredit = _taxCalculator.CalculateAgeAmountCredit(
-				compiledPlan.TaxPolicy, taxableAmount, ageAmountEligible, inflationIndex );
-			federalTax = Math.Max( 0m, federalTax - ageAmountCredit );
+			taxes.Add( new CalculatedTax( member.MemberId, taxableAmount, memberTax.FederalTax, memberTax.ProvincialTax ) );
 
-			// Reduce federal tax by the non-refundable federal Pension Income Amount credit. Under
-			// the modelling assumption that a member's RRSP becomes a RRIF at retirement, their
-			// RRSP (RRIF) withdrawal income after retirement is eligible pension income. Per CRA
-			// rules, RRIF income only qualifies once the member is at least the eligibility age
-			// (65) at year end. The pre-split RRSP-withdrawal amount is used so the credit
-			// reflects the member's own eligible pension income rather than any income
-			// reallocated to their spouse.
-			if( member.RetirementDate <= periodDate
-				&& ageAtYearEnd >= compiledPlan.TaxPolicy.PensionIncomeEligibilityAge
-				&& yearlySplittableByMember.TryGetValue( member.MemberId, out decimal eligiblePensionIncome )
-				&& eligiblePensionIncome > 0m ) {
-				decimal pensionIncomeCredit = _taxCalculator.CalculatePensionIncomeCredit(
-					compiledPlan.TaxPolicy, eligiblePensionIncome, inflationIndex );
-				federalTax = Math.Max( 0m, federalTax - pensionIncomeCredit );
-			}
-
-			taxes.Add( new CalculatedTax( member.MemberId, taxableAmount, federalTax, provincialTax ) );
+			// The burndown withdrawal already retained enough of its proceeds to cover the tax it
+			// caused, so only the remainder needs to be funded from assets here.
+			decimal preFunded = Math.Min(
+				preFundedTaxByMember.GetValueOrDefault( member.MemberId ),
+				memberTax.TotalTax );
 
 			// Fund the tax bill as an additional withdrawal from assets. The taxable-account
 			// portion of that funding is deferred as taxable income into the following year.
+			// (Since in actuality the taxes are paid in April, we accept this fudging)
 			decimal funded = FundTaxFromAssets(
 				compiledPlan,
 				member.MemberId,
-				federalTax + provincialTax,
+				memberTax.TotalTax - preFunded,
 				endingAssets,
-				deferredTaxableByMember );
+				deferredTaxableByMember
+			);
 
 			totalFunded += funded;
-			totalUnfunded += federalTax + provincialTax - funded;
+			totalUnfunded += memberTax.TotalTax - preFunded - funded;
 		}
 
-		// Currency is only meaningful to the cent; round the accumulated unfunded tax so sub-cent
-		// residuals from inflation-compounded amounts are not reported as an unfunded tax bill.
 		totalUnfunded = Math.Round( Math.Max( totalUnfunded, 0m ), 2, MidpointRounding.AwayFromZero );
 
 		return new TaxSettlement( taxes, totalFunded, totalUnfunded, deferredTaxableByMember );
+	}
+
+	private static decimal InflationIndex(
+		decimal annualInflationPercent,
+		DateOnly periodDate,
+		int planStartYear
+	) {
+		return (decimal)Math.Pow(
+			(double)( 1m + annualInflationPercent / 100m ),
+			periodDate.Year - planStartYear );
+	}
+
+	private sealed record MemberTax(
+		decimal FederalTax,
+		decimal ProvincialTax
+	) {
+		public decimal TotalTax => FederalTax + ProvincialTax;
+	}
+
+	/// <summary>
+	/// Calculates a single member's federal and provincial tax on their (post-splitting) taxable
+	/// base, after applying the Age Amount and Pension Income Amount non-refundable credits.
+	/// </summary>
+	private MemberTax ComputeMemberTax(
+		CompiledPlan compiledPlan,
+		CompiledMember member,
+		decimal taxableAmount,
+		Dictionary<MemberId, decimal> yearlySplittableByMember,
+		Dictionary<MemberId, decimal> yearlyOasByMember,
+		DateOnly periodDate,
+		decimal inflationIndex
+	) {
+		decimal federalTax = _taxCalculator.CalculateTax( compiledPlan.TaxPolicy.FederalBrackets, taxableAmount, inflationIndex );
+		decimal provincialTax = _taxCalculator.CalculateTax( compiledPlan.TaxPolicy.ProvincialBrackets, taxableAmount, inflationIndex );
+
+		// Reduce federal tax by the non-refundable federal Age Amount credit for members who
+		// are old enough at year end. The credit can only reduce federal tax to zero.
+		int ageAtYearEnd = periodDate.Year - member.BirthDate.Year;
+		if( periodDate < member.BirthDate.AddYears( ageAtYearEnd ) ) {
+			ageAtYearEnd--;
+		}
+		bool ageAmountEligible = ageAtYearEnd >= compiledPlan.TaxPolicy.AgeAmountEligibilityAge;
+		decimal ageAmountCredit = _taxCalculator.CalculateAgeAmountCredit(
+			compiledPlan.TaxPolicy, taxableAmount, ageAmountEligible, inflationIndex );
+		federalTax = Math.Max( 0m, federalTax - ageAmountCredit );
+
+		// Reduce federal tax by the non-refundable federal Pension Income Amount credit. Under
+		// the modelling assumption that a member's RRSP becomes a RRIF at retirement, their
+		// RRSP (RRIF) withdrawal income after retirement is eligible pension income. Per CRA
+		// rules, RRIF income only qualifies once the member is at least the eligibility age
+		// (65) at year end. The pre-split RRSP-withdrawal amount is used so the credit
+		// reflects the member's own eligible pension income rather than any income
+		// reallocated to their spouse.
+		if( member.RetirementDate <= periodDate
+			&& ageAtYearEnd >= compiledPlan.TaxPolicy.PensionIncomeEligibilityAge
+			&& yearlySplittableByMember.TryGetValue( member.MemberId, out decimal eligiblePensionIncome )
+			&& eligiblePensionIncome > 0m
+		) {
+			decimal pensionIncomeCredit = _taxCalculator.CalculatePensionIncomeCredit(
+				compiledPlan.TaxPolicy, eligiblePensionIncome, inflationIndex );
+			federalTax = Math.Max( 0m, federalTax - pensionIncomeCredit );
+		}
+
+		// The OAS recovery tax is an additional federal tax rather than a credit, so it is added
+		// after the credits above (which can only reduce tax to zero) have been applied.
+		decimal oasReceived = yearlyOasByMember.GetValueOrDefault( member.MemberId );
+		if( oasReceived > 0m ) {
+			federalTax += _taxCalculator.CalculateOasClawback(
+				compiledPlan.TaxPolicy, taxableAmount, oasReceived, inflationIndex );
+		}
+
+		return new MemberTax( federalTax, provincialTax );
+	}
+
+	/// <summary>
+	/// Calculates the per-member tax attributable to the burndown withdrawal as the difference
+	/// between the year's full tax bill including the burndown income and the tax bill that would
+	/// have been owed without it. The full tax calculator is used on both bases so that bracket
+	/// progression, credits, and pension splitting are all reflected in the marginal cost.
+	/// </summary>
+	private Dictionary<MemberId, decimal> CalculateBurndownTax(
+		Plan plan,
+		CompiledPlan compiledPlan,
+		Dictionary<MemberId, decimal> taxableWithBurndown,
+		Dictionary<MemberId, decimal> splittableWithBurndown,
+		Dictionary<MemberId, decimal> taxableWithoutBurndown,
+		Dictionary<MemberId, decimal> splittableWithoutBurndown,
+		Dictionary<MemberId, decimal> yearlyOasByMember,
+		DateOnly periodDate,
+		decimal inflationIndex
+	) {
+		Dictionary<MemberId, decimal> withBurndown = TotalTaxByMember(
+			plan, compiledPlan, taxableWithBurndown, splittableWithBurndown, yearlyOasByMember, periodDate, inflationIndex );
+		Dictionary<MemberId, decimal> withoutBurndown = TotalTaxByMember(
+			plan, compiledPlan, taxableWithoutBurndown, splittableWithoutBurndown, yearlyOasByMember, periodDate, inflationIndex );
+
+		Dictionary<MemberId, decimal> delta = [];
+		foreach( CompiledMember member in compiledPlan.Members ) {
+			decimal difference = withBurndown.GetValueOrDefault( member.MemberId )
+				- withoutBurndown.GetValueOrDefault( member.MemberId );
+
+			if( difference > 0m ) {
+				delta[member.MemberId] = difference;
+			}
+		}
+
+		return delta;
+	}
+
+	private Dictionary<MemberId, decimal> TotalTaxByMember(
+		Plan plan,
+		CompiledPlan compiledPlan,
+		Dictionary<MemberId, decimal> yearlyTaxableByMember,
+		Dictionary<MemberId, decimal> yearlySplittableByMember,
+		Dictionary<MemberId, decimal> yearlyOasByMember,
+		DateOnly periodDate,
+		decimal inflationIndex
+	) {
+		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
+			plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate, inflationIndex );
+
+		Dictionary<MemberId, decimal> result = [];
+		foreach( CompiledMember member in compiledPlan.Members ) {
+			if( !taxableByMember.TryGetValue( member.MemberId, out decimal taxableAmount ) || taxableAmount <= 0m ) {
+				continue;
+			}
+
+			result[member.MemberId] = ComputeMemberTax(
+				compiledPlan, member, taxableAmount, yearlySplittableByMember, yearlyOasByMember, periodDate, inflationIndex ).TotalTax;
+		}
+
+		return result;
 	}
 
 	private static decimal FundTaxFromAssets(
@@ -398,11 +803,12 @@ public class PlanCalculator {
 
 		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
 
-		// Funding order: prefer the member's own accounts, and within that draw from the least
-		// tax-costly accounts first (TaxExempt, then CapitalGains, then FullTax).
+		// Funding order: prefer the member's own accounts, and within that match the withdrawal
+		// policy's order (Taxable, then CapitalGains, then TaxExempt) so that paying tax also
+		// advances the RRSP burndown and leaves tax-free room intact.
 		IEnumerable<CalculatedAsset> ordered = endingAssets
 			.OrderBy( a => assetsById[a.AssetId].MemberId == memberId ? 0 : 1 )
-			.ThenByDescending( a => assetsById[a.AssetId].TaxStatus );
+			.ThenBy( a => assetsById[a.AssetId].TaxStatus );
 
 		decimal remaining = taxOwed;
 		foreach( CalculatedAsset asset in ordered ) {
@@ -416,13 +822,18 @@ public class PlanCalculator {
 			}
 
 			int index = endingAssets.FindIndex( a => a.AssetId == asset.AssetId );
-			endingAssets[index] = asset with { Amount = asset.Amount - deducted };
+
+			RealizedAmounts realized = Realize( asset, deducted );
+
+			endingAssets[index] = asset with {
+				Amount = asset.Amount - deducted,
+				CostBase = asset.CostBase - realized.CostBaseConsumed
+			};
 			remaining -= deducted;
 
 			CompiledAsset compiledAsset = assetsById[asset.AssetId];
-			decimal taxable = deducted * TaxableInclusionRate( compiledAsset.TaxStatus );
-			if( taxable != 0m ) {
-				Add( deferredTaxableByMember, compiledAsset.MemberId, taxable );
+			if( realized.TaxableIncome != 0m ) {
+				Add( deferredTaxableByMember, compiledAsset.MemberId, realized.TaxableIncome );
 			}
 		}
 
@@ -451,7 +862,8 @@ public class PlanCalculator {
 	}
 
 	private static TaxSummary BuildTaxSummary(
-		IReadOnlyList<CalculatedPeriod> periods
+		IReadOnlyList<CalculatedPeriod> periods,
+		MemberTax terminalTax
 	) {
 		decimal totalFederal = periods.SelectMany( p => p.Taxes ).Sum( t => t.FederalTax );
 		decimal totalProvincial = periods.SelectMany( p => p.Taxes ).Sum( t => t.ProvincialTax );
@@ -459,7 +871,38 @@ public class PlanCalculator {
 		return new TaxSummary(
 			TotalFederalTax: totalFederal,
 			TotalProvincialTax: totalProvincial,
-			TotalTax: totalFederal + totalProvincial
+			TotalTax: totalFederal + totalProvincial,
+			TerminalFederalTax: terminalTax.FederalTax,
+			TerminalProvincialTax: terminalTax.ProvincialTax
+		);
+	}
+
+	/// <summary>
+	/// Builds the estate roll-up. The gross estate is taken from the same final-period ending
+	/// balances the terminal tax is assessed against, so subtracting that tax yields the amount
+	/// genuinely passing to beneficiaries rather than double-counting a liability already
+	/// deducted elsewhere.
+	/// </summary>
+	private static EstateSummary BuildEstateSummary(
+		Plan plan,
+		IReadOnlyList<CalculatedPeriod> periods,
+		MemberTax terminalTax,
+		int planStartYear
+	) {
+		decimal grossEstate = periods.Count == 0
+			? 0m
+			: periods[^1].EndingAssets.Sum( a => a.Amount );
+
+		int finalPeriodYear = periods.Count == 0
+			? planStartYear
+			: periods[^1].PeriodDate.Year;
+
+		return new EstateSummary(
+			GrossEstate: grossEstate,
+			TerminalTax: terminalTax.FederalTax + terminalTax.ProvincialTax,
+			FinalPeriodYear: finalPeriodYear,
+			PlanStartYear: planStartYear,
+			AnnualInflationPercent: plan.AnnualInflationPercent
 		);
 	}
 }
