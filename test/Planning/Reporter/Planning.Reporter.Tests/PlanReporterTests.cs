@@ -66,17 +66,17 @@ public class PlanReporterTests {
 					Environment.NewLine,
 					"Insufficient Funds Summary",
 					"Has Shortfall,True",
-					"First Shortfall Date,Jan 2053",
-					"First Shortfall Period,325",
-					"Shortfall Period Count,199",
-					"Total Unfunded Shortfall,2134841.89" ) ) );
+					"First Shortfall Date,Aug 2054",
+					"First Shortfall Period,344",
+					"Shortfall Period Count,180",
+					"Total Unfunded Shortfall,1940688.11" ) ) );
 			Assert.That( output, Does.Contain(
 				string.Join(
 					Environment.NewLine,
 					"Tax Summary",
-					"Total Federal Tax,655617.48",
-					"Total Provincial Tax,286152.95",
-					"Total Tax,941770.43" ) ) );
+					"Total Federal Tax,696214.01",
+					"Total Provincial Tax,301373.62",
+					"Total Tax,997587.63" ) ) );
 		} );
 	}
 

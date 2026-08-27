@@ -15,10 +15,17 @@ internal sealed class ContributionCompiler {
 			List<CompiledContribution> contributions = [];
 			foreach( Contribution contribution in plan.Contributions ) {
 				decimal contributionAmount = 0.0m;
-				CompiledMember member = members.Single( m => m.Name == contribution.Member );
 
+				// The annuitant receives the funds, but a spousal contribution is funded by the
+				// other member, so the contributor governs both the room and the stop date.
+				CompiledMember destination = members.Single( m => m.Name == contribution.Member );
+				CompiledMember contributor = members.Single( m => m.Name == contribution.Contributor );
+
+				// Contributions are funded from employment income, so they run through the month
+				// before the member retires and stop from the retirement month onward. Both dates
+				// are the first of a month, so the comparison lands exactly on that boundary.
 				if( period.PeriodDate.Year >= contribution.StartYear
-					&& period.PeriodDate.Year < member.RetirementDate.Year
+					&& period.PeriodDate < contributor.RetirementDate
 				) {
 					if( contribution.Indexed ) {
 						int elapsedYears = period.PeriodDate.Year - plan.StartDate.Year;
@@ -31,7 +38,8 @@ internal sealed class ContributionCompiler {
 				}
 				CompiledContribution cc = new CompiledContribution(
 					contributions.Count + 1,
-					member.MemberId,
+					contributor.MemberId,
+					destination.MemberId,
 					contributionAmount
 				);
 

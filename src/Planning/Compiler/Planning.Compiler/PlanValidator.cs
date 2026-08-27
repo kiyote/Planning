@@ -21,6 +21,7 @@ public sealed class PlanValidator {
 		ValidateAssets( plan, members, result );
 		ValidateLifeInsurance( plan, members, result );
 		ValidateContributions( plan, members, result );
+		ValidateInheritance( plan, members, result );
 		ValidateBurndown( plan, result );
 
 		return result;
@@ -223,6 +224,41 @@ public sealed class PlanValidator {
 
 			if( contribution.StartYear <= 0 ) {
 				result.AddError( $"Contribution for '{contribution.Member}' start year ({contribution.StartYear}) must be a valid year." );
+			}
+
+			// A spousal contribution must name a real, different member to fund it. Naming the
+			// annuitant themselves is simply an ordinary contribution and needs no error.
+			if( !string.IsNullOrWhiteSpace( contribution.Spousal )
+				&& !memberNames.Contains( contribution.Spousal )
+			) {
+				result.AddError( $"Contribution for '{contribution.Member}' references unknown spousal contributor '{contribution.Spousal}'." );
+			}
+		}
+	}
+
+	private static void ValidateInheritance(
+		Plan plan,
+		Member[] members,
+		PlanValidationResult result
+	) {
+		Dictionary<string, Member> membersByName = members
+			.GroupBy( m => m.Name )
+			.ToDictionary( g => g.Key, g => g.First() );
+
+		foreach( Inheritance inheritance in plan.Inheritance ) {
+			if( !membersByName.TryGetValue( inheritance.Member, out Member? member ) ) {
+				result.AddError( $"Inheritance references unknown member '{inheritance.Member}'." );
+				continue;
+			}
+
+			if( inheritance.Amount < 0m ) {
+				result.AddError( $"Inheritance for '{inheritance.Member}' amount ({inheritance.Amount}) must be nonnegative." );
+			}
+
+			if( inheritance.AgeReceived < 0 ) {
+				result.AddError( $"Inheritance for '{inheritance.Member}' age received ({inheritance.AgeReceived}) must be nonnegative." );
+			} else if( inheritance.AgeReceived > member.TargetAgeInYears ) {
+				result.AddError( $"Inheritance for '{inheritance.Member}' age received ({inheritance.AgeReceived}) must not exceed the member's target age ({member.TargetAgeInYears})." );
 			}
 		}
 	}

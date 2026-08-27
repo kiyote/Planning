@@ -13,8 +13,15 @@ public record Plan(
 	RetirementIncome RetirementIncome,
 	IEnumerable<Contribution> Contributions,
 	TaxPolicy TaxPolicy,
-	Burndown? Burndown = null
+	Burndown? Burndown = null,
+	IEnumerable<Inheritance>? Inheritance = null
 ) {
+
+	/// <summary>
+	/// The one-time inheritances the household expects to receive, or an empty set when the plan
+	/// does not define any.
+	/// </summary>
+	public IEnumerable<Inheritance> Inheritance { get; init; } = Inheritance ?? [];
 
 	/// <summary>
 	/// The burndown strategy, or <c>null</c> when it is not in use. A configured burndown of zero

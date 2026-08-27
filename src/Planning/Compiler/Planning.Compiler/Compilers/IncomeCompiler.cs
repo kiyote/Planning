@@ -62,6 +62,33 @@ internal sealed class IncomeCompiler {
 					incomes.Add( income );
 
 				}
+
+				// An inheritance of no value is treated as though it were not configured at all,
+				// so it contributes no income column.
+				foreach( Inheritance inheritance in plan.Inheritance.Where( i => i.Member == member.Name && i.Amount > 0m ) ) {
+					decimal inheritanceAmount = 0.0m;
+					DateOnly receiptDate = member.BirthDate.AddYears( inheritance.AgeReceived );
+
+					// The inheritance arrives once, in the month the member reaches the stated age,
+					// and only while that member is alive to receive it.
+					if( period.PeriodDate.Year == receiptDate.Year
+						&& period.PeriodDate.Month == receiptDate.Month
+						&& receiptDate <= member.DeathDate
+					) {
+						int elapsedYears = receiptDate.Year - plan.StartDate.Year;
+						double inflation = (double)(1 + plan.AnnualInflationPercent / 100);
+
+						inheritanceAmount = inheritance.Amount * (decimal)Math.Pow( inflation, elapsedYears );
+					}
+
+					income = new CompiledIncome(
+						$"{inheritance.Member} Inheritance",
+						member.MemberId,
+						inheritanceAmount,
+						false
+					);
+					incomes.Add( income );
+				}
 			}
 
 			result[period] = incomes;

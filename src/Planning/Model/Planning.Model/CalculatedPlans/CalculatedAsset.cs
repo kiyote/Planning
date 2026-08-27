@@ -16,5 +16,10 @@ public record CalculatedAsset(
 	/// the after-tax capital invested in it. Only this portion is subject to capital-gains tax
 	/// when realized, whether by withdrawal or by deemed disposition at death.
 	/// </summary>
-	public decimal AccruedGain => Math.Max( 0m, Amount - CostBase );
+	/// <remarks>
+	/// The cost base is carried proportionally through every contribution and withdrawal, which
+	/// leaves sub-cent residue on an account that has no real gain. Resolving at cent precision
+	/// keeps that residue from being taxed as a gain.
+	/// </remarks>
+	public decimal AccruedGain => Math.Max( 0m, Math.Round( Amount - CostBase, 2, MidpointRounding.AwayFromZero ) );
 }

@@ -1,3 +1,4 @@
+using Planning.Calculator.Calculators;
 using Planning.Compiler;
 using Planning.Model.CalculatedPlans;
 using Planning.Model.CompiledPlans;
@@ -8,6 +9,149 @@ using Planning.TestSupport;
 namespace Planning.Calculator.Tests;
 
 public class PlanCalculatorTests {
+
+	[Test]
+	public void Calculate_SpousalContributionExceedingTheContributorsRoom_FallsBackToTheAnnuitantsOwnRoom() {
+		// Todd has only 1,000 of RRSP room, so a 3,000 spousal contribution into Tina's RRSP
+		// draws 1,000 from Todd and the remaining 2,000 from Tina's own room.
+		Plan plan = TestPlanFactory.Create(
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100_000m, contributionBacklog: 1_000m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100_000m, contributionBacklog: 50_000m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m )
+			],
+			contributions: [
+				new Contribution( "Tina", 3000m, 2026, Indexed: false, Spousal: "Todd" )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+		CompiledAsset toddRrsp = compiledPlan.Assets.Single( a => a.MemberId == 1 && a.TaxStatus == AssetTaxStatus.Taxable );
+		CompiledAsset tinaRrsp = compiledPlan.Assets.Single( a => a.MemberId == 2 && a.TaxStatus == AssetTaxStatus.Taxable );
+
+		Assert.Multiple( () => {
+			// The whole 3,000 still lands in Tina's RRSP.
+			Assert.That( period.Contribution.Single( c => c.AssetId == tinaRrsp.AssetId ).Amount, Is.EqualTo( 3_000m ) );
+
+			// Todd's room is fully consumed, and Tina's own room covers the shortfall rather than
+			// the overflow spilling into a TFSA.
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == toddRrsp.AssetId ).ContributionBacklog, Is.Zero );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == tinaRrsp.AssetId ).ContributionBacklog, Is.EqualTo( 48_000m ) );
+		} );
+	}
+
+	[Test]
+	public void AllocateContributions_SpousalContributionFallingBackToTheAnnuitantsRoom_RecordsOnlyTheContributorFundedPortionAsSpousal() {
+		// Todd has only 1,000 of RRSP room, so of a 3,000 contribution into Tina's RRSP only
+		// 1,000 is genuinely spousal. The 2,000 funded from Tina's own room is her own
+		// contribution and must not be attributed back to Todd on withdrawal.
+		Plan plan = TestPlanFactory.Create(
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100_000m, contributionBacklog: 1_000m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100_000m, contributionBacklog: 50_000m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m )
+			],
+			contributions: [
+				new Contribution( "Tina", 3000m, 2026, Indexed: false, Spousal: "Todd" )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
+
+		IReadOnlyList<CalculatedAsset> assets = [
+			.. compiledPlan.Assets.Select( a => new CalculatedAsset(
+				a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.Amount ) )
+		];
+
+		ContributionAllocation allocation = new ContributionPolicy().AllocateContributions(
+			compiledPlan, assets, firstPeriod.PeriodDate, isFirstPeriod: true, compiledPlan.Contribution[firstPeriod] );
+
+		Assert.Multiple( () => {
+			// Only Todd's 1,000 is recorded as spousal, so only that much can ever be attributed.
+			Assert.That( allocation.SpousalDeposits.Sum( d => d.Amount ), Is.EqualTo( 1_000m ) );
+			Assert.That( allocation.SpousalDeposits.Single().ContributorMemberId, Is.EqualTo( new MemberId( 1 ) ) );
+
+			// The full 3,000 still reaches Tina's RRSP.
+			Assert.That( allocation.Contributions.Sum( c => c.Amount ), Is.EqualTo( 3_000m ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_SpousalContribution_DepositsIntoTheAnnuitantAndConsumesTheContributorsRoom() {
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution(
+					Member: "Tina",
+					Amount: 3000.0m,
+					StartYear: 2026,
+					Indexed: false,
+					Spousal: "Todd"
+				)
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
+		CalculatedAsset toddRrsp = period.EndingAssets.Single( a => a.AssetId == 1 );
+
+		Assert.Multiple( () => {
+			// The funds land in Tina's RRSP, not Todd's, even though Todd funded them.
+			Assert.That( period.Contribution.Single( c => c.AssetId == 2 ).Amount, Is.EqualTo( 3000m ) );
+			Assert.That( period.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.Zero );
+
+			// Todd's room is what gets consumed, so his backlog falls while his balance does not
+			// receive the contribution.
+			Assert.That( toddRrsp.ContributionBacklog, Is.LessThan(
+				period.StartingAssets.Single( a => a.AssetId == 1 ).ContributionBacklog ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_Inheritance_AddsLifecycleEventOnTheReceiptDate() {
+		Plan plan = TestPlanFactory.Create(
+			inheritance: [
+				new Inheritance( "Todd", 500_000m, AgeReceived: 65 )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+		PlanEvent inheritanceEvent = calculatedPlan.Events.Single( e => e.Name == "Todd inheritance" );
+
+		Assert.Multiple( () => {
+			// Todd is born 1973-12-25, so age 65 falls on 2038-12-25.
+			Assert.That( inheritanceEvent.Date, Is.EqualTo( new DateOnly( 2038, 12, 25 ) ) );
+			Assert.That( inheritanceEvent.Kind, Is.EqualTo( PlanEventKind.Lifecycle ) );
+			Assert.That( calculatedPlan.Events, Is.Ordered.By( nameof( PlanEvent.Date ) ) );
+		} );
+	}
+
+	[Test]
+	public void Calculate_ZeroAmountInheritance_AddsNoInheritanceEvent() {
+		Plan plan = TestPlanFactory.Create(
+			inheritance: [
+				new Inheritance( "Todd", 0m, AgeReceived: 65 )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		Assert.That( calculatedPlan.Events.Any( e => e.Name.Contains( "inheritance" ) ), Is.False );
+	}
+
+	[Test]
+	public void Calculate_NoInheritance_AddsNoInheritanceEvent() {
+		Plan plan = TestPlanFactory.Create();
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+
+		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
+
+		Assert.That( calculatedPlan.Events.Any( e => e.Name.Contains( "inheritance" ) ), Is.False );
+	}
 
 	[Test]
 	public void Calculate_FirstPeriod_AppliesReturnAndContributionToBalances() {

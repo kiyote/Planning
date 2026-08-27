@@ -1,6 +1,11 @@
 ﻿namespace Planning.Model.Plans;
 
 
+/// <param name="CPPPercent">
+/// The share of the maximum CPP pension the member has earned as at age 65. The compiler applies
+/// the actuarial adjustment for <paramref name="CPPStartInYears"/> on top of this, so it should
+/// not be pre-adjusted for taking the pension early or late.
+/// </param>
 public record Member(
 	string Name,
 	DateOnly BirthDate,

@@ -29,8 +29,11 @@
     "NoGoYears": 10
   },
   "Contributions": [
-    { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": false },
-    { "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false }
+    { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": false, "Spousal": "Todd" },
+    { "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd" }
+  ],
+  "Inheritance": [
+    { "Member": "Todd", "Amount": 0, "AgeReceived": 65  }
   ],
   "Burndown": {
     "BurndownYears": 0

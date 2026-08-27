@@ -131,6 +131,32 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
+	public void Validate_ContributionReferencesUnknownSpousalContributor_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( "Tina", 3000m, 2026, Indexed: false, Spousal: "Nobody" )
+			]
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "unknown spousal contributor" ) );
+	}
+
+	[Test]
+	public void Validate_ContributionNamingItselfAsSpousal_ReportsNoError() {
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( "Todd", 3000m, 2026, Indexed: false, Spousal: "Todd" )
+			]
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.None.Contains( "spousal" ) );
+	}
+
+	[Test]
 	public void Validate_MemberWithPartialAssets_HasEveryTaxStatusSynthesized() {
 		// A member given only a Taxable account still ends up holding one account of every tax
 		// status, so contributions and rollovers always have a destination.

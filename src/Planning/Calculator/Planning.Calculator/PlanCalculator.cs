@@ -56,6 +56,10 @@ public class PlanCalculator {
 		Dictionary<AssetId, decimal> withdrawnThisYear = [];
 		int currentTrackingYear = 0;
 
+		// Spousal contributions are attributed back to the contributing spouse on withdrawal for
+		// a rolling three-year window, so the ledger spans the whole projection.
+		SpousalAttributionLedger spousalAttribution = new SpousalAttributionLedger();
+
 		foreach( CompiledPeriod period in compiledPlan.Periods ) {
 			List<CalculatedAsset> startingAssets = [.. currentAssets];
 
@@ -65,6 +69,7 @@ public class PlanCalculator {
 				currentTrackingYear = period.PeriodDate.Year;
 				yearStartBalances = currentAssets.ToDictionary( a => a.AssetId, a => a.Amount );
 				withdrawnThisYear = [];
+				spousalAttribution.Prune( currentTrackingYear );
 			}
 
 			IReadOnlyList<CalculatedIncome> taxableIncome = [.. _incomeCalculator.CalculateTaxableIncome( period, compiledPlan )];
@@ -82,6 +87,16 @@ public class PlanCalculator {
 			ContributionAllocation allocation = _contributionPolicy.AllocateContributions( compiledPlan, currentAssets, period.PeriodDate, isFirstPeriod, compiledPlan.Contribution[period] );
 			IReadOnlyList<CalculatedContribution> contributions = allocation.Contributions;
 			currentAssets = [.. allocation.Assets];
+
+			// Spousal contributions stay attributable to the contributor for the year they are
+			// made and the two that follow, so they are recorded as they are applied.
+			foreach( SpousalDeposit deposit in allocation.SpousalDeposits ) {
+				spousalAttribution.RecordContribution(
+					deposit.DestinationMemberId,
+					deposit.ContributorMemberId,
+					period.PeriodDate.Year,
+					deposit.Amount );
+			}
 
 			IReadOnlyList<CalculatedWithdrawal> withdrawals = [.. _withdrawalPolicy.CalculateWithdrawals( period, compiledPlan, currentAssets, retirementIncomeShortfall )];
 
@@ -116,7 +131,7 @@ public class PlanCalculator {
 			// and tax fall on the survivor alone.
 			RollOverAssetsOnDeath( compiledPlan, endingAssets, period.PeriodDate );
 
-			AccrueTaxableAmounts( compiledPlan, taxableIncome, withdrawals, currentAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember );
+			AccrueTaxableAmounts( compiledPlan, taxableIncome, withdrawals, currentAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, spousalAttribution, period.PeriodDate.Year );
 
 			IReadOnlyList<CalculatedTax> taxes = [];
 			decimal totalTax = 0m;
@@ -144,7 +159,7 @@ public class PlanCalculator {
 				if( rrif.Total > 0m ) {
 					// The forced withdrawal is fully taxable income to the account's owner, so it
 					// must be accrued before the year's tax is settled below.
-					AccrueTaxableAmounts( compiledPlan, [], rrif.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember );
+					AccrueTaxableAmounts( compiledPlan, [], rrif.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, spousalAttribution, period.PeriodDate.Year );
 
 					rrifMinimumTransfer = _rrifMinimumPolicy.ApplyWithdrawals(
 						compiledPlan, endingAssets, rrif.Withdrawals, period.PeriodDate );
@@ -170,7 +185,7 @@ public class PlanCalculator {
 					Dictionary<MemberId, decimal> taxableWithoutBurndown = new( yearlyTaxableByMember );
 					Dictionary<MemberId, decimal> splittableWithoutBurndown = new( yearlySplittableByMember );
 
-					AccrueTaxableAmounts( compiledPlan, [], burndown.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember );
+					AccrueTaxableAmounts( compiledPlan, [], burndown.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, spousalAttribution, period.PeriodDate.Year );
 
 					Dictionary<MemberId, decimal> burndownTaxByMember = CalculateBurndownTax(
 						plan, compiledPlan,
@@ -253,7 +268,7 @@ public class PlanCalculator {
 			BuildInsufficientFundsSummary( periods ),
 			BuildTaxSummary( periods, terminalTax ),
 			BuildEstateSummary( plan, periods, terminalTax, planStartYear ),
-			BuildEvents( compiledPlan ),
+			BuildEvents( plan, compiledPlan ),
 			plan.RetirementIncome
 		);
 		return calculatedPlan;
@@ -286,6 +301,8 @@ public class PlanCalculator {
 
 		// Attribute each remaining balance's deemed income to the member who owns the account.
 		// The estate is deemed to dispose of the whole balance, so the full amount is realized.
+		// Spousal attribution deliberately does not apply here: the rule ceases on death, so a
+		// deemed disposition always falls on the annuitant regardless of who contributed.
 		Dictionary<MemberId, decimal> deemedIncomeByMember = [];
 		foreach( CalculatedAsset asset in finalPeriod.EndingAssets ) {
 			CompiledAsset compiledAsset = assetsById[asset.AssetId];
@@ -319,10 +336,11 @@ public class PlanCalculator {
 
 	/// <summary>
 	/// Collects every graphable timeline event for the plan: each member's lifecycle events
-	/// (retirement, CPP start, OAS start, and death) and the retirement-income phase
-	/// transitions (Go-Go, Slow-Go, and No-Go), ordered by date.
+	/// (retirement, CPP start, OAS start, inheritance receipt, and death) and the
+	/// retirement-income phase transitions (Go-Go, Slow-Go, and No-Go), ordered by date.
 	/// </summary>
 	private static IReadOnlyList<PlanEvent> BuildEvents(
+		Plan plan,
 		CompiledPlan compiledPlan
 	) {
 		List<PlanEvent> events = [];
@@ -332,6 +350,15 @@ public class PlanCalculator {
 			events.Add( new PlanEvent( member.CPPStartDate, $"{member.Name} CPP", PlanEventKind.Lifecycle ) );
 			events.Add( new PlanEvent( member.OASStartDate, $"{member.Name} OAS", PlanEventKind.Lifecycle ) );
 			events.Add( new PlanEvent( member.DeathDate, $"{member.Name} dies", PlanEventKind.Lifecycle ) );
+
+			// An inheritance is received once, in the month the member reaches the stated age,
+			// and only if the member lives to see it. One of no value is not worth marking.
+			foreach( Inheritance inheritance in plan.Inheritance.Where( i => i.Member == member.Name && i.Amount > 0m ) ) {
+				DateOnly receiptDate = member.BirthDate.AddYears( inheritance.AgeReceived );
+				if( receiptDate <= member.DeathDate ) {
+					events.Add( new PlanEvent( receiptDate, $"{member.Name} inheritance", PlanEventKind.Lifecycle ) );
+				}
+			}
 		}
 
 		RetirementPhaseSchedule schedule = compiledPlan.RetirementPhaseSchedule;
@@ -437,6 +464,10 @@ public class PlanCalculator {
 	/// Accumulates the year's taxable base. Withdrawals are measured against
 	/// <paramref name="assetsBeforeWithdrawal"/>, because the taxable gain depends on the
 	/// balance and cost base as they stood before the withdrawal was taken.
+	///
+	/// Registered withdrawals are run through <paramref name="spousalAttribution"/> first, since
+	/// a withdrawal from a spousal plan is taxed to the contributing spouse to the extent of the
+	/// contributions still inside the attribution window.
 	/// </summary>
 	private static void AccrueTaxableAmounts(
 		CompiledPlan compiledPlan,
@@ -445,7 +476,9 @@ public class PlanCalculator {
 		IReadOnlyList<CalculatedAsset> assetsBeforeWithdrawal,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
-		Dictionary<MemberId, decimal> yearlyOasByMember
+		Dictionary<MemberId, decimal> yearlyOasByMember,
+		SpousalAttributionLedger spousalAttribution,
+		int withdrawalYear
 	) {
 		foreach( CalculatedIncome income in taxableIncome ) {
 			Add( yearlyTaxableByMember, income.MemberId, income.Amount );
@@ -463,11 +496,20 @@ public class PlanCalculator {
 
 			decimal taxable = Realize( snapshot, withdrawal.Amount ).TaxableIncome;
 			if( taxable != 0m ) {
-				Add( yearlyTaxableByMember, asset.MemberId, taxable );
+				// Attribution applies only to registered plans; other accounts are always taxed
+				// to their owner.
+				IReadOnlyList<AttributedIncome> attributed = asset.TaxStatus == AssetTaxStatus.Taxable
+					? spousalAttribution.Attribute( asset.MemberId, withdrawalYear, taxable )
+					: [new AttributedIncome( asset.MemberId, taxable )];
 
-				// Only fully-taxable RRSP withdrawal income is eligible for pension splitting.
-				if( asset.TaxStatus == AssetTaxStatus.Taxable ) {
-					Add( yearlySplittableByMember, asset.MemberId, taxable );
+				foreach( AttributedIncome share in attributed ) {
+					Add( yearlyTaxableByMember, share.MemberId, share.Amount );
+
+					// Only fully-taxable RRSP withdrawal income is eligible for pension splitting,
+					// and it splits from whoever is actually taxed on it.
+					if( asset.TaxStatus == AssetTaxStatus.Taxable ) {
+						Add( yearlySplittableByMember, share.MemberId, share.Amount );
+					}
 				}
 			}
 		}

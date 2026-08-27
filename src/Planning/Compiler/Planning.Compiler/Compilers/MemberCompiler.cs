@@ -6,6 +6,24 @@ namespace Planning.Compiler.Compilers;
 
 internal sealed class MemberCompiler {
 
+	/// <summary>
+	/// The age at which CPP is paid at its unadjusted rate. Starting earlier permanently reduces
+	/// the pension and starting later permanently increases it.
+	/// </summary>
+	private const int CPPStandardStartAge = 65;
+
+	/// <summary>
+	/// The permanent reduction, per month, for each month CPP is taken before
+	/// <see cref="CPPStandardStartAge"/>. Taking CPP at 60 therefore pays 64% of the age-65 amount.
+	/// </summary>
+	private const decimal CPPEarlyReductionPercentPerMonth = 0.6m;
+
+	/// <summary>
+	/// The permanent increase, per month, for each month CPP is deferred past
+	/// <see cref="CPPStandardStartAge"/>. Deferring to 70 therefore pays 142% of the age-65 amount.
+	/// </summary>
+	private const decimal CPPDeferralIncreasePercentPerMonth = 0.7m;
+
 	public IReadOnlyList<CompiledMember> Compile(
 		Plan plan
 	) {
@@ -35,11 +53,31 @@ internal sealed class MemberCompiler {
 					RetirementDate: retirementStart,
 					CPPStartDate: member.BirthDate.AddYears( member.CPPStartInYears ).StartOfNextMonth(),
 					OASStartDate: member.BirthDate.AddYears( 65 ).StartOfNextMonth(),
-					CPPPercent: member.CPPPercent
+					CPPPercent: AdjustCPPForStartAge( member.CPPPercent, member.CPPStartInYears )
 				)
 			);
 		}
 
 		return members;
+	}
+
+	/// <summary>
+	/// Applies the CPP actuarial adjustment to a member's entitlement. The configured
+	/// <see cref="Member.CPPPercent"/> is the share of the maximum pension the member has earned
+	/// as at <see cref="CPPStandardStartAge"/>; taking the pension earlier or later than that age
+	/// permanently scales it, so the effective percent carried on the compiled member already
+	/// includes the adjustment.
+	/// </summary>
+	private static decimal AdjustCPPForStartAge(
+		decimal cppPercent,
+		int cppStartInYears
+	) {
+		int monthsFromStandard = ( cppStartInYears - CPPStandardStartAge ) * 12;
+
+		decimal factor = monthsFromStandard < 0
+			? 1m - ( -monthsFromStandard * CPPEarlyReductionPercentPerMonth / 100m )
+			: 1m + monthsFromStandard * CPPDeferralIncreasePercentPerMonth / 100m;
+
+		return cppPercent * factor;
 	}
 }
