@@ -60,23 +60,23 @@ public class PlanReporterTests {
 				Is.EqualTo( "Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],CapitalGains (Todd) [Start],CapitalGains (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,CapitalGains (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,CapitalGains (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,CapitalGains (Todd) Contribution,CapitalGains (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],CapitalGains (Todd) [End],CapitalGains (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,CapitalGains (Todd) Backlog,CapitalGains (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer" ) );
 			Assert.That(
 				lines[1],
-				Is.EqualTo( "Jan 2026,550000.00,0.00,30000.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,False,0.00,0.00,0.00,0.00,0.00,0.00,3500.00,0.00,0.00,0.00,0.00,0.00,555791.67,0.00,30125.00,0.00,0.00,0.00,215581.00,109000.00,147614.00,109000.00,0.00,0.00,585916.67,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00" ) );
+				Is.EqualTo( "Jan 2026,550000.00,0.00,30000.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,False,0.00,0.00,0.00,0.00,0.00,0.00,3500.00,0.00,0.00,0.00,0.00,0.00,556250.00,0.00,30150.00,0.00,0.00,0.00,215581.00,109000.00,147614.00,109000.00,0.00,0.00,586400.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00" ) );
 			Assert.That( output, Does.Contain(
 				string.Join(
 					Environment.NewLine,
 					"Insufficient Funds Summary",
 					"Has Shortfall,True",
-					"First Shortfall Date,Aug 2054",
-					"First Shortfall Period,344",
-					"Shortfall Period Count,180",
-					"Total Unfunded Shortfall,1940688.11" ) ) );
+					"First Shortfall Date,Jan 2064",
+					"First Shortfall Period,457",
+					"Shortfall Period Count,90",
+					"Total Unfunded Shortfall,1267380.15" ) ) );
 			Assert.That( output, Does.Contain(
 				string.Join(
 					Environment.NewLine,
 					"Tax Summary",
-					"Total Federal Tax,696214.01",
-					"Total Provincial Tax,301373.62",
-					"Total Tax,997587.63" ) ) );
+					"Total Federal Tax,865032.30",
+					"Total Provincial Tax,369043.35",
+					"Total Tax,1234075.65" ) ) );
 		} );
 	}
 

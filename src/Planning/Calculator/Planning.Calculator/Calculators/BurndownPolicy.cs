@@ -67,11 +67,8 @@ internal sealed class BurndownPolicy {
 				continue;
 			}
 
-			decimal annualReturnPercent = AssetReturnResolver.ResolveAnnualReturnPercent(
-				plan, compiledPlan, asset.AssetId, periodDate );
-
 			decimal payment = Math.Min(
-				AmortizedPayment( asset.Amount, annualReturnPercent / 100m, remainingYears ),
+				AmortizedPayment( asset.Amount, plan.AnnualReturnPercent / 100m, remainingYears ),
 				asset.Amount );
 
 			if( payment <= 0m ) {

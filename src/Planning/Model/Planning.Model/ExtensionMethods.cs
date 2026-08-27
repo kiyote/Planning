@@ -26,16 +26,6 @@ public static class ExtensionMethods {
 
 	}
 
-	public static RangedValue? GetActive(
-		this IEnumerable<RangedValue> rangedValues,
-		DateOnly date
-	) {
-		return rangedValues
-			.Where(rv => rv.StartDate <= date)
-			.OrderByDescending(rv => rv.StartDate)
-			.FirstOrDefault();
-	}
-
 	/// <summary>
 	/// Formats a monetary value for display and reporting.
 	/// </summary>

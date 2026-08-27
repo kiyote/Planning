@@ -27,8 +27,7 @@ internal sealed class AssetGrowthCalculator {
 		}
 
 		decimal assetAmount = asset.Amount - withdrawnAmount;
-		decimal annualReturnPercent = AssetReturnResolver.ResolveAnnualReturnPercent( plan, compiledPlan, asset.AssetId, periodDate );
-		decimal returnAmount = assetAmount * ( annualReturnPercent / 100 ) / 12;
+		decimal returnAmount = assetAmount * ( plan.AnnualReturnPercent / 100 ) / 12;
 		decimal newAmount = assetAmount + returnAmount;
 
 		decimal contributedAmount = contributions.Where( c => c.AssetId == asset.AssetId ).Sum( c => c.Amount );

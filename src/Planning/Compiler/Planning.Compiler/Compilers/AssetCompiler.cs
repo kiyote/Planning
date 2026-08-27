@@ -20,8 +20,6 @@ internal sealed class AssetCompiler {
 					TaxStatus: asset.TaxStatus,
 					MemberId: member.MemberId,
 					Amount: asset.Amount,
-					ReturnPercentages: asset.ReturnPercentages,
-					StartDate: asset.StartDate,
 					ContributionBacklog: asset.ContributionBacklog,
 					AnnualContributionLimit: asset.AnnualContributionLimit
 				)

@@ -119,8 +119,6 @@ public sealed class PlanValidator {
 			if( asset.Amount < 0m ) {
 				result.AddError( $"Asset '{asset.Name}' amount ({asset.Amount}) must be nonnegative." );
 			}
-
-			ValidateOrderedRangedValues( asset, result );
 		}
 
 		foreach( var duplicate in plan.Assets
@@ -172,19 +170,6 @@ public sealed class PlanValidator {
 
 		if( plan.Burndown.BurndownYears <= 0 ) {
 			result.AddError( $"Burndown years ({plan.Burndown.BurndownYears}) must be positive." );
-		}
-	}
-
-	private static void ValidateOrderedRangedValues(
-		Asset asset,
-		PlanValidationResult result
-	) {
-		RangedValue[] returns = [.. asset.ReturnPercentages];
-		for( int i = 1; i < returns.Length; i++ ) {
-			if( returns[i].StartDate < returns[i - 1].StartDate ) {
-				result.AddError( $"Asset '{asset.Name}' return percentages must be ordered by start date." );
-				break;
-			}
 		}
 	}
 

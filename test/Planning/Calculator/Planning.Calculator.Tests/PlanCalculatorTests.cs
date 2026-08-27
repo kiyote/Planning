@@ -287,12 +287,12 @@ public class PlanCalculatorTests {
 			// Todd contributes 3200 from 2026; Tina starts in 2028 so contributes nothing yet.
 			// Contributions follow the Taxable, TaxExempt, CapitalGains priority order, so Todd's
 			// RRSP (asset 1) receives the amount while it still has room.
-			// Asset-level returns (5%) now apply per decision D004 even though the plan return is 0%.
+			// The plan return is 0%, so balances change only by the contribution.
 			Assert.That( period.Contribution.Single( c => c.AssetId == 1 ).Amount, Is.EqualTo( 3200m ) );
 			Assert.That( period.Contribution.Single( c => c.AssetId == 3 ).Amount, Is.Zero );
-			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 525_366.66666666666666666666667m ) );
-			Assert.That( period.EndingAssets.Single( a => a.AssetId == 2 ).Amount, Is.EqualTo( 30_125m ) );
-			Assert.That( period.TotalAssets, Is.EqualTo( 555_491.66666666666666666666667m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 523_200m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 2 ).Amount, Is.EqualTo( 30_000m ) );
+			Assert.That( period.TotalAssets, Is.EqualTo( 553_200m ) );
 		} );
 	}
 
@@ -419,10 +419,10 @@ public class PlanCalculatorTests {
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
 
 		Assert.Multiple( () => {
-			// Asset-level returns (5%) now apply per decision D004: 800 grows by 5%/12 = 3.333...
+			// The plan return is 0%, so the remaining balance does not grow.
 			Assert.That( period.Withdrawals.Sum( w => w.Amount ), Is.EqualTo( 200m ) );
-			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 803.3333333333333333333333333m ) );
-			Assert.That( period.TotalAssets, Is.EqualTo( 803.3333333333333333333333333m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 800m ) );
+			Assert.That( period.TotalAssets, Is.EqualTo( 800m ) );
 		} );
 	}
 
@@ -471,9 +471,9 @@ public class PlanCalculatorTests {
 
 		Assert.Multiple( () => {
 			// A single member draws the entire shortfall (no split across members).
-			// Asset-level returns (5%) now apply per decision D004: 800 grows by 5%/12 = 3.333...
+			// The plan return is 0%, so the remaining balance does not grow.
 			Assert.That( period.Withdrawals.Single( w => w.AssetId == 1 ).Amount, Is.EqualTo( 200m ) );
-			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 803.3333333333333333333333333m ) );
+			Assert.That( period.EndingAssets.Single( a => a.AssetId == 1 ).Amount, Is.EqualTo( 800m ) );
 		} );
 	}
 
@@ -754,8 +754,8 @@ public class PlanCalculatorTests {
 				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Todd", 100_000m, returnPercentage: 0m ),
-				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Tina", 100_000m, returnPercentage: 0m )
+				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Todd", 100_000m ),
+				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Tina", 100_000m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -800,8 +800,8 @@ public class PlanCalculatorTests {
 					new Member( "Tina", new DateOnly( 1956, 1, 1 ), 90, 60, 70, 50m )
 				],
 				assets: [
-					TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 2_000_000m, returnPercentage: 0m ),
-					TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, returnPercentage: 0m )
+					TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 2_000_000m ),
+					TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m )
 				],
 				annualInflationPercent: 0m,
 				annualReturnPercent: 0m,
@@ -922,8 +922,8 @@ public class PlanCalculatorTests {
 				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100_000m, returnPercentage: 0m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100_000m, returnPercentage: 0m )
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100_000m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100_000m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,

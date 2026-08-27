@@ -90,14 +90,14 @@ public class TerminalTaxTests {
 				new Member( "Tina", new DateOnly( 1961, 1, 1 ), 66, 65, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", taxableAmount, 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", taxableAmount, 0m, 0m ),
 				// Room to absorb surplus income; without it the surplus spills into the taxable
 				// non-registered account and this stops being a purely tax-exempt estate.
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", taxExemptAmount, 1_000_000m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m, 0m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m, 0m )
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", taxExemptAmount, 1_000_000m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,

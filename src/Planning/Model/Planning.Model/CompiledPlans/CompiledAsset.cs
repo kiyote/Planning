@@ -9,8 +9,6 @@ public record CompiledAsset(
 	AssetTaxStatus TaxStatus,
 	MemberId MemberId,
 	decimal Amount,
-	IEnumerable<RangedValue> ReturnPercentages,
-	DateOnly StartDate,
 	decimal ContributionBacklog,
 	decimal AnnualContributionLimit
 );

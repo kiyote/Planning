@@ -109,7 +109,7 @@ public class CapitalGainsTaxationTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			assets: [
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m, 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -181,12 +181,12 @@ public class CapitalGainsTaxationTests {
 				new Member( "Tina", new DateOnly( 1986, 1, 1 ), 66, 65, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 0m, annualReturnPercent ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 0m, annualReturnPercent ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", openingNonRegistered, -1m, -1m, annualReturnPercent ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m, annualReturnPercent ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m, annualReturnPercent ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m, annualReturnPercent )
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", openingNonRegistered, -1m, -1m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: annualReturnPercent,

@@ -102,22 +102,13 @@ public static class TestPlanFactory {
 		string member,
 		decimal amount,
 		decimal contributionBacklog = 0m,
-		decimal annualContributionLimit = 0m,
-		decimal returnPercentage = 5m,
-		DateOnly? startDate = null
+		decimal annualContributionLimit = 0m
 	) {
 		return new Asset(
 			Name: name,
 			TaxStatus: taxStatus,
 			Member: member,
 			Amount: amount,
-			ReturnPercentages: [
-				new RangedValue(
-					StartDate: DateOnly.MinValue,
-					Value: returnPercentage
-				)
-			],
-			StartDate: startDate ?? DateOnly.MinValue,
 			ContributionBacklog: contributionBacklog,
 			AnnualContributionLimit: annualContributionLimit
 		);

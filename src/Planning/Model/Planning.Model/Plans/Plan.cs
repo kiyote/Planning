@@ -55,8 +55,6 @@ public record Plan(
 					TaxStatus: status,
 					Member: member.Name,
 					Amount: 0m,
-					ReturnPercentages: [],
-					StartDate: default,
 					ContributionBacklog: 0m,
 					AnnualContributionLimit: 0m
 				) );
