@@ -8,18 +8,18 @@
   "CPPCombinedSurvivorMaximum": 1531.56,
   "OASMaximum": 743.05,
   "Assets": [
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000 },
-    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000 },
-    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ContributionBacklog": -1, "AnnualContributionLimit": -1 },
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ContributionBacklog": 147614, "AnnualContributionLimit": 10800 },
-    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000 },
-    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Tina", "Amount": 0, "ContributionBacklog": -1, "AnnualContributionLimit": -1 }
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false },
+    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false },
+    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true },
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ContributionBacklog": 147614, "AnnualContributionLimit": 10800, "HasUnlimitedContributionRoom": false },
+    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false },
+    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Tina", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true }
   ],
   "AnnualInflationPercent": 3.0,
   "AnnualReturnPercent": 6.0,
   "LifeInsurance": [
-    { "MemberName": "Todd", "Amount": 250000 },
-    { "MemberName": "Tina", "Amount": 250000 }
+    { "Member": "Todd", "Amount": 250000 },
+    { "Member": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
     "GoGo": 6000,
@@ -39,6 +39,13 @@
     "BurndownYears": 0
   },
   "TaxPolicy": {
+    "AllowPensionSplitting": false,
+    "AgeAmountBase": 8790,
+    "AgeAmountIncomeThreshold": 44325,
+    "AgeAmountReductionRate": 15.0,
+    "AgeAmountEligibilityAge": 65,
+    "PensionIncomeAmount": 2000,
+    "PensionIncomeEligibilityAge": 65,
     "OasClawbackThreshold": 90997,
     "OasClawbackRate": 15.0,
     "FederalBrackets": [

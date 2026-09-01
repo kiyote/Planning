@@ -29,7 +29,7 @@ public class PlanCalculator {
 		CompiledPlan compiledPlan
 	) {
 		List<CalculatedPeriod> periods = [];
-		List<CalculatedAsset> currentAssets = [.. compiledPlan.Assets.Select( a => new CalculatedAsset( a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus ) )];
+		List<CalculatedAsset> currentAssets = [.. compiledPlan.Assets.Select( a => new CalculatedAsset( a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.HasUnlimitedContributionRoom ) )];
 
 		int planStartYear = plan.StartDate.Year;
 
@@ -388,7 +388,7 @@ public class PlanCalculator {
 					continue;
 				}
 
-				if( asset.ContributionBacklog != CalculatedAsset.UnlimitedBacklog && asset.ContributionBacklog != 0m ) {
+				if( !asset.HasUnlimitedContributionRoom && asset.ContributionBacklog != 0m ) {
 					endingAssets[i] = asset with { ContributionBacklog = 0m };
 				}
 			}

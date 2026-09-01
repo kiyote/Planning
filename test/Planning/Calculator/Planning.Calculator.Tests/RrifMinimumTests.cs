@@ -18,6 +18,7 @@ public class RrifMinimumTests {
 		PropertyNameCaseInsensitive = true,
 		ReadCommentHandling = JsonCommentHandling.Skip,
 		AllowTrailingCommas = true,
+		RespectRequiredConstructorParameters = true,
 		Converters = { new JsonStringEnumConverter() }
 	};
 
@@ -29,6 +30,15 @@ public class RrifMinimumTests {
 		{
 			"FederalBrackets": [ { "LowerBound": 0, "Rate": 15.0 } ],
 			"ProvincialBrackets": [ { "LowerBound": 0, "Rate": 5.05 } ],
+			"AllowPensionSplitting": false,
+			"AgeAmountBase": 8790,
+			"AgeAmountIncomeThreshold": 44325,
+			"AgeAmountReductionRate": 15.0,
+			"AgeAmountEligibilityAge": 65,
+			"PensionIncomeAmount": 2000,
+			"PensionIncomeEligibilityAge": 65,
+			"OasClawbackThreshold": 90997,
+			"OasClawbackRate": 15.0,
 			"RRIFMinimums": [
 				{ "Age": 71, "Percent": 5.28 },
 				{ "Age": 95, "Percent": 20.00 }
@@ -197,10 +207,10 @@ public class RrifMinimumTests {
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 500_000m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, ownerTfsaBacklog, 7_000m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, spouseTfsaBacklog, 7_000m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,

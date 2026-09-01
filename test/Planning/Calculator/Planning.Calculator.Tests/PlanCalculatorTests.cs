@@ -65,7 +65,7 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 100_000m, contributionBacklog: 50_000m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, Asset.UnlimitedBacklog, 0 ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m )
 			],
 			contributions: [
@@ -77,7 +77,7 @@ public sealed class PlanCalculatorTests {
 
 		IReadOnlyList<CalculatedAsset> assets = [
 			.. compiledPlan.Assets.Select( a => new CalculatedAsset(
-				a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.Amount ) )
+				a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.HasUnlimitedContributionRoom, a.Amount ) )
 		];
 
 		ContributionAllocation allocation = new ContributionPolicy().AllocateContributions(
@@ -342,10 +342,10 @@ public sealed class PlanCalculatorTests {
 				// Taxable room is capped and exhausted by the first contribution, so the
 				// remainder overflows into the unlimited CapitalGains account.
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 0m, 1_000m, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, Asset.UnlimitedBacklog, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, Asset.UnlimitedBacklog, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m, 0m, 0m ),
 			],
 			contributions: [
@@ -365,9 +365,12 @@ public sealed class PlanCalculatorTests {
 			Assert.That( first.Contribution.Single( c => c.AssetId == toddNonRegCompiled.AssetId ).Amount, Is.EqualTo( 4_000m ) );
 			Assert.That( first.EndingAssets.Single( a => a.AssetId == toddRRSPCompiled.AssetId ).ContributionBacklog, Is.Zero );
 
-			// The unlimited backlog is never consumed and never accrues.
+			// The unlimited room is never consumed and never accrues.
 			Assert.That(
-				calculatedPlan.Periods.All( p => p.EndingAssets.Single( a => a.AssetId == toddNonRegCompiled.AssetId ).ContributionBacklog == -1m ),
+				calculatedPlan.Periods.All( p => {
+					CalculatedAsset a = p.EndingAssets.Single( a => a.AssetId == toddNonRegCompiled.AssetId );
+					return a.HasUnlimitedContributionRoom && a.ContributionBacklog == 0m;
+				} ),
 				Is.True
 			);
 

@@ -9,8 +9,12 @@ public record CalculatedAsset(
 	decimal Amount,
 	decimal ContributionBacklog,
 	AssetTaxStatus TaxStatus,
+	bool HasUnlimitedContributionRoom,
 	decimal CostBase = 0m
 ) {
+
+	/// <inheritdoc cref="Asset.ContributionBacklog"/>
+	public decimal ContributionBacklog { get; init; } = HasUnlimitedContributionRoom ? 0m : ContributionBacklog;
 
 	/// <summary>
 	/// The unrealized capital gain accrued on this asset: the amount by which its value exceeds
@@ -23,6 +27,4 @@ public record CalculatedAsset(
 	/// keeps that residue from being taxed as a gain.
 	/// </remarks>
 	public decimal AccruedGain => Math.Max( 0m, Math.Round( Amount - CostBase, 2, MidpointRounding.AwayFromZero ) );
-
-	public const decimal UnlimitedBacklog = CompiledAsset.UnlimitedBacklog;
 }

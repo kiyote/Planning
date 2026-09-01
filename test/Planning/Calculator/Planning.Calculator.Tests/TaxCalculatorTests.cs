@@ -36,7 +36,7 @@ public class TaxCalculatorTests {
 
 		decimal tax = calculator.CalculateTax( FederalBrackets, 60_000m, 1m );
 
-		decimal expected = ( 55_867m * 0.15m ) + ( ( 60_000m - 55_867m ) * 0.205m );
+		decimal expected = 55_867m * 0.15m + ( 60_000m - 55_867m ) * 0.205m;
 		Assert.That( tax, Is.EqualTo( expected ) );
 	}
 
@@ -142,7 +142,17 @@ public class TaxCalculatorTests {
 	private static TaxPolicy CreatePolicy() {
 		return new TaxPolicy(
 			FederalBrackets: FederalBrackets,
-			ProvincialBrackets: [ new TaxBracket( LowerBound: 0m, Rate: 5.05m ) ]
+			ProvincialBrackets: [ new TaxBracket( LowerBound: 0m, Rate: 5.05m ) ],
+			AllowPensionSplitting: false,
+			AgeAmountBase: 8_790m,
+			AgeAmountIncomeThreshold: 44_325m,
+			AgeAmountReductionRate: 15m,
+			AgeAmountEligibilityAge: 65,
+			PensionIncomeAmount: 2_000m,
+			PensionIncomeEligibilityAge: 65,
+			RrifMinimums: null,
+			OasClawbackThreshold: 90_997m,
+			OasClawbackRate: 15m
 		);
 	}
 }

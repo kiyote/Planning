@@ -62,7 +62,17 @@ public static class TestPlanFactory {
 				new TaxBracket( LowerBound: 102_894m, Rate: 11.16m ),
 				new TaxBracket( LowerBound: 150_000m, Rate: 12.16m ),
 				new TaxBracket( LowerBound: 220_000m, Rate: 13.16m )
-			]
+			],
+			AllowPensionSplitting: false,
+			AgeAmountBase: 8_790m,
+			AgeAmountIncomeThreshold: 44_325m,
+			AgeAmountReductionRate: 15m,
+			AgeAmountEligibilityAge: 65,
+			PensionIncomeAmount: 2_000m,
+			PensionIncomeEligibilityAge: 65,
+			RrifMinimums: null,
+			OasClawbackThreshold: 90_997m,
+			OasClawbackRate: 15m
 		);
 	}
 
@@ -93,8 +103,8 @@ public static class TestPlanFactory {
 			CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 30_000.0m, 10_000m, 2_000m ),
 			CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0.0m, 109_000m, 6_000m ),
 			CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0.0m, 109_000m, 6_000m ),
-			CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0.0m, -1.0m, 0.0m ),
-			CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0.0m, -1.0m, 0.0m )
+			CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0.0m, hasUnlimitedContributionRoom: true ),
+			CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0.0m, hasUnlimitedContributionRoom: true )
 		];
 	}
 
@@ -104,7 +114,8 @@ public static class TestPlanFactory {
 		string member,
 		decimal amount,
 		decimal contributionBacklog = 0m,
-		decimal annualContributionLimit = 0m
+		decimal annualContributionLimit = 0m,
+		bool hasUnlimitedContributionRoom = false
 	) {
 		return new Asset(
 			Name: name,
@@ -112,7 +123,8 @@ public static class TestPlanFactory {
 			Member: member,
 			Amount: amount,
 			ContributionBacklog: contributionBacklog,
-			AnnualContributionLimit: annualContributionLimit
+			AnnualContributionLimit: annualContributionLimit,
+			HasUnlimitedContributionRoom: hasUnlimitedContributionRoom
 		);
 	}
 

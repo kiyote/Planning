@@ -109,10 +109,10 @@ public class CapitalGainsTaxationTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			assets: [
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m )
 			],
@@ -125,7 +125,7 @@ public class CapitalGainsTaxationTests {
 		AssetId assetId = compiledPlan.Assets.First( a => a.TaxStatus == AssetTaxStatus.CapitalGains ).AssetId;
 
 		// Contribute 1,000 of after-tax capital into an empty account.
-		CalculatedAsset asset = new CalculatedAsset( assetId, 0m, -1m, AssetTaxStatus.CapitalGains, 0m );
+		CalculatedAsset asset = new CalculatedAsset( assetId, 0m, 0m, AssetTaxStatus.CapitalGains, true, 0m );
 		asset = Grow( plan, compiledPlan, asset, contribution: 1_000m, withdrawal: 0m );
 
 		Assert.Multiple( () => {
@@ -188,10 +188,10 @@ public class CapitalGainsTaxationTests {
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", openingNonRegistered, -1m, -1m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", openingNonRegistered, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: annualReturnPercent,

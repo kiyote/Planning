@@ -74,7 +74,8 @@ internal static class Program {
 	private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
 		PropertyNameCaseInsensitive = true,
 		ReadCommentHandling = JsonCommentHandling.Skip,
-		AllowTrailingCommas = true,		
+		AllowTrailingCommas = true,
+		RespectRequiredConstructorParameters = true,
 		Converters = { new JsonStringEnumConverter() }
 	};
 }

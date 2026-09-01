@@ -21,7 +21,8 @@ internal sealed class AssetCompiler {
 					MemberId: member.MemberId,
 					Amount: asset.Amount,
 					ContributionBacklog: asset.ContributionBacklog,
-					AnnualContributionLimit: asset.AnnualContributionLimit
+					AnnualContributionLimit: asset.AnnualContributionLimit,
+					HasUnlimitedContributionRoom: asset.HasUnlimitedContributionRoom
 				)
 			);
 		}

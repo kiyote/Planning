@@ -37,6 +37,6 @@ internal sealed class AssetGrowthCalculator {
 		costBase += contributedAmount;
 
 		assetAmount = newAmount + contributedAmount;
-		return new CalculatedAsset( asset.AssetId, assetAmount, asset.ContributionBacklog, asset.TaxStatus, costBase );
+		return new CalculatedAsset( asset.AssetId, assetAmount, asset.ContributionBacklog, asset.TaxStatus, asset.HasUnlimitedContributionRoom, costBase );
 	}
 }

@@ -10,7 +10,13 @@ public record CompiledAsset(
 	MemberId MemberId,
 	decimal Amount,
 	decimal ContributionBacklog,
-	decimal AnnualContributionLimit
+	decimal AnnualContributionLimit,
+	bool HasUnlimitedContributionRoom
 ) {
-	public const decimal UnlimitedBacklog = Asset.UnlimitedBacklog;
+
+	/// <inheritdoc cref="Asset.ContributionBacklog"/>
+	public decimal ContributionBacklog { get; init; } = HasUnlimitedContributionRoom ? 0m : ContributionBacklog;
+
+	/// <inheritdoc cref="Asset.ContributionBacklog"/>
+	public decimal AnnualContributionLimit { get; init; } = HasUnlimitedContributionRoom ? 0m : AnnualContributionLimit;
 }

@@ -72,7 +72,7 @@ internal static class ShelterAllocator {
 				}
 
 				CalculatedAsset destination = endingAssets[index];
-				bool unlimited = destination.ContributionBacklog == CalculatedAsset.UnlimitedBacklog;
+				bool unlimited = destination.HasUnlimitedContributionRoom;
 				decimal applied = unlimited
 					? remaining
 					: Math.Min( destination.ContributionBacklog, remaining );
@@ -87,7 +87,7 @@ internal static class ShelterAllocator {
 					Amount = destination.Amount + applied,
 					CostBase = destination.CostBase + applied,
 					ContributionBacklog = unlimited
-						? destination.ContributionBacklog
+						? 0m
 						: destination.ContributionBacklog - applied
 				};
 

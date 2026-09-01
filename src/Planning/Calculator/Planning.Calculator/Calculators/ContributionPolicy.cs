@@ -51,11 +51,17 @@ internal sealed class ContributionPolicy {
 		Dictionary<AssetId, decimal> backlogByAsset = assets
 			.ToDictionary( a => a.AssetId, a => a.ContributionBacklog );
 
+		// The backlog dictionary carries plain amounts, so the uncapped accounts are tracked
+		// alongside it rather than being encoded into the amount itself.
+		HashSet<AssetId> unlimitedRoomAssets = [ .. assets
+			.Where( a => a.HasUnlimitedContributionRoom )
+			.Select( a => a.AssetId ) ];
+
 		// Contribution room accrues once per calendar year, in January. The first period is
 		// skipped because the plan's seed backlog is stated as of the plan start date.
 		if( periodDate.Month == 1 && !isFirstPeriod ) {
 			foreach( CompiledAsset compiledAsset in compiledPlan.Assets ) {
-				if( compiledAsset.AnnualContributionLimit == CompiledAsset.UnlimitedBacklog ) {
+				if( compiledAsset.HasUnlimitedContributionRoom ) {
 					continue;
 				}
 
@@ -68,7 +74,7 @@ internal sealed class ContributionPolicy {
 				}
 
 				if( backlogByAsset.TryGetValue( compiledAsset.AssetId, out decimal backlog )
-					&& backlog != CalculatedAsset.UnlimitedBacklog
+					&& !unlimitedRoomAssets.Contains( compiledAsset.AssetId )
 				) {
 					backlogByAsset[compiledAsset.AssetId] = backlog + compiledAsset.AnnualContributionLimit;
 				}
@@ -100,7 +106,7 @@ internal sealed class ContributionPolicy {
 
 						if( roomAsset is not null ) {
 							decimal spousalApplied = Apply(
-								backlogByAsset, appliedByAsset, roomAsset.AssetId, candidate.AssetId, remaining );
+								backlogByAsset, unlimitedRoomAssets, appliedByAsset, roomAsset.AssetId, candidate.AssetId, remaining );
 							remaining -= spousalApplied;
 
 							if( spousalApplied > 0m ) {
@@ -118,7 +124,7 @@ internal sealed class ContributionPolicy {
 					}
 
 					decimal applied = Apply(
-						backlogByAsset, appliedByAsset, candidate.AssetId, candidate.AssetId, remaining );
+						backlogByAsset, unlimitedRoomAssets, appliedByAsset, candidate.AssetId, candidate.AssetId, remaining );
 					remaining -= applied;
 
 					if( remaining <= 0 ) {
@@ -166,12 +172,12 @@ internal sealed class ContributionPolicy {
 	/// Contributes as much of <paramref name="amount"/> as the room account's remaining room
 	/// allows, reducing that room and crediting the deposit account with the amount actually
 	/// applied. The two are the same account except for a spousal contribution, where the
-	/// contributor supplies the room and the annuitant receives the funds. An account with an
-	/// <see cref="CalculatedAsset.UnlimitedBacklog"/> backlog absorbs the full amount and its
-	/// backlog is left untouched.
+	/// contributor supplies the room and the annuitant receives the funds. An account with
+	/// unlimited contribution room absorbs the full amount and its backlog is left untouched.
 	/// </summary>
 	private static decimal Apply(
 		Dictionary<AssetId, decimal> backlogByAsset,
+		IReadOnlySet<AssetId> unlimitedRoomAssets,
 		Dictionary<AssetId, decimal> appliedByAsset,
 		AssetId roomAssetId,
 		AssetId depositAssetId,
@@ -181,7 +187,7 @@ internal sealed class ContributionPolicy {
 			return 0;
 		}
 
-		if( available == CalculatedAsset.UnlimitedBacklog ) {
+		if( unlimitedRoomAssets.Contains( roomAssetId ) ) {
 			appliedByAsset[depositAssetId] = appliedByAsset.GetValueOrDefault( depositAssetId ) + amount;
 
 			return amount;
