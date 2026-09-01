@@ -11,7 +11,8 @@ public record CompiledAsset(
 	decimal Amount,
 	decimal ContributionBacklog,
 	decimal AnnualContributionLimit,
-	bool HasUnlimitedContributionRoom
+	bool HasUnlimitedContributionRoom,
+	decimal CostBase
 ) {
 
 	/// <inheritdoc cref="Asset.ContributionBacklog"/>

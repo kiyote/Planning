@@ -77,7 +77,7 @@ public sealed class PlanCalculatorTests {
 
 		IReadOnlyList<CalculatedAsset> assets = [
 			.. compiledPlan.Assets.Select( a => new CalculatedAsset(
-				a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.HasUnlimitedContributionRoom, a.Amount ) )
+				a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.HasUnlimitedContributionRoom, a.CostBase ) )
 		];
 
 		ContributionAllocation allocation = new ContributionPolicy().AllocateContributions(

@@ -121,6 +121,23 @@ public sealed class PlanValidator {
 			if( asset.Amount < 0m ) {
 				result.AddError( $"Asset '{asset.Name}' amount ({asset.Amount}) must be nonnegative." );
 			}
+
+			if( asset.CostBase < 0m ) {
+				result.AddError( $"Asset '{asset.Name}' cost base ({asset.CostBase}) must be nonnegative." );
+			}
+
+			// A cost base only describes how much of a balance escapes capital-gains tax. Any
+			// other tax status either taxes the whole withdrawal as income or taxes none of it,
+			// so a non-zero value there is a mistake rather than a preference.
+			if( asset.TaxStatus != AssetTaxStatus.CapitalGains && asset.CostBase != 0m ) {
+				result.AddError( $"Asset '{asset.Name}' has a cost base ({asset.CostBase}) but its tax status is {asset.TaxStatus}; only CapitalGains assets can carry a cost base." );
+			}
+
+			// A cost base above the balance is an unrealized loss. Gains are floored at zero and
+			// there is no loss-carryforward concept, so accepting it would silently discard it.
+			if( asset.TaxStatus == AssetTaxStatus.CapitalGains && asset.CostBase > asset.Amount ) {
+				result.AddError( $"Asset '{asset.Name}' cost base ({asset.CostBase}) exceeds its amount ({asset.Amount}); unrealized losses are not modelled." );
+			}
 		}
 
 		foreach( var duplicate in plan.Assets

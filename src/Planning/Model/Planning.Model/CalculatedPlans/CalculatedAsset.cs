@@ -1,5 +1,4 @@
-﻿using Planning.Model.CompiledPlans;
-using Planning.Model.Identifiers;
+﻿using Planning.Model.Identifiers;
 using Planning.Model.Plans;
 
 namespace Planning.Model.CalculatedPlans;
@@ -10,7 +9,7 @@ public record CalculatedAsset(
 	decimal ContributionBacklog,
 	AssetTaxStatus TaxStatus,
 	bool HasUnlimitedContributionRoom,
-	decimal CostBase = 0m
+	decimal CostBase
 ) {
 
 	/// <inheritdoc cref="Asset.ContributionBacklog"/>

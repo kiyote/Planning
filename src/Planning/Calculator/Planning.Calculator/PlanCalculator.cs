@@ -29,7 +29,15 @@ public class PlanCalculator {
 		CompiledPlan compiledPlan
 	) {
 		List<CalculatedPeriod> periods = [];
-		List<CalculatedAsset> currentAssets = [.. compiledPlan.Assets.Select( a => new CalculatedAsset( a.AssetId, a.Amount, a.ContributionBacklog, a.TaxStatus, a.HasUnlimitedContributionRoom ) )];
+		List<CalculatedAsset> currentAssets = [
+			.. compiledPlan.Assets.Select( a => new CalculatedAsset(
+				a.AssetId,
+				a.Amount,
+				a.ContributionBacklog,
+				a.TaxStatus,
+				a.HasUnlimitedContributionRoom,
+				a.CostBase ) )
+		];
 
 		int planStartYear = plan.StartDate.Year;
 

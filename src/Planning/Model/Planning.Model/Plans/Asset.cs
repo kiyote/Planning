@@ -14,6 +14,13 @@
 /// account. Such an account absorbs any amount deposited into it without consuming room, and
 /// accrues no annual room, so both amounts above are meaningless and are forced to zero.
 /// </param>
+/// <param name="CostBase">
+/// The adjusted cost base of the opening balance: the portion of <paramref name="Amount"/>
+/// that is already-taxed capital and so is not subject to capital-gains tax when realized.
+/// Only a <see cref="AssetTaxStatus.CapitalGains"/> account may carry a non-zero value; a
+/// registered account's withdrawal is taxed as income, or not at all, so a cost base has no
+/// meaning there and is rejected by validation rather than silently ignored.
+/// </param>
 public record Asset(
 	string Name,
 	AssetTaxStatus TaxStatus,
@@ -21,7 +28,8 @@ public record Asset(
 	decimal Amount,
 	decimal ContributionBacklog,
 	decimal AnnualContributionLimit,
-	bool HasUnlimitedContributionRoom
+	bool HasUnlimitedContributionRoom,
+	decimal CostBase
 ) {
 
 	/// <summary>
@@ -33,5 +41,5 @@ public record Asset(
 	/// <inheritdoc cref="ContributionBacklog"/>
 	public decimal AnnualContributionLimit { get; init; } = HasUnlimitedContributionRoom ? 0m : AnnualContributionLimit;
 
-	public static readonly Asset None = new Asset( "", AssetTaxStatus.Unknown, "", 0.0m, 0.0m, 0.0m, false );
+	public static readonly Asset None = new Asset( "", AssetTaxStatus.Unknown, "", 0.0m, 0.0m, 0.0m, false, 0.0m );
 }

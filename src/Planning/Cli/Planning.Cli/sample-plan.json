@@ -8,12 +8,12 @@
   "CPPCombinedSurvivorMaximum": 1531.56,
   "OASMaximum": 743.05,
   "Assets": [
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false },
-    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false },
-    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true },
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ContributionBacklog": 147614, "AnnualContributionLimit": 10800, "HasUnlimitedContributionRoom": false },
-    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false },
-    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Tina", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true }
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0 },
+    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false, "CostBase": 0 },
+    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true, "CostBase": 0 },
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ContributionBacklog": 147614, "AnnualContributionLimit": 10800, "HasUnlimitedContributionRoom": false, "CostBase": 0 },
+    { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false, "CostBase": 0 },
+    { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Tina", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true, "CostBase": 0 }
   ],
   "AnnualInflationPercent": 3.0,
   "AnnualReturnPercent": 6.0,
