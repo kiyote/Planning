@@ -1,4 +1,3 @@
-using Planning.Model;
 using Planning.Model.Plans;
 
 namespace Planning.Compiler;
@@ -34,11 +33,6 @@ public sealed class PlanValidator {
 		Member[] members,
 		PlanValidationResult result
 	) {
-		if( members.Length == 0 ) {
-			result.AddError( "The plan must contain at least one member." );
-			return;
-		}
-
 		if( members.Length != RequiredHouseholdSize ) {
 			result.AddError( $"The plan must contain exactly {RequiredHouseholdSize} members but contains {members.Length}." );
 		}

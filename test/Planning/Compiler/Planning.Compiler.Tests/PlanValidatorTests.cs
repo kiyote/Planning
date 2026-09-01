@@ -58,20 +58,6 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
-	public void Validate_NoMembers_ReportsError() {
-		Plan plan = TestPlanFactory.Create(
-			members: [],
-			assets: [],
-			lifeInsurance: [],
-			contributions: []
-		);
-
-		PlanValidationResult result = new PlanValidator().Validate( plan );
-
-		Assert.That( result.Errors, Has.Some.Contains( "at least one member" ) );
-	}
-
-	[Test]
 	public void Validate_WrongHouseholdSize_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [

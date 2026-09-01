@@ -29,6 +29,6 @@ public record CalculatedPeriod(
 	decimal BurndownWithdrawal,
 	decimal BurndownTax,
 	decimal BurndownTransfer,
-	decimal RrifMinimumWithdrawal = 0m,
-	decimal RrifMinimumTransfer = 0m
+	decimal RrifMinimumWithdrawal,
+	decimal RrifMinimumTransfer
 );

@@ -12,8 +12,8 @@ public record TaxSummary(
 	decimal TotalFederalTax,
 	decimal TotalProvincialTax,
 	decimal TotalTax,
-	decimal TerminalFederalTax = 0m,
-	decimal TerminalProvincialTax = 0m
+	decimal TerminalFederalTax,
+	decimal TerminalProvincialTax
 ) {
 
 	/// <summary>

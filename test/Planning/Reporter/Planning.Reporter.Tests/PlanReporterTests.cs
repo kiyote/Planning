@@ -134,7 +134,7 @@ public class PlanReporterTests {
 			new CalculatedPlan(
 				[],
 				new InsufficientFundsSummary( false, null, null, 0, 0m ),
-				new TaxSummary( 0m, 0m, 0m ),
+				new TaxSummary( 0m, 0m, 0m, 0m, 0m ),
 				new EstateSummary( 0m, 0m, 2026, 2026, 0m ),
 				[],
 				new RetirementIncome( 0m, 0m, 0, 0m, 0 )
@@ -188,7 +188,7 @@ public class PlanReporterTests {
 					4,
 					1234.5m
 				),
-				new TaxSummary( 0m, 0m, 0m ),
+				new TaxSummary( 0m, 0m, 0m, 0m, 0m ),
 				new EstateSummary( 0m, 0m, 2026, 2026, 0m ),
 				[],
 				new RetirementIncome( 0m, 0m, 0, 0m, 0 )
