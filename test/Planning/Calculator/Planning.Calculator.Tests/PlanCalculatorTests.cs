@@ -189,10 +189,11 @@ public sealed class PlanCalculatorTests {
 			Assert.That( period.StartingAssets.Single( a => a.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 520_000m ) );
 			Assert.That( period.Contribution.Single( c => c.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 3200m ) );
 			Assert.That( period.Withdrawals.Sum( w => w.Amount ), Is.Zero );
-			Assert.That( toddRRSPCalculated.Amount, Is.EqualTo( 525_366.66m).Within( 0.01m ) );
+			Assert.That( toddRRSPCalculated.Amount, Is.EqualTo( 525_366.66m ).Within( 0.01m ) );
 			Assert.That( tinaRRSPCalculated.Amount, Is.EqualTo( 30_125m ) );
 			Assert.That( period.TotalAssets, Is.EqualTo( 555_491.66m ).Within( 0.01m ) );
-		};
+		}
+		;
 	}
 
 	[Test]
@@ -340,34 +341,33 @@ public sealed class PlanCalculatorTests {
 			assets: [
 				// Taxable room is capped and exhausted by the first contribution, so the
 				// remainder overflows into the unlimited CapitalGains account.
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 1_000m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, Asset.UnlimitedBacklog, 0m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, 0m, 0m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 0m, 1_000m, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, Asset.UnlimitedBacklog, 0m ),
+				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, Asset.UnlimitedBacklog, 0m ),
+				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m, 0m, 0m ),
 			],
 			contributions: [
-				new Contribution( "Todd", 5_000m, 2026, Indexed: false )
+				new Contribution( MemberTodd, 5_000m, 2026, Indexed: false )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
-		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledAsset toddRRSPCompiled = compiledPlan.Assets.First( a => a.Name == AssetRRSP && a.MemberId == toddCompiled.MemberId );
-		CompiledAsset tinaRRSPCompiled = compiledPlan.Assets.First( a => a.Name == AssetRRSP && a.MemberId == tinaCompiled.MemberId );
+		CompiledAsset toddNonRegCompiled = compiledPlan.Assets.First( a => a.Name == AssetNonReg && a.MemberId == toddCompiled.MemberId );
 
 		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
 		CalculatedPeriod first = calculatedPlan.Periods.First();
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( first.Contribution.Single( c => c.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 1_000m ) );
-			Assert.That( first.Contribution.Single( c => c.AssetId == tinaRRSPCompiled.AssetId ).Amount, Is.EqualTo( 4_000m ) );
+			Assert.That( first.Contribution.Single( c => c.AssetId == toddNonRegCompiled.AssetId ).Amount, Is.EqualTo( 4_000m ) );
 			Assert.That( first.EndingAssets.Single( a => a.AssetId == toddRRSPCompiled.AssetId ).ContributionBacklog, Is.Zero );
 
 			// The unlimited backlog is never consumed and never accrues.
 			Assert.That(
-				calculatedPlan.Periods.All( p => p.EndingAssets.Single( a => a.AssetId == tinaRRSPCompiled.AssetId ).ContributionBacklog == -1m ),
+				calculatedPlan.Periods.All( p => p.EndingAssets.Single( a => a.AssetId == toddNonRegCompiled.AssetId ).ContributionBacklog == -1m ),
 				Is.True
 			);
 
@@ -375,8 +375,8 @@ public sealed class PlanCalculatorTests {
 			// unlimited account.
 			CalculatedPeriod second = calculatedPlan.Periods.ElementAt( 1 );
 			Assert.That( second.Contribution.Single( c => c.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.Zero );
-			Assert.That( second.Contribution.Single( c => c.AssetId == tinaRRSPCompiled.AssetId ).Amount, Is.EqualTo( 5_000m ) );
-		} );
+			Assert.That( second.Contribution.Single( c => c.AssetId == toddNonRegCompiled.AssetId ).Amount, Is.EqualTo( 5_000m ) );
+		}
 	}
 
 	[Test]
@@ -384,20 +384,19 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			annualReturnPercent: 0m,
 			assets: [
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 1_000m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 0m, 500m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 0m, 0m, 1_000m ),
+				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m, 0m, 500m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m ),
+				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m )
 			],
 			contributions: []
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
-		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledAsset toddRRSPCompiled = compiledPlan.Assets.First( a => a.Name == AssetRRSP && a.MemberId == toddCompiled.MemberId );
-		CompiledAsset tinaRRSPCompiled = compiledPlan.Assets.First( a => a.Name == AssetRRSP && a.MemberId == tinaCompiled.MemberId );
+		CompiledAsset toddTFSACompiled = compiledPlan.Assets.First( a => a.Name == AssetTFSA && a.MemberId == toddCompiled.MemberId );
 
 		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
 
@@ -407,9 +406,9 @@ public sealed class PlanCalculatorTests {
 
 		decimal TaxExemptBacklogAt( int year ) => calculatedPlan.Periods
 			.First( p => p.PeriodDate.Year == year && p.PeriodDate.Month == 1 )
-			.EndingAssets.Single( a => a.AssetId == tinaRRSPCompiled.AssetId ).ContributionBacklog;
+			.EndingAssets.Single( a => a.AssetId == toddTFSACompiled.AssetId ).ContributionBacklog;
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// Todd retires 2034-01-01, so room accrues each January through the retirement year.
 			Assert.That( TaxableBacklogAt( 2033 ), Is.EqualTo( 7_000m ) );
 			Assert.That( TaxableBacklogAt( 2034 ), Is.EqualTo( 8_000m ) );
@@ -420,7 +419,7 @@ public sealed class PlanCalculatorTests {
 
 			// Non-taxable accounts keep accruing after retirement.
 			Assert.That( TaxExemptBacklogAt( 2035 ), Is.EqualTo( TaxExemptBacklogAt( 2034 ) + 500m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -463,12 +462,12 @@ public sealed class PlanCalculatorTests {
 
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// Todd draws his 100 share from his own asset; Tina draws her 100 share from the
 			// same asset as another member's taxable account. The two are repacked into one.
 			Assert.That( period.Withdrawals.Count( w => w.Amount != 0m ), Is.EqualTo( 1 ) );
 			Assert.That( period.Withdrawals.Single( w => w.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 200m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -489,12 +488,12 @@ public sealed class PlanCalculatorTests {
 
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// The plan return is 0%, so the remaining balance does not grow.
 			Assert.That( period.Withdrawals.Sum( w => w.Amount ), Is.EqualTo( 200m ) );
 			Assert.That( period.EndingAssets.Single( a => a.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 800m ) );
 			Assert.That( period.TotalAssets, Is.EqualTo( 800m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -533,12 +532,12 @@ public sealed class PlanCalculatorTests {
 
 		CalculatedPeriod period = new PlanCalculator().Calculate( plan, compiledPlan ).Periods.First();
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// A single member draws the entire shortfall (no split across members).
 			// The plan return is 0%, so the remaining balance does not grow.
 			Assert.That( period.Withdrawals.Single( w => w.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 200m ) );
 			Assert.That( period.EndingAssets.Single( a => a.AssetId == toddRRSPCompiled.AssetId ).Amount, Is.EqualTo( 800m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -604,10 +603,10 @@ public sealed class PlanCalculatorTests {
 		// Todd (target age 70) dies end of January 2025; February is the first widowed month.
 		CalculatedPeriod afterDeath = calculatedPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2025, 2, 1 ) );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( afterDeath.TaxableIncome.Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.Zero );
 			Assert.That( afterDeath.TaxableIncome.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP Survivor" ).Amount, Is.GreaterThan( 0m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -657,12 +656,12 @@ public sealed class PlanCalculatorTests {
 		CalculatedPeriod afterDeath = calculatedPlan.Periods.First( p => p.PeriodDate > new DateOnly( 2025, 1, 1 ) );
 		CalculatedAsset survivorTfsa = afterDeath.EndingAssets.Single( a => a.AssetId == tinaTfsaId );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// The $250,000 payout is retained in a non-taxable (TFSA) account and, once the
 			// rollover has run, sits with the surviving member.
 			Assert.That( deathMonth.TotalAssets, Is.GreaterThan( 250_000m ) );
 			Assert.That( survivorTfsa.Amount, Is.GreaterThanOrEqualTo( 250_000m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -717,7 +716,7 @@ public sealed class PlanCalculatorTests {
 			.Select( p => p.EndingAssets.Single( a => a.AssetId == tinaTfsaId ).ContributionBacklog )
 			.Max();
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That(
 				afterDeath.EndingAssets.Single( a => a.AssetId == toddTfsaId ).ContributionBacklog,
 				Is.Zero,
@@ -726,7 +725,7 @@ public sealed class PlanCalculatorTests {
 				maxSurvivorRoom,
 				Is.LessThanOrEqualTo( 40_000m ),
 				"The survivor must never inherit the deceased member's contribution room." );
-		} );
+		}
 	}
 
 	[Test]
@@ -745,13 +744,13 @@ public sealed class PlanCalculatorTests {
 		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
 		InsufficientFundsSummary summary = calculatedPlan.InsufficientFunds;
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( summary.HasShortfall, Is.False );
 			Assert.That( summary.FirstShortfallDate, Is.Null );
 			Assert.That( summary.FirstShortfallPeriod, Is.Null );
 			Assert.That( summary.ShortfallPeriodCount, Is.Zero );
 			Assert.That( summary.TotalUnfundedShortfall, Is.Zero );
-		} );
+		}
 	}
 
 	[Test]
@@ -763,7 +762,7 @@ public sealed class PlanCalculatorTests {
 
 		IReadOnlyList<CalculatedPeriod> firstYear = [.. calculatedPlan.Periods.Where( p => p.PeriodDate.Year == 2026 )];
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			foreach( CalculatedPeriod period in firstYear.Where( p => p.PeriodDate.Month != 12 ) ) {
 				Assert.That( period.Taxes, Is.Empty, $"{period.PeriodDate:yyyy-MM} should have no tax" );
 				Assert.That( period.TotalTax, Is.Zero );
@@ -772,7 +771,7 @@ public sealed class PlanCalculatorTests {
 			CalculatedPeriod december = firstYear.Single( p => p.PeriodDate.Month == 12 );
 			Assert.That( december.Taxes, Is.Not.Empty );
 			Assert.That( december.TotalTax, Is.GreaterThan( 0m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -796,7 +795,7 @@ public sealed class PlanCalculatorTests {
 
 		CalculatedTax toddTax = december.Taxes.Single( t => t.MemberId == toddCompiled.MemberId );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// The pipeline wires the year's taxable-account withdrawals into the member's
 			// taxable base; the progressive-rate arithmetic itself is covered directly by
 			// TaxCalculatorTests.
@@ -804,7 +803,7 @@ public sealed class PlanCalculatorTests {
 			Assert.That( toddTax.FederalTax, Is.GreaterThan( 0m ) );
 			Assert.That( toddTax.ProvincialTax, Is.GreaterThan( 0m ) );
 			Assert.That( toddTax.TotalTax, Is.EqualTo( toddTax.FederalTax + toddTax.ProvincialTax ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -812,16 +811,16 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
+				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m ),
+				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Todd", 100_000m ),
-				TestPlanFactory.CreateAsset( "NonReg", AssetTaxStatus.CapitalGains, "Tina", 100_000m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m )
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 100_000m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 100_000m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 0m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m ),
+				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
+				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -837,7 +836,7 @@ public sealed class PlanCalculatorTests {
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
-		CompiledAsset toddRRSPCompiled = compiledPlan.Assets.First( a => a.Name == AssetRRSP && a.MemberId == toddCompiled.MemberId );
+		CompiledAsset toddNonRegCompiled = compiledPlan.Assets.First( a => a.Name == AssetNonReg && a.MemberId == toddCompiled.MemberId );
 
 		CalculatedPlan calculatedPlan = new PlanCalculator().Calculate( plan, compiledPlan );
 
@@ -846,7 +845,7 @@ public sealed class PlanCalculatorTests {
 
 		decimal toddWithdrawals = firstYear
 			.SelectMany( p => p.Withdrawals )
-			.Where( w => w.AssetId == toddRRSPCompiled.AssetId )
+			.Where( w => w.AssetId == toddNonRegCompiled.AssetId )
 			.Sum( w => w.Amount );
 
 		CalculatedTax toddTax = december.Taxes.Single( t => t.MemberId == toddCompiled.MemberId );
@@ -896,11 +895,11 @@ public sealed class PlanCalculatorTests {
 		CalculatedPlan withoutResult = new PlanCalculator().Calculate( withoutSplitting, new PlanCompiler().Compile( withoutSplitting ) );
 		CalculatedPlan withResult = new PlanCalculator().Calculate( withSplitting, new PlanCompiler().Compile( withSplitting ) );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			// Shifting RRSP income to the lower-income spouse lowers the combined progressive tax.
 			Assert.That( withResult.TaxSummary.TotalTax, Is.LessThan( withoutResult.TaxSummary.TotalTax ) );
 			Assert.That( withResult.TaxSummary.TotalTax, Is.GreaterThan( 0m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -913,12 +912,12 @@ public sealed class PlanCalculatorTests {
 		decimal expectedFederal = calculatedPlan.Periods.SelectMany( p => p.Taxes ).Sum( t => t.FederalTax );
 		decimal expectedProvincial = calculatedPlan.Periods.SelectMany( p => p.Taxes ).Sum( t => t.ProvincialTax );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( calculatedPlan.TaxSummary.TotalFederalTax, Is.EqualTo( expectedFederal ) );
 			Assert.That( calculatedPlan.TaxSummary.TotalProvincialTax, Is.EqualTo( expectedProvincial ) );
 			Assert.That( calculatedPlan.TaxSummary.TotalTax, Is.EqualTo( expectedFederal + expectedProvincial ) );
 			Assert.That( calculatedPlan.TaxSummary.TotalTax, Is.GreaterThan( 0m ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -977,10 +976,10 @@ public sealed class PlanCalculatorTests {
 			.SelectMany( p => p.Withdrawals )
 			.Sum( w => w.Amount );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( firstDecember.TaxFundingWithdrawal, Is.GreaterThan( 0m ) );
 			Assert.That( secondYearTaxable, Is.GreaterThan( secondYearWithdrawals ) );
-		} );
+		}
 	}
 
 	private static Plan CreateTaxPlan() {
