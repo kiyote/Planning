@@ -29,7 +29,7 @@ internal sealed class ContributionCompiler {
 				) {
 					if( contribution.Indexed ) {
 						int elapsedYears = period.PeriodDate.Year - plan.StartDate.Year;
-						double inflation = (double)(1 + plan.AnnualInflationPercent / 100);
+						double inflation = (double)(1 + (plan.AnnualInflationPercent / 100));
 
 						contributionAmount = contribution.Amount * (decimal)Math.Pow( inflation, elapsedYears );
 					} else {

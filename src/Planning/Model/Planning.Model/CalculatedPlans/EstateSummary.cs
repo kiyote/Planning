@@ -38,7 +38,7 @@ public record EstateSummary(
 			}
 
 			decimal deflator = 1m;
-			decimal rate = 1m + AnnualInflationPercent / 100m;
+			decimal rate = 1m + (AnnualInflationPercent / 100m);
 			for( int i = 0; i < years; i++ ) {
 				deflator *= rate;
 			}

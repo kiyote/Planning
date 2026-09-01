@@ -24,7 +24,7 @@ internal sealed class GovernmentBenefitCompiler {
 			}
 
 			if( period.PeriodDate.Month == 12 ) {
-				maximumCPP *= 1 + plan.AnnualInflationPercent / 100;
+				maximumCPP *= 1 + (plan.AnnualInflationPercent / 100);
 			}
 		}
 
@@ -66,8 +66,8 @@ internal sealed class GovernmentBenefitCompiler {
 			}
 
 			if( period.PeriodDate.Month == 12 ) {
-				potentialBenefit *= 1 + plan.AnnualInflationPercent / 100;
-				regularCPP *= 1 + plan.AnnualInflationPercent / 100;
+				potentialBenefit *= 1 + (plan.AnnualInflationPercent / 100);
+				regularCPP *= 1 + (plan.AnnualInflationPercent / 100);
 			}
 		}
 
@@ -97,7 +97,7 @@ internal sealed class GovernmentBenefitCompiler {
 			}
 
 			if( period.PeriodDate.Month == 12 ) {
-				maximumOAS *= 1 + plan.AnnualInflationPercent / 100;
+				maximumOAS *= 1 + (plan.AnnualInflationPercent / 100);
 			}
 		}
 

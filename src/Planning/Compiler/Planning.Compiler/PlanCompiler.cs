@@ -17,7 +17,9 @@ public class PlanCompiler {
 		IReadOnlyList<CompiledPeriod> periods = [.. new Compilers.PeriodCompiler().Compile( plan, members )];
 		IReadOnlyList<CompiledAsset> assets = [.. new Compilers.AssetCompiler().Compile( plan, members )];
 		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> scheduledIncome = new Compilers.ScheduledIncomeCompiler().Compile( plan, periods, members );
-		IDictionary<CompiledPeriod, decimal> desiredIncome = new Compilers.DesiredIncomeCompiler().Compile( plan, members, periods, out RetirementPhaseSchedule retirementPhaseSchedule );
+		Compilers.DesiredIncomeCompiler desiredIncomeCompiler = new Compilers.DesiredIncomeCompiler();
+		RetirementPhaseSchedule retirementPhaseSchedule = desiredIncomeCompiler.CompileSchedule( plan, members, periods );
+		IDictionary<CompiledPeriod, decimal> desiredIncome = desiredIncomeCompiler.Compile( plan, periods, retirementPhaseSchedule );
 		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new Compilers.ContributionCompiler().Compile( plan, members, periods );
 		CompiledBurndown burndown = new Compilers.BurndownCompiler().Compile( plan, members, assets, periods );
 

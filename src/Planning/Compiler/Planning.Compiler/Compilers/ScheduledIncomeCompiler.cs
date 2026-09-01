@@ -79,7 +79,7 @@ internal sealed class ScheduledIncomeCompiler {
 						&& receiptDate <= member.DeathDate
 					) {
 						int elapsedYears = receiptDate.Year - plan.StartDate.Year;
-						double inflation = (double)(1 + plan.AnnualInflationPercent / 100);
+						double inflation = (double)(1 + (plan.AnnualInflationPercent / 100));
 
 						inheritanceAmount = inheritance.Amount * (decimal)Math.Pow( inflation, elapsedYears );
 					}

@@ -36,7 +36,7 @@ public class TaxCalculatorTests {
 
 		decimal tax = calculator.CalculateTax( FederalBrackets, 60_000m, 1m );
 
-		decimal expected = 55_867m * 0.15m + ( 60_000m - 55_867m ) * 0.205m;
+		decimal expected = (55_867m * 0.15m) + (( 60_000m - 55_867m ) * 0.205m);
 		Assert.That( tax, Is.EqualTo( expected ) );
 	}
 
