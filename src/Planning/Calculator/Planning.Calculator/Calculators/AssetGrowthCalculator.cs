@@ -1,5 +1,4 @@
 using Planning.Model.CalculatedPlans;
-using Planning.Model.CompiledPlans;
 using Planning.Model.Plans;
 
 namespace Planning.Calculator.Calculators;
@@ -8,9 +7,7 @@ internal sealed class AssetGrowthCalculator {
 
 	public CalculatedAsset GrowAsset(
 		Plan plan,
-		CompiledPlan compiledPlan,
 		CalculatedAsset asset,
-		DateOnly periodDate,
 		IEnumerable<CalculatedWithdrawal> withdrawals,
 		IEnumerable<CalculatedContribution> contributions
 	) {

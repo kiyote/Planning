@@ -99,7 +99,7 @@ public class PlanCalculator {
 					deposit.Amount );
 			}
 
-			IReadOnlyList<CalculatedWithdrawal> withdrawals = [.. _withdrawalPolicy.CalculateWithdrawals( period, compiledPlan, currentAssets, retirementIncomeShortfall )];
+			IReadOnlyList<CalculatedWithdrawal> withdrawals = [.. _withdrawalPolicy.CalculateWithdrawals( compiledPlan, currentAssets, retirementIncomeShortfall )];
 
 			foreach( CalculatedWithdrawal withdrawal in withdrawals ) {
 				if( withdrawal.Amount > 0m ) {
@@ -111,7 +111,7 @@ public class PlanCalculator {
 			List<CalculatedAsset> endingAssets = [];
 			decimal totalAssets = 0.0m;
 			foreach( CalculatedAsset asset in currentAssets ) {
-				CalculatedAsset endingAsset = _assetGrowthCalculator.GrowAsset( plan, compiledPlan, asset, period.PeriodDate, withdrawals, contributions );
+				CalculatedAsset endingAsset = _assetGrowthCalculator.GrowAsset( plan, asset, withdrawals, contributions );
 				endingAssets.Add( endingAsset );
 			}
 
@@ -189,7 +189,7 @@ public class PlanCalculator {
 					AccrueTaxableAmounts( compiledPlan, [], burndown.AsCalculatedWithdrawals(), endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, spousalAttribution, period.PeriodDate.Year );
 
 					Dictionary<MemberId, decimal> burndownTaxByMember = CalculateBurndownTax(
-						plan, compiledPlan,
+						compiledPlan,
 						yearlyTaxableByMember, yearlySplittableByMember,
 						taxableWithoutBurndown, splittableWithoutBurndown,
 						yearlyOasByMember,
@@ -209,7 +209,7 @@ public class PlanCalculator {
 			}
 
 			if( isYearEnd && yearlyTaxableByMember.Count > 0 ) {
-				TaxSettlement settlement = SettleAnnualTax( plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember );
+				TaxSettlement settlement = SettleAnnualTax( compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember );
 				taxes = settlement.Taxes;
 				totalTax = taxes.Sum( t => t.TotalTax );
 				taxFundingWithdrawal = settlement.TaxFundingWithdrawal;
@@ -589,12 +589,10 @@ public class PlanCalculator {
 	/// the lower earner, capped at the amount needed to equalize their taxable bases.
 	/// </summary>
 	private Dictionary<MemberId, decimal> ApplyPensionSplitting(
-		Plan plan,
 		CompiledPlan compiledPlan,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
-		DateOnly periodDate,
-		decimal inflationIndex
+		DateOnly periodDate
 	) {
 		Dictionary<MemberId, decimal> result = new( yearlyTaxableByMember );
 
@@ -642,7 +640,6 @@ public class PlanCalculator {
 	}
 
 	private TaxSettlement SettleAnnualTax(
-		Plan plan,
 		CompiledPlan compiledPlan,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
@@ -656,7 +653,7 @@ public class PlanCalculator {
 
 		// Reallocate eligible RRSP income between spouses to minimize combined tax.
 		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
-			plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate, inflationIndex );
+			compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate );
 
 		List<CalculatedTax> taxes = [];
 		decimal totalFunded = 0m;
@@ -784,7 +781,6 @@ public class PlanCalculator {
 	/// progression, credits, and pension splitting are all reflected in the marginal cost.
 	/// </summary>
 	private Dictionary<MemberId, decimal> CalculateBurndownTax(
-		Plan plan,
 		CompiledPlan compiledPlan,
 		Dictionary<MemberId, decimal> taxableWithBurndown,
 		Dictionary<MemberId, decimal> splittableWithBurndown,
@@ -795,9 +791,9 @@ public class PlanCalculator {
 		decimal inflationIndex
 	) {
 		Dictionary<MemberId, decimal> withBurndown = TotalTaxByMember(
-			plan, compiledPlan, taxableWithBurndown, splittableWithBurndown, yearlyOasByMember, periodDate, inflationIndex );
+			compiledPlan, taxableWithBurndown, splittableWithBurndown, yearlyOasByMember, periodDate, inflationIndex );
 		Dictionary<MemberId, decimal> withoutBurndown = TotalTaxByMember(
-			plan, compiledPlan, taxableWithoutBurndown, splittableWithoutBurndown, yearlyOasByMember, periodDate, inflationIndex );
+			compiledPlan, taxableWithoutBurndown, splittableWithoutBurndown, yearlyOasByMember, periodDate, inflationIndex );
 
 		Dictionary<MemberId, decimal> delta = [];
 		foreach( CompiledMember member in compiledPlan.Members ) {
@@ -813,7 +809,6 @@ public class PlanCalculator {
 	}
 
 	private Dictionary<MemberId, decimal> TotalTaxByMember(
-		Plan plan,
 		CompiledPlan compiledPlan,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
@@ -822,7 +817,7 @@ public class PlanCalculator {
 		decimal inflationIndex
 	) {
 		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
-			plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate, inflationIndex );
+			compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate );
 
 		Dictionary<MemberId, decimal> result = [];
 		foreach( CompiledMember member in compiledPlan.Members ) {

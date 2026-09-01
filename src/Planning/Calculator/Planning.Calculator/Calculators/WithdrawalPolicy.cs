@@ -7,7 +7,6 @@ namespace Planning.Calculator.Calculators;
 internal sealed class WithdrawalPolicy {
 
 	public IEnumerable<CalculatedWithdrawal> CalculateWithdrawals(
-		CompiledPeriod period,
 		CompiledPlan plan,
 		List<CalculatedAsset> assets,
 		decimal shortfall

@@ -126,7 +126,7 @@ public class CapitalGainsTaxationTests {
 
 		// Contribute 1,000 of after-tax capital into an empty account.
 		CalculatedAsset asset = new CalculatedAsset( assetId, 0m, 0m, AssetTaxStatus.CapitalGains, true, 0m );
-		asset = Grow( plan, compiledPlan, asset, contribution: 1_000m, withdrawal: 0m );
+		asset = Grow( plan, asset, contribution: 1_000m, withdrawal: 0m );
 
 		Assert.Multiple( () => {
 			Assert.That( asset.Amount, Is.EqualTo( 1_000m ), "Balance after contribution." );
@@ -140,7 +140,7 @@ public class CapitalGainsTaxationTests {
 		Assert.That( asset.AccruedGain, Is.EqualTo( 1_000m ), "Growth is entirely accrued gain." );
 
 		// Withdraw half the balance: half the cost base is consumed and half the gain realized.
-		asset = Grow( plan, compiledPlan, asset, contribution: 0m, withdrawal: 1_000m );
+		asset = Grow( plan, asset, contribution: 0m, withdrawal: 1_000m );
 
 		Assert.Multiple( () => {
 			Assert.That( asset.Amount, Is.EqualTo( 1_000m ), "Balance after withdrawing half." );
@@ -151,16 +151,13 @@ public class CapitalGainsTaxationTests {
 
 	private static CalculatedAsset Grow(
 		Plan plan,
-		CompiledPlan compiledPlan,
 		CalculatedAsset asset,
 		decimal contribution,
 		decimal withdrawal
 	) {
 		return new AssetGrowthCalculator().GrowAsset(
 			plan,
-			compiledPlan,
 			asset,
-			new DateOnly( 2026, 1, 1 ),
 			withdrawal > 0m ? [new CalculatedWithdrawal( asset.AssetId, withdrawal )] : [],
 			contribution > 0m ? [new CalculatedContribution( asset.AssetId, contribution )] : []
 		);
