@@ -22,19 +22,18 @@ public class PlanReporterTests {
 			compiledPlan
 		);
 
-		string[] lines = writer.ToString()
+		string[] lines = [.. writer.ToString()
 			.Split( Environment.NewLine )
-			.Where( l => l.Length > 0 )
-			.ToArray();
+			.Where( l => l.Length > 0 )];
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That(
 				lines[0],
 				Is.EqualTo( "Period,CPP (Todd),OAS (Todd),CPP Survivor (Todd),Todd Life Insurance (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Tina Life Insurance (Tina),Todd Contribution,Tina Contribution,Retirement Income" ) );
 			Assert.That(
 				lines[1],
 				Is.EqualTo( "Jan 2026,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,3500.00,0.00,0.00" ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -54,7 +53,7 @@ public class PlanReporterTests {
 		string output = writer.ToString();
 		string[] lines = output.Split( Environment.NewLine );
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That(
 				lines[0],
 				Is.EqualTo( "Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],Non-Reg (Todd) [Start],Non-Reg (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,Non-Reg (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,Non-Reg (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,Non-Reg (Todd) Contribution,Non-Reg (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],Non-Reg (Todd) [End],Non-Reg (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,Non-Reg (Todd) Backlog,Non-Reg (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer" ) );
@@ -66,18 +65,18 @@ public class PlanReporterTests {
 					Environment.NewLine,
 					"Insufficient Funds Summary",
 					"Has Shortfall,True",
-					"First Shortfall Date,Jan 2064",
-					"First Shortfall Period,457",
-					"Shortfall Period Count,90",
-					"Total Unfunded Shortfall,1267380.15" ) ) );
+					"First Shortfall Date,Jun 2064",
+					"First Shortfall Period,462",
+					"Shortfall Period Count,85",
+					"Total Unfunded Shortfall,1198203.64" ) ) );
 			Assert.That( output, Does.Contain(
 				string.Join(
 					Environment.NewLine,
 					"Tax Summary",
-					"Total Federal Tax,865032.30",
-					"Total Provincial Tax,369043.35",
-					"Total Tax,1234075.65" ) ) );
-		} );
+					"Total Federal Tax,848539.57",
+					"Total Provincial Tax,366487.90",
+					"Total Tax,1215027.47" ) ) );
+		}
 	}
 
 	[Test]
@@ -198,14 +197,14 @@ public class PlanReporterTests {
 
 		string output = writer.ToString();
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( output, Does.Contain( "Insufficient Funds Summary" ) );
 			Assert.That( output, Does.Contain( "Has Shortfall,True" ) );
 			Assert.That( output, Does.Contain( "First Shortfall Date,May 2030" ) );
 			Assert.That( output, Does.Contain( "First Shortfall Period,53" ) );
 			Assert.That( output, Does.Contain( "Shortfall Period Count,4" ) );
 			Assert.That( output, Does.Contain( "Total Unfunded Shortfall,1234.50" ) );
-		} );
+		}
 	}
 
 	[Test]
@@ -223,7 +222,7 @@ public class PlanReporterTests {
 		string firstHeader = new StringReader( first.ToString() ).ReadLine()!;
 		string secondHeader = new StringReader( second.ToString() ).ReadLine()!;
 
-		Assert.Multiple( () => {
+		using( Assert.EnterMultipleScope() ) {
 			Assert.That( secondHeader, Is.EqualTo( firstHeader ) );
 			Assert.That(
 				firstHeader,
@@ -231,7 +230,7 @@ public class PlanReporterTests {
 					"Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],Non-Reg (Todd) [Start],Non-Reg (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,Non-Reg (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,Non-Reg (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,Non-Reg (Todd) Contribution,Non-Reg (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],Non-Reg (Todd) [End],Non-Reg (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,Non-Reg (Todd) Backlog,Non-Reg (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer"
 				)
 			);
-		} );
+		}
 	}
 
 	private static Plan CreateReportPlan() {

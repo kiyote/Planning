@@ -14,6 +14,50 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
+	public void Validate_TaxPolicyYearAfterPlanStart_ReportsError() {
+		// A future-dated policy would be indexed by a negative exponent, silently deflating
+		// its brackets rather than carrying them forward.
+		Plan plan = CreatePlanWithTaxPolicyYear( 2027 );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "must not be after the plan start year" ) );
+	}
+
+	[Test]
+	public void Validate_TaxPolicyYearTooFarBeforePlanStart_ReportsError() {
+		Plan plan = CreatePlanWithTaxPolicyYear( 2020 );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "must not be more than 5 years before" ) );
+	}
+
+	[Test]
+	public void Validate_TaxPolicyYearUnsetAtDefault_ReportsError() {
+		// A policy left at the default year would index by roughly two millennia of inflation
+		// and produce absurd figures rather than failing loudly.
+		Plan plan = CreatePlanWithTaxPolicyYear( 0 );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "must not be more than 5 years before" ) );
+	}
+
+	[TestCase( 2021 )]
+	[TestCase( 2024 )]
+	[TestCase( 2026 )]
+	public void Validate_TaxPolicyYearWithinTheAllowedWindow_IsValid( int policyYear ) {
+		// The window is inclusive at both ends: the plan start year itself and exactly five
+		// years earlier are both acceptable.
+		Plan plan = CreatePlanWithTaxPolicyYear( policyYear );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.True, string.Join( "; ", result.Errors ) );
+	}
+
+	[Test]
 	public void Validate_NoMembers_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [],
@@ -190,5 +234,14 @@ public class PlanValidatorTests {
 		PlanValidationResult result = new PlanValidator().Validate( plan );
 
 		Assert.That( result.Errors, Has.Some.Contains( "must be before the plan start date" ) );
+	}
+
+	private static Plan CreatePlanWithTaxPolicyYear(
+		int policyYear
+	) {
+		return TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = policyYear }
+		);
 	}
 }

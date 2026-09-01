@@ -174,7 +174,7 @@ public class PlanCalculator {
 					plan, compiledPlan, endingAssets, period.PeriodDate );
 
 				if( burndown.Total > 0m ) {
-					decimal inflationIndex = InflationIndex( plan.AnnualInflationPercent, period.PeriodDate, planStartYear );
+					decimal inflationIndex = InflationIndex( plan.AnnualInflationPercent, period.PeriodDate, compiledPlan.TaxPolicy );
 
 					Dictionary<MemberId, decimal> taxableWithoutBurndown = new( yearlyTaxableByMember );
 					Dictionary<MemberId, decimal> splittableWithoutBurndown = new( yearlySplittableByMember );
@@ -202,7 +202,7 @@ public class PlanCalculator {
 			}
 
 			if( isYearEnd && yearlyTaxableByMember.Count > 0 ) {
-				TaxSettlement settlement = SettleAnnualTax( plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, planStartYear, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember );
+				TaxSettlement settlement = SettleAnnualTax( plan, compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember );
 				taxes = settlement.Taxes;
 				totalTax = taxes.Sum( t => t.TotalTax );
 				taxFundingWithdrawal = settlement.TaxFundingWithdrawal;
@@ -255,7 +255,7 @@ public class PlanCalculator {
 			currentAssets = endingAssets;
 		}
 
-		MemberTax terminalTax = CalculateTerminalTax( plan, compiledPlan, periods, planStartYear );
+		MemberTax terminalTax = CalculateTerminalTax( plan, compiledPlan, periods );
 
 		CalculatedPlan calculatedPlan = new CalculatedPlan(
 			periods,
@@ -279,8 +279,7 @@ public class PlanCalculator {
 	private MemberTax CalculateTerminalTax(
 		Plan plan,
 		CompiledPlan compiledPlan,
-		IReadOnlyList<CalculatedPeriod> periods,
-		int planStartYear
+		IReadOnlyList<CalculatedPeriod> periods
 	) {
 		if( periods.Count == 0 ) {
 			return new MemberTax( 0m, 0m );
@@ -289,7 +288,7 @@ public class PlanCalculator {
 		CalculatedPeriod finalPeriod = periods[^1];
 		DateOnly deathDate = compiledPlan.Members.Max( m => m.DeathDate );
 		decimal inflationIndex = InflationIndex(
-			plan.AnnualInflationPercent, finalPeriod.PeriodDate, planStartYear );
+			plan.AnnualInflationPercent, finalPeriod.PeriodDate, compiledPlan.TaxPolicy );
 
 		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
 
@@ -642,12 +641,11 @@ public class PlanCalculator {
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
 		Dictionary<MemberId, decimal> yearlyOasByMember,
 		DateOnly periodDate,
-		int planStartYear,
 		decimal annualInflationPercent,
 		List<CalculatedAsset> endingAssets,
 		IReadOnlyDictionary<MemberId, decimal> preFundedTaxByMember
 	) {
-		decimal inflationIndex = InflationIndex( annualInflationPercent, periodDate, planStartYear );
+		decimal inflationIndex = InflationIndex( annualInflationPercent, periodDate, compiledPlan.TaxPolicy );
 
 		// Reallocate eligible RRSP income between spouses to minimize combined tax.
 		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
@@ -694,14 +692,20 @@ public class PlanCalculator {
 		return new TaxSettlement( taxes, totalFunded, totalUnfunded, deferredTaxableByMember );
 	}
 
+	/// <summary>
+	/// The multiplier that carries the tax policy's monetary values forward from the year they
+	/// are expressed in to the year being calculated. Anchoring on the policy's own year (rather
+	/// than the plan start year) means a policy authored with, say, 2024 CRA figures indexes
+	/// correctly no matter which year the plan happens to start in.
+	/// </summary>
 	private static decimal InflationIndex(
 		decimal annualInflationPercent,
 		DateOnly periodDate,
-		int planStartYear
+		TaxPolicy taxPolicy
 	) {
 		return (decimal)Math.Pow(
 			(double)( 1m + annualInflationPercent / 100m ),
-			periodDate.Year - planStartYear );
+			periodDate.Year - taxPolicy.Year );
 	}
 
 	private sealed record MemberTax(

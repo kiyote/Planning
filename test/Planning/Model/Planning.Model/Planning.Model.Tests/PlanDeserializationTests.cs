@@ -59,6 +59,7 @@ public class PlanDeserializationTests {
 			{ "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd" }
 		],
 		"TaxPolicy": {
+			"Year": 2024,
 			"FederalBrackets": [
 				{ "LowerBound": 0, "Rate": 15.0 },
 				{ "LowerBound": 55867, "Rate": 20.5 }
@@ -222,6 +223,7 @@ public class PlanDeserializationTests {
 			Assert.That( provincial[0].LowerBound, Is.Zero );
 			Assert.That( provincial[0].Rate, Is.EqualTo( 5.05m ) );
 
+			Assert.That( policy.Year, Is.EqualTo( 2024 ) );
 			Assert.That( policy.AllowPensionSplitting, Is.True );
 			Assert.That( policy.AgeAmountBase, Is.EqualTo( 8_790m ) );
 			Assert.That( policy.AgeAmountIncomeThreshold, Is.EqualTo( 44_325m ) );

@@ -141,6 +141,7 @@ public class TaxCalculatorTests {
 
 	private static TaxPolicy CreatePolicy() {
 		return new TaxPolicy(
+			Year: 2024,
 			FederalBrackets: FederalBrackets,
 			ProvincialBrackets: [ new TaxBracket( LowerBound: 0m, Rate: 5.05m ) ],
 			AllowPensionSplitting: false,

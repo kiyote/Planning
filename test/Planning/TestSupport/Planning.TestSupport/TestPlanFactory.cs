@@ -47,8 +47,9 @@ public static class TestPlanFactory {
 
 	public static TaxPolicy CreateTaxPolicy() {
 		// Representative 2024 Canadian federal brackets and Ontario provincial brackets
-		// (annual thresholds in nominal start-year dollars).
+		// (annual thresholds in 2024 dollars, indexed forward by the calculator).
 		return new TaxPolicy(
+			Year: 2024,
 			FederalBrackets: [
 				new TaxBracket( LowerBound: 0m, Rate: 15.0m ),
 				new TaxBracket( LowerBound: 55_867m, Rate: 20.5m ),

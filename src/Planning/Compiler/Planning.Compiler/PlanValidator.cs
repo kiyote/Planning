@@ -8,6 +8,7 @@ public sealed class PlanValidator {
 	private const int MinimumCPPStartAge = 60;
 	private const int MaximumCPPStartAge = 70;
 	private const int RequiredHouseholdSize = 2;
+	private const int MaximumTaxPolicyAgeInYears = 5;
 
 	public PlanValidationResult Validate(
 		Plan plan
@@ -23,6 +24,7 @@ public sealed class PlanValidator {
 		ValidateContributions( plan, members, result );
 		ValidateInheritance( plan, members, result );
 		ValidateBurndown( plan, result );
+		ValidateTaxPolicy( plan, result );
 
 		return result;
 	}
@@ -166,6 +168,28 @@ public sealed class PlanValidator {
 	) {
 		if( plan.Burndown.BurndownYears < 0 ) {
 			result.AddError( $"Burndown years ({plan.Burndown.BurndownYears}) must be positive." );
+		}
+	}
+
+	/// <summary>
+	/// The tax policy's monetary values are expressed in the dollars of its own year, and the
+	/// calculator indexes them forward by inflation to each year it projects. That only makes
+	/// sense for a policy whose year is at or before the plan start: a future-dated policy would
+	/// be indexed by a negative exponent and silently deflate its brackets. A policy more than
+	/// <see cref="MaximumTaxPolicyAgeInYears"/> years stale is rejected because compounding
+	/// assumed inflation that far forward stops being a credible stand-in for the real figures.
+	/// </summary>
+	private static void ValidateTaxPolicy(
+		Plan plan,
+		PlanValidationResult result
+	) {
+		int planStartYear = plan.StartDate.Year;
+		int policyYear = plan.TaxPolicy.Year;
+
+		if( policyYear > planStartYear ) {
+			result.AddError( $"Tax policy year ({policyYear}) must not be after the plan start year ({planStartYear})." );
+		} else if( policyYear < planStartYear - MaximumTaxPolicyAgeInYears ) {
+			result.AddError( $"Tax policy year ({policyYear}) must not be more than {MaximumTaxPolicyAgeInYears} years before the plan start year ({planStartYear})." );
 		}
 	}
 

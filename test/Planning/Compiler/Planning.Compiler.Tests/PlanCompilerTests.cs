@@ -61,7 +61,8 @@ public sealed class PlanCompilerTests {
 	public void Compile_BenefitStartMonth_CompilesExpectedIncome() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2044, 1, 1 ),
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2044 }
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
@@ -82,7 +83,8 @@ public sealed class PlanCompilerTests {
 	public void Compile_MonthAfterPartnerDeath_CompilesExpectedSurvivorIncome() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2058, 12, 1 ),
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2058 }
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
@@ -301,7 +303,8 @@ public sealed class PlanCompilerTests {
 	public void Compile_PlanStartingAfterMemberDeath_CompilesRemainingPeriods() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2060, 1, 1 ),
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2060 }
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -375,7 +378,8 @@ public sealed class PlanCompilerTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2043, 12, 1 ),
 			annualInflationPercent: 0m,
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2043 }
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -436,7 +440,8 @@ public sealed class PlanCompilerTests {
 	public void Compile_CPP_InflatesEachDecember() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2044, 1, 1 ),
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2044 }
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -458,7 +463,8 @@ public sealed class PlanCompilerTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2038, 12, 1 ),
 			annualInflationPercent: 0m,
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2038 }
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -478,7 +484,8 @@ public sealed class PlanCompilerTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2039, 1, 1 ),
 			annualInflationPercent: 0m,
-			lifeInsurance: []
+			lifeInsurance: [],
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { Year = 2039 }
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );

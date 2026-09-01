@@ -2,8 +2,9 @@ namespace Planning.Model.Plans;
 
 /// <summary>
 /// Configurable progressive income-tax brackets for a jurisdiction pair (federal and
-/// provincial). Brackets are expressed in nominal start-year dollars; the calculator is
-/// responsible for indexing thresholds by inflation over the projection horizon.
+/// provincial). Brackets are expressed in the dollars of <see cref="Year"/>; the calculator is
+/// responsible for indexing thresholds by inflation from that year to the year being
+/// calculated.
 /// </summary>
 /// <param name="FederalBrackets">Federal progressive tax brackets, ordered ascending by lower bound.</param>
 /// <param name="ProvincialBrackets">Provincial progressive tax brackets, ordered ascending by lower bound.</param>
@@ -55,6 +56,11 @@ namespace Planning.Model.Plans;
 /// is added to federal tax rather than reducing it. The CRA value is $90,997.
 /// Set to zero to disable the clawback.
 /// </param>
+/// <param name="Year">
+/// The calendar year the policy's monetary values are expressed in. Bracket thresholds and
+/// credit amounts are stated in this year's dollars, and the calculator indexes them forward
+/// by inflation from this year to the year being calculated.
+/// </param>
 /// <param name="OasClawbackRate">
 /// The rate, as a percentage, at which OAS is recovered on net income above
 /// <see cref="OasClawbackThreshold"/>. The recovered amount is capped at the OAS actually
@@ -62,6 +68,7 @@ namespace Planning.Model.Plans;
 /// is 15%.
 /// </param>
 public record TaxPolicy(
+	int Year,
 	IEnumerable<TaxBracket> FederalBrackets,
 	IEnumerable<TaxBracket> ProvincialBrackets,
 	bool AllowPensionSplitting,
@@ -76,6 +83,7 @@ public record TaxPolicy(
 	decimal OasClawbackRate
 ) {
 	public static readonly TaxPolicy None = new TaxPolicy(
+		Year: 0,
 		FederalBrackets: [],
 		ProvincialBrackets: [],
 		AllowPensionSplitting: false,

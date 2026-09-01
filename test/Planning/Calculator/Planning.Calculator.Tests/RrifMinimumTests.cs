@@ -28,6 +28,7 @@ public class RrifMinimumTests {
 		// ignored and the minimums would never reach the calculator. This pins the binding.
 		const string json = """
 		{
+			"Year": 2024,
 			"FederalBrackets": [ { "LowerBound": 0, "Rate": 15.0 } ],
 			"ProvincialBrackets": [ { "LowerBound": 0, "Rate": 5.05 } ],
 			"AllowPensionSplitting": false,

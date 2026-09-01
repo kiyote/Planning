@@ -39,6 +39,7 @@
     "BurndownYears": 0
   },
   "TaxPolicy": {
+    "Year": 2024,
     "AllowPensionSplitting": false,
     "AgeAmountBase": 8790,
     "AgeAmountIncomeThreshold": 44325,
