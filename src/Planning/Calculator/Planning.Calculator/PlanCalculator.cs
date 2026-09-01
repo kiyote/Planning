@@ -1,5 +1,4 @@
 using Planning.Calculator.Calculators;
-using Planning.Model;
 using Planning.Model.CalculatedPlans;
 using Planning.Model.CompiledPlans;
 using Planning.Model.Identifiers;

@@ -1,4 +1,3 @@
-using Planning.Model;
 using Planning.Model.Plans;
 using Planning.TestSupport;
 
