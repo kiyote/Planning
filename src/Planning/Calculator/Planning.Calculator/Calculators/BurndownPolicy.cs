@@ -1,17 +1,35 @@
 using Planning.Model.CalculatedPlans;
 using Planning.Model.CompiledPlans;
 using Planning.Model.Identifiers;
-using Planning.Model.Plans;
 
 namespace Planning.Calculator.Calculators;
+
+/// <summary>
+/// The gross amount withdrawn from a single taxable asset by the burndown strategy, together with
+/// the member who owns it and is therefore taxed on it.
+/// </summary>
+internal sealed record BurndownWithdrawal(
+	AssetId AssetId,
+	MemberId MemberId,
+	decimal Amount
+);
 
 /// <summary>
 /// The gross amount withdrawn from each taxable asset by the burndown strategy for a period.
 /// </summary>
 internal sealed record BurndownWithdrawals(
-	IReadOnlyList<CalculatedWithdrawal> Withdrawals,
+	IReadOnlyList<BurndownWithdrawal> Withdrawals,
 	decimal Total
-);
+) {
+	public static readonly BurndownWithdrawals None = new BurndownWithdrawals( [], 0m );
+
+	/// <summary>
+	/// Projects the withdrawals into the general shape used by the tax accrual, which does not
+	/// care which member owns the account.
+	/// </summary>
+	public IReadOnlyList<CalculatedWithdrawal> AsCalculatedWithdrawals()
+		=> [.. Withdrawals.Select( w => new CalculatedWithdrawal( w.AssetId, w.Amount ) )];
+}
 
 /// <summary>
 /// Draws taxable accounts down to zero over a fixed number of years and redirects the proceeds
@@ -21,83 +39,53 @@ internal sealed record BurndownWithdrawals(
 /// withdrawals already made to fund retirement income. Each account's window opens when its owner
 /// retires and runs for the configured number of years, so members retiring at different times
 /// burn down on their own schedules. Each taxable account is amortized over the number of years
-/// remaining in its window using that account's own rate of return, so that the scheduled payments
-/// plus growth bring the balance to zero exactly at the end of the window. The after-tax remainder
-/// is contributed to the owning member's tax-exempt accounts while contribution room lasts, then to
+/// remaining in its window using the plan-wide rate of return, so that the scheduled payments plus
+/// growth bring the balance to zero exactly at the end of the window. The after-tax remainder is
+/// contributed to the owning member's tax-exempt accounts while contribution room lasts, then to
 /// their capital-gains accounts.
+///
+/// The eligibility rules and the amortization factors depend only on the plan, so they are
+/// resolved once by the compiler into <see cref="CompiledBurndown"/>. All that remains here is
+/// applying those factors to balances that are only known as the projection runs.
 /// </summary>
 internal sealed class BurndownPolicy {
 
 	/// <summary>
-	/// Calculates the gross burndown withdrawal from each taxable account for the given period.
-	/// Returns no withdrawals when the plan has no burndown configured, outside December, or for
-	/// accounts whose owner has not yet retired or has exhausted their burndown window.
+	/// Calculates the gross burndown withdrawal from each taxable account for the given period by
+	/// applying the compiled amortization factors to the current balances. Returns no withdrawals
+	/// for periods that the compiled schedule does not cover.
 	/// </summary>
 	public BurndownWithdrawals CalculateWithdrawals(
-		Plan plan,
 		CompiledPlan compiledPlan,
-		IReadOnlyList<CalculatedAsset> assets,
-		DateOnly periodDate
+		CompiledPeriod period,
+		IReadOnlyList<CalculatedAsset> assets
 	) {
-		if( plan.Burndown is null || periodDate.Month != 12 ) {
-			return new BurndownWithdrawals( [], 0m );
+		if( !compiledPlan.Burndown.Schedule.TryGetValue( period, out IEnumerable<CompiledBurndownWithdrawal>? scheduled ) ) {
+			return BurndownWithdrawals.None;
 		}
 
-		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
-		List<CalculatedWithdrawal> withdrawals = [];
+		List<BurndownWithdrawal> withdrawals = [];
 		decimal total = 0m;
 
-		foreach( CalculatedAsset asset in assets ) {
-			if( asset.TaxStatus != AssetTaxStatus.Taxable || asset.Amount <= 0m ) {
+		foreach( CompiledBurndownWithdrawal entry in scheduled ) {
+			CalculatedAsset? asset = assets.FirstOrDefault( a => a.AssetId == entry.AssetId );
+			if( asset is null || asset.Amount <= 0m ) {
 				continue;
 			}
 
-			CompiledMember owner = compiledPlan.Members
-				.Single( m => m.MemberId == assetsById[asset.AssetId].MemberId );
-
-			// The burndown window opens when the owner retires and runs for the configured
-			// number of years thereafter.
-			if( periodDate < owner.RetirementDate ) {
-				continue;
-			}
-
-			int remainingYears = plan.Burndown.BurndownYears - ( periodDate.Year - owner.RetirementDate.Year );
-
-			if( remainingYears <= 0 ) {
-				continue;
-			}
-
-			decimal payment = Math.Min(
-				AmortizedPayment( asset.Amount, plan.AnnualReturnPercent / 100m, remainingYears ),
-				asset.Amount );
+			// The schedule fixes the fraction of the balance to take; the balance itself is only
+			// known now, and the payment can never exceed what the account actually holds.
+			decimal payment = Math.Min( asset.Amount * entry.AmortizationFactor, asset.Amount );
 
 			if( payment <= 0m ) {
 				continue;
 			}
 
-			withdrawals.Add( new CalculatedWithdrawal( asset.AssetId, payment ) );
+			withdrawals.Add( new BurndownWithdrawal( entry.AssetId, entry.MemberId, payment ) );
 			total += payment;
 		}
 
 		return new BurndownWithdrawals( withdrawals, total );
-	}
-
-	/// <summary>
-	/// The level annual payment that retires <paramref name="balance"/> over
-	/// <paramref name="years"/> years while the balance continues to earn <paramref name="rate"/>.
-	/// </summary>
-	private static decimal AmortizedPayment(
-		decimal balance,
-		decimal rate,
-		int years
-	) {
-		if( years <= 1 || rate <= 0m ) {
-			return years <= 1 ? balance : balance / years;
-		}
-
-		double discountFactor = 1d - Math.Pow( 1d + (double)rate, -years );
-
-		return balance * rate / (decimal)discountFactor;
 	}
 
 	/// <summary>
@@ -111,15 +99,13 @@ internal sealed class BurndownPolicy {
 	public decimal ApplyTransfers(
 		CompiledPlan compiledPlan,
 		List<CalculatedAsset> endingAssets,
-		IReadOnlyList<CalculatedWithdrawal> withdrawals,
+		IReadOnlyList<BurndownWithdrawal> withdrawals,
 		decimal netProportion,
 		DateOnly periodDate
 	) {
-		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
-
 		decimal transferred = 0m;
 
-		foreach( CalculatedWithdrawal withdrawal in withdrawals ) {
+		foreach( BurndownWithdrawal withdrawal in withdrawals ) {
 			int sourceIndex = endingAssets.FindIndex( a => a.AssetId == withdrawal.AssetId );
 			CalculatedAsset source = endingAssets[sourceIndex];
 
@@ -139,7 +125,7 @@ internal sealed class BurndownPolicy {
 				CostBase = sourceCostBase
 			};
 
-			MemberId memberId = assetsById[withdrawal.AssetId].MemberId;
+			MemberId memberId = withdrawal.MemberId;
 
 			// The proceeds are net of the tax the burndown triggered, so they are after-tax
 			// capital. Any part that finds no room stays uninvested.

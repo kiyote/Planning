@@ -4,7 +4,11 @@ using Planning.Model.Plans;
 
 namespace Planning.Compiler.Compilers;
 
-internal sealed class RetirementIncomeCompiler {
+/// <summary>
+/// Resolves the plan's go-go/slow-go/no-go phases into the income the plan aims to deliver in each
+/// period, inflated forward each December.
+/// </summary>
+internal sealed class DesiredIncomeCompiler {
 
 	public IDictionary<CompiledPeriod, decimal> Compile(
 		Plan plan,

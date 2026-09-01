@@ -15,21 +15,22 @@ public class PlanCompiler {
 
 		IReadOnlyList<CompiledMember> members = [.. new Compilers.MemberCompiler().Compile( plan )];
 		IReadOnlyList<CompiledPeriod> periods = [.. new Compilers.PeriodCompiler().Compile( plan, members )];
-		IEnumerable<CompiledAsset> assets = new Compilers.AssetCompiler().Compile( plan, members );
-		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> income = new Compilers.IncomeCompiler().Compile( plan, periods, members );
-		IDictionary<CompiledPeriod, decimal> retirementIncome = new Compilers.RetirementIncomeCompiler().Compile( plan, members, periods, out RetirementPhaseSchedule retirementPhaseSchedule );
+		IReadOnlyList<CompiledAsset> assets = [.. new Compilers.AssetCompiler().Compile( plan, members )];
+		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> scheduledIncome = new Compilers.ScheduledIncomeCompiler().Compile( plan, periods, members );
+		IDictionary<CompiledPeriod, decimal> desiredIncome = new Compilers.DesiredIncomeCompiler().Compile( plan, members, periods, out RetirementPhaseSchedule retirementPhaseSchedule );
 		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new Compilers.ContributionCompiler().Compile( plan, members, periods );
+		CompiledBurndown burndown = new Compilers.BurndownCompiler().Compile( plan, members, assets, periods );
 
 		return new CompiledPlan(
 			periods,
 			members,
 			assets,
-			income,
-			retirementIncome,
+			scheduledIncome,
+			desiredIncome,
 			contributions,
 			plan.TaxPolicy,
 			retirementPhaseSchedule,
-			plan.Burndown
+			burndown
 		);
 	}
 }

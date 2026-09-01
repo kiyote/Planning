@@ -72,7 +72,7 @@ public class PlanCalculator {
 			decimal totalTaxableIncome = taxableIncome.Sum( ti => ti.Amount );
 			decimal totalNonTaxableIncome = nonTaxableIncome.Sum( nti => nti.Amount );
 			decimal totalIncome = totalTaxableIncome + totalNonTaxableIncome;
-			decimal desiredRetirementIncome = compiledPlan.RetirementIncome[period];
+			decimal desiredRetirementIncome = compiledPlan.DesiredIncome[period];
 			decimal retirementIncomeShortfall = Math.Max( desiredRetirementIncome - totalIncome, 0 );
 
 			// Accrue this year's contribution room and allocate the period's contributions against it,
@@ -171,7 +171,7 @@ public class PlanCalculator {
 				// excess of the retirement-income withdrawals already taken. The tax it triggers
 				// is retained from the proceeds and only the remainder is reinvested.
 				BurndownWithdrawals burndown = _burndownPolicy.CalculateWithdrawals(
-					plan, compiledPlan, endingAssets, period.PeriodDate );
+					compiledPlan, period, endingAssets );
 
 				if( burndown.Total > 0m ) {
 					decimal inflationIndex = InflationIndex( plan.AnnualInflationPercent, period.PeriodDate, compiledPlan.TaxPolicy );
@@ -179,7 +179,7 @@ public class PlanCalculator {
 					Dictionary<MemberId, decimal> taxableWithoutBurndown = new( yearlyTaxableByMember );
 					Dictionary<MemberId, decimal> splittableWithoutBurndown = new( yearlySplittableByMember );
 
-					AccrueTaxableAmounts( compiledPlan, [], burndown.Withdrawals, endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, spousalAttribution, period.PeriodDate.Year );
+					AccrueTaxableAmounts( compiledPlan, [], burndown.AsCalculatedWithdrawals(), endingAssets, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, spousalAttribution, period.PeriodDate.Year );
 
 					Dictionary<MemberId, decimal> burndownTaxByMember = CalculateBurndownTax(
 						plan, compiledPlan,

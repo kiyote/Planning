@@ -172,7 +172,7 @@ public class PlanReporter {
 		List<string> header = [ "Period" ];
 
 		if( firstPeriod is not null ) {
-			foreach( CompiledIncome income in compiledPlan.Income[firstPeriod] ) {
+			foreach( CompiledIncome income in compiledPlan.ScheduledIncome[firstPeriod] ) {
 				CompiledMember member = membersById[income.MemberId];
 				header.Add( $"{income.Name} ({member.Name})" );
 			}
@@ -190,9 +190,9 @@ public class PlanReporter {
 		foreach( CompiledPeriod period in compiledPlan.Periods ) {
 			List<string> row = [ period.PeriodDate.ToString( PeriodDateFormat, CultureInfo.InvariantCulture ) ];
 
-			row.AddRange( compiledPlan.Income[period].Select( i => i.Amount.FormatRounded() ) );
+			row.AddRange( compiledPlan.ScheduledIncome[period].Select( i => i.Amount.FormatRounded() ) );
 			row.AddRange( compiledPlan.Contribution[period].Select( c => c.Amount.FormatRounded() ) );
-			row.Add( compiledPlan.RetirementIncome[period].FormatRounded() );
+			row.Add( compiledPlan.DesiredIncome[period].FormatRounded() );
 
 			WriteRow( writer, row );
 		}

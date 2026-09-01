@@ -3,7 +3,10 @@ using Planning.Model.Plans;
 
 namespace Planning.Compiler.Compilers;
 
-internal sealed class IncomeCompiler {
+/// <summary>
+/// Builds the per-period, per-member schedule of income arriving from outside the plan's assets.
+/// </summary>
+internal sealed class ScheduledIncomeCompiler {
 
 	private readonly GovernmentBenefitCompiler _benefitCompiler = new GovernmentBenefitCompiler();
 

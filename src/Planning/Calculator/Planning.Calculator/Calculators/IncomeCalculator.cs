@@ -26,7 +26,7 @@ internal sealed class IncomeCalculator {
 	) {
 		List<CalculatedIncome> result = [];
 
-		foreach( CompiledIncome income in plan.Income[period] ) {
+		foreach( CompiledIncome income in plan.ScheduledIncome[period] ) {
 
 			if( income.Taxable != taxable ) {
 				continue;
