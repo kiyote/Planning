@@ -28,8 +28,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 100_000m, contributionBacklog: 50_000m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true ),
 			],
 			contributions: [
 				new Contribution( MemberTina, 3000m, 2026, Indexed: false, Spousal: MemberTodd )
@@ -66,7 +66,7 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 100_000m, contributionBacklog: 50_000m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
 				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m )
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true )
 			],
 			contributions: [
 				new Contribution( MemberTina, 3000m, 2026, Indexed: false, Spousal: MemberTodd )
@@ -204,8 +204,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Todd", 25m ),
 				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Tina", 25m ),
 				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Tina", 125m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true ),
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -235,8 +235,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Tina", 30m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -284,8 +284,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			],
 			lifeInsurance: [],
 			retirementIncome: new RetirementIncome(
@@ -391,8 +391,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m, 0m, 500m ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m )
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true )
 			],
 			contributions: []
 		);
@@ -433,8 +433,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Tina", 30m ),
 				TestPlanFactory.CreateAsset( "Taxable", AssetTaxStatus.Taxable, "Tina", 0m ),
 				TestPlanFactory.CreateAsset( "NonTaxable", AssetTaxStatus.TaxExempt, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -455,8 +455,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -481,8 +481,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -514,8 +514,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true ),
 			],
 			lifeInsurance: [],
 			retirementIncome: new RetirementIncome(
@@ -585,8 +585,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
 			],
 			lifeInsurance: [],
 			retirementIncome: new RetirementIncome(
@@ -630,8 +630,8 @@ public sealed class PlanCalculatorTests {
 
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m )
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true )
 			],
 			lifeInsurance: [
 				new LifeInsurance( MemberTodd, 250_000m )
@@ -684,8 +684,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 100m, 50_000m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100m, 40_000m ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true ),
 
 			],
 			lifeInsurance: [],
@@ -818,8 +818,8 @@ public sealed class PlanCalculatorTests {
 				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 100_000m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 100_000m ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 100_000m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 100_000m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 0m ),
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 0m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
@@ -874,8 +874,8 @@ public sealed class PlanCalculatorTests {
 					TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
 					TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
 					TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
-					TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m ),
-					TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m )
+					TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true ),
+					TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true )
 				],
 				annualInflationPercent: 0m,
 				annualReturnPercent: 0m,
@@ -1000,8 +1000,8 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 100_000m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m ),
-				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m )
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,

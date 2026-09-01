@@ -160,6 +160,44 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
+	public void Validate_CapitalGainsAssetWithoutUnlimitedContributionRoom_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
+			],
+			contributions: []
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "must have unlimited contribution room" ) );
+	}
+
+	[Test]
+	public void Validate_RegisteredAssetWithUnlimitedContributionRoom_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, hasUnlimitedContributionRoom: true ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, hasUnlimitedContributionRoom: true )
+			],
+			contributions: []
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "only CapitalGains assets can have unlimited contribution room" ) );
+	}
+
+	[Test]
 	public void Validate_ContributionReferencesUnknownSpousalContributor_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [

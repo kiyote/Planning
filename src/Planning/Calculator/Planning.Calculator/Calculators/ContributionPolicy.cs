@@ -35,7 +35,7 @@ internal sealed class ContributionPolicy {
 
 	// Contribution preference: fill Taxable room first, then TaxExempt, then CapitalGains.
 	// This is deliberately not the strict inverse of the withdrawal ordering.
-	private static readonly AssetTaxStatus[] ContributionStatusOrder = [
+	private static readonly AssetTaxStatus[] _contributionStatusOrder = [
 		AssetTaxStatus.Taxable,
 		AssetTaxStatus.TaxExempt,
 		AssetTaxStatus.CapitalGains
@@ -91,7 +91,7 @@ internal sealed class ContributionPolicy {
 			// still has room, overflowing into progressively less efficient accounts as room
 			// runs out. For a spousal contribution the funds land in the annuitant's account
 			// but consume the contributor's room, so the room account is looked up separately.
-			foreach( AssetTaxStatus status in ContributionStatusOrder ) {
+			foreach( AssetTaxStatus status in _contributionStatusOrder ) {
 				IEnumerable<CompiledAsset> candidates = compiledPlan.Assets
 					.Where( a => a.MemberId == contribution.DestinationMemberId
 						&& a.TaxStatus == status );
@@ -138,6 +138,9 @@ internal sealed class ContributionPolicy {
 			}
 
 			// Any amount still remaining has no contribution room anywhere and is not contributed.
+			if( remaining > 0m ) {
+				throw new InvalidOperationException( "Contribution left over with nowhere to be placed." );
+			}
 		}
 
 		// Report a contribution entry for every asset so the column set stays stable across

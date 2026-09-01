@@ -132,6 +132,19 @@ public sealed class PlanValidator {
 			if( asset.TaxStatus == AssetTaxStatus.CapitalGains && asset.CostBase > asset.Amount ) {
 				result.AddError( $"Asset '{asset.Name}' cost base ({asset.CostBase}) exceeds its amount ({asset.Amount}); unrealized losses are not modelled." );
 			}
+
+			// A capital-gains account is the overflow of last resort for both contributions and
+			// sheltered withdrawal proceeds, so it must be able to absorb any amount. Without
+			// unlimited room a contribution can run out of anywhere to go partway through a plan.
+			if( asset.TaxStatus == AssetTaxStatus.CapitalGains && !asset.HasUnlimitedContributionRoom ) {
+				result.AddError( $"Asset '{asset.Name}' is a CapitalGains asset and must have unlimited contribution room." );
+			}
+
+			// The converse keeps registered accounts honest: their whole purpose is a contribution
+			// cap, so unlimited room there would silently bypass the backlog entirely.
+			if( asset.TaxStatus != AssetTaxStatus.CapitalGains && asset.HasUnlimitedContributionRoom ) {
+				result.AddError( $"Asset '{asset.Name}' has unlimited contribution room but its tax status is {asset.TaxStatus}; only CapitalGains assets can have unlimited contribution room." );
+			}
 		}
 
 		foreach( var duplicate in plan.Assets
