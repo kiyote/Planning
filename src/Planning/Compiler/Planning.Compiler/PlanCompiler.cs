@@ -1,3 +1,4 @@
+using Planning.Compiler.Compilers;
 using Planning.Model.CompiledPlans;
 using Planning.Model.Plans;
 
@@ -13,15 +14,15 @@ public class PlanCompiler {
 			throw new PlanValidationException( validation.Errors );
 		}
 
-		IReadOnlyList<CompiledMember> members = [.. new Compilers.MemberCompiler().Compile( plan )];
-		IReadOnlyList<CompiledPeriod> periods = [.. new Compilers.PeriodCompiler().Compile( plan, members )];
-		IReadOnlyList<CompiledAsset> assets = [.. new Compilers.AssetCompiler().Compile( plan, members )];
-		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> scheduledIncome = new Compilers.ScheduledIncomeCompiler().Compile( plan, periods, members );
-		Compilers.DesiredIncomeCompiler desiredIncomeCompiler = new Compilers.DesiredIncomeCompiler();
+		IReadOnlyList<CompiledMember> members = [.. new MemberCompiler().Compile( plan )];
+		IReadOnlyList<CompiledPeriod> periods = [.. new PeriodCompiler().Compile( plan, members )];
+		IReadOnlyList<CompiledAsset> assets = [.. new AssetCompiler().Compile( plan, members )];
+		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> scheduledIncome = new ScheduledIncomeCompiler().Compile( plan, periods, members );
+		DesiredIncomeCompiler desiredIncomeCompiler = new DesiredIncomeCompiler();
 		RetirementPhaseSchedule retirementPhaseSchedule = desiredIncomeCompiler.CompileSchedule( plan, members, periods );
 		IDictionary<CompiledPeriod, decimal> desiredIncome = desiredIncomeCompiler.Compile( plan, periods, retirementPhaseSchedule );
-		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new Compilers.ContributionCompiler().Compile( plan, members, periods );
-		CompiledBurndown burndown = new Compilers.BurndownCompiler().Compile( plan, members, assets, periods );
+		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new ContributionCompiler().Compile( plan, members, periods );
+		CompiledBurndown burndown = new BurndownCompiler().Compile( plan, members, assets, periods );
 
 		return new CompiledPlan(
 			periods,

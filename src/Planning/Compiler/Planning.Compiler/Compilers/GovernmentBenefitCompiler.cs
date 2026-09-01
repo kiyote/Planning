@@ -46,8 +46,11 @@ internal sealed class GovernmentBenefitCompiler {
 			foreach( CompiledMember member in members ) {
 				if( member.DeathDate <= period.PeriodDate ) {
 
+					// If someone has died, find the survivor
 					CompiledMember survivor = members.Single( m => m != member );
+					// If that person isn't already dead....
 					if( survivor.DeathDate > period.PeriodDate ) {
+						// Their CPP needs to be topped up to the survivor limit
 						decimal partnerBenefit = regularCPP * ( member.CPPPercent / 100 ) * 0.6m;
 						decimal survivorCPP = memberCPP[period][survivor];
 						decimal toppedUp = survivorCPP + partnerBenefit;
@@ -59,6 +62,7 @@ internal sealed class GovernmentBenefitCompiler {
 					result[period][member] = 0.0m;
 
 				} else {
+					// If they don't have a value, ensure one exists at $0.00
 					if( !result[period].ContainsKey( member ) ) {
 						result[period][member] = 0.0m;
 					}

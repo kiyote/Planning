@@ -165,7 +165,7 @@ public class PlanGrapher {
 		plot.Legend.ManualItems.AddRange( legendItems );
 		plot.ShowLegend( ScottPlot.Edge.Bottom );
 
-		Planning.Model.Plans.RetirementIncome retirementIncome = calculatedPlan.RetirementIncome;
+		RetirementIncome retirementIncome = calculatedPlan.RetirementIncome;
 		plot.Title( $"Total Assets by Year for Go-Go ${retirementIncome.GoGo}, Slow-Go ${retirementIncome.SlowGo}, No-Go ${retirementIncome.NoGo}" );
 		plot.XLabel( "Year" );
 		plot.YLabel( "Total Assets" );
