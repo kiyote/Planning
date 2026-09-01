@@ -1,4 +1,4 @@
-﻿namespace Planning.Model;
+namespace Planning.Model;
 
 public static class ExtensionMethods {
 	public static DateOnly EndOfMonth(

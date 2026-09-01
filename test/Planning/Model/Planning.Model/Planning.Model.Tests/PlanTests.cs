@@ -1,4 +1,4 @@
-﻿using Planning.Model.Plans;
+using Planning.Model.Plans;
 using Planning.TestSupport;
 
 namespace Planning.Model.Tests;

@@ -10,7 +10,7 @@ internal sealed class AssetCompiler {
 		IEnumerable<CompiledMember> members
 	) {
 		List<CompiledAsset> result = [];
-		foreach (Asset asset in plan.Assets) {
+		foreach( Asset asset in plan.Assets ) {
 			CompiledMember member = members.Single( m => m.Name == asset.Member );
 
 			result.Add(

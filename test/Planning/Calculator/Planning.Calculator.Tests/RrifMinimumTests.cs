@@ -60,7 +60,7 @@ public class RrifMinimumTests {
 
 	[Test]
 	public void Compile_PlanWithRrifMinimums_CarriesThemThroughToTheCompiledPlan() {
-		Plan plan = CreatePlan( rrifMinimums: [ new RrifMinimum( 71, 5.28m ) ] );
+		Plan plan = CreatePlan( rrifMinimums: [new RrifMinimum( 71, 5.28m )] );
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 
 		Assert.That( compiledPlan.TaxPolicy.RrifMinimums?.Single().Percent, Is.EqualTo( 5.28m ) );
@@ -69,7 +69,7 @@ public class RrifMinimumTests {
 	[Test]
 	public void Calculate_MinimumExceedsDesiredIncome_ForcesTheExcessOutOfTheTaxableAccount() {
 		// Desired income is tiny relative to the RRSP, so the minimum is the binding constraint.
-		CalculatedPlan withMinimum = Calculate( rrifMinimums: [ new RrifMinimum( 71, 10m ) ] );
+		CalculatedPlan withMinimum = Calculate( rrifMinimums: [new RrifMinimum( 71, 10m )] );
 		CalculatedPlan withoutMinimum = Calculate( rrifMinimums: [] );
 
 		decimal forced = withMinimum.Periods.Sum( p => p.RrifMinimumWithdrawal );
@@ -82,7 +82,7 @@ public class RrifMinimumTests {
 
 	[Test]
 	public void Calculate_ForcedWithdrawalOccurs_MovesTheExcessIntoShelterRatherThanSpendingIt() {
-		CalculatedPlan calculatedPlan = Calculate( rrifMinimums: [ new RrifMinimum( 71, 10m ) ] );
+		CalculatedPlan calculatedPlan = Calculate( rrifMinimums: [new RrifMinimum( 71, 10m )] );
 
 		CalculatedPeriod period = calculatedPlan.Periods
 			.First( p => p.RrifMinimumWithdrawal > 0m );
@@ -98,7 +98,7 @@ public class RrifMinimumTests {
 		// room, so a correct cascade must reach across to the spouse rather than spilling
 		// straight into the taxable non-registered account.
 		Plan plan = CreatePlan(
-			rrifMinimums: [ new RrifMinimum( 71, 10m ) ],
+			rrifMinimums: [new RrifMinimum( 71, 10m )],
 			ownerTfsaBacklog: 1000m,
 			spouseTfsaBacklog: 500_000m );
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -123,7 +123,7 @@ public class RrifMinimumTests {
 	[Test]
 	public void Calculate_ForcedExcessMovesIntoATfsa_NeverExceedsThatAccountsContributionRoom() {
 		Plan plan = CreatePlan(
-			rrifMinimums: [ new RrifMinimum( 71, 10m ) ],
+			rrifMinimums: [new RrifMinimum( 71, 10m )],
 			ownerTfsaBacklog: 1000m,
 			spouseTfsaBacklog: 2000m );
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -147,7 +147,7 @@ public class RrifMinimumTests {
 
 	[Test]
 	public void Calculate_ForcedWithdrawalOccurs_IsTaxedAsIncomeInThatYear() {
-		CalculatedPlan withMinimum = Calculate( rrifMinimums: [ new RrifMinimum( 71, 10m ) ] );
+		CalculatedPlan withMinimum = Calculate( rrifMinimums: [new RrifMinimum( 71, 10m )] );
 		CalculatedPlan withoutMinimum = Calculate( rrifMinimums: [] );
 
 		// Forcing income out of the RRIF earlier must raise lifetime tax; if it did not, the
@@ -162,7 +162,7 @@ public class RrifMinimumTests {
 		// A high desired income forces large voluntary withdrawals, which already satisfy a
 		// negligible 0.01% factor, so the minimum should never bind.
 		CalculatedPlan calculatedPlan = Calculate(
-			rrifMinimums: [ new RrifMinimum( 71, 0.01m ) ],
+			rrifMinimums: [new RrifMinimum( 71, 0.01m )],
 			desiredMonthlyIncome: 8_000m );
 
 		Assert.That( calculatedPlan.Periods.Sum( p => p.RrifMinimumWithdrawal ), Is.Zero );

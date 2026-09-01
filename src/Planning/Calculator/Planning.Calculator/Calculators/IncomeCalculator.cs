@@ -1,5 +1,5 @@
-using Planning.Model.CompiledPlans;
 using Planning.Model.CalculatedPlans;
+using Planning.Model.CompiledPlans;
 
 namespace Planning.Calculator.Calculators;
 

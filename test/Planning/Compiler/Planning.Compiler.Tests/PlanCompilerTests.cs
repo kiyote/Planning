@@ -313,7 +313,7 @@ public sealed class PlanCompilerTests {
 		CompiledPeriod[] periods = [.. compiledPlan.Periods];
 
 		Assert.Multiple( () => {
-			Assert.That( periods[0], Is.EqualTo( new CompiledPeriod( new(1), new DateOnly( 2060, 1, 1 ) ) ) );
+			Assert.That( periods[0], Is.EqualTo( new CompiledPeriod( new( 1 ), new DateOnly( 2060, 1, 1 ) ) ) );
 			Assert.That( periods[^1].PeriodDate, Is.EqualTo( new DateOnly( 2072, 6, 1 ) ) );
 			// Todd (member 1) died 2058-12; his CPP is zero for every compiled period.
 			Assert.That(

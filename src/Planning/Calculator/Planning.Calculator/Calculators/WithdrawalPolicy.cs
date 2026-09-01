@@ -1,5 +1,5 @@
-using Planning.Model.CompiledPlans;
 using Planning.Model.CalculatedPlans;
+using Planning.Model.CompiledPlans;
 using Planning.Model.Plans;
 
 namespace Planning.Calculator.Calculators;
@@ -19,7 +19,7 @@ internal sealed class WithdrawalPolicy {
 
 			// Withdraw in tax-preference order: FullTax first, then CapitalGains, then TaxExempt.
 			// Own accounts are drained before the spouse's accounts within each tax tier.
-			AssetTaxStatus[] statusOrder = [ AssetTaxStatus.Taxable, AssetTaxStatus.CapitalGains, AssetTaxStatus.TaxExempt ];
+			AssetTaxStatus[] statusOrder = [AssetTaxStatus.Taxable, AssetTaxStatus.CapitalGains, AssetTaxStatus.TaxExempt];
 
 			foreach( AssetTaxStatus status in statusOrder ) {
 				// Own accounts of this tax status.

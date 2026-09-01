@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 
 using Planning.Model;
 using Planning.Model.CalculatedPlans;
@@ -35,7 +35,7 @@ public class PlanReporter {
 
 		CalculatedPeriod? firstPeriod = calculatedPlan.Periods.FirstOrDefault();
 
-		List<string> header = [ "Period" ];
+		List<string> header = ["Period"];
 
 		if( firstPeriod is not null ) {
 			header.AddRange( firstPeriod.StartingAssets.Select( a => AssetLabel( a.AssetId, " [Start]" ) ) );
@@ -69,7 +69,7 @@ public class PlanReporter {
 		WriteRow( writer, header );
 
 		foreach( CalculatedPeriod period in calculatedPlan.Periods ) {
-			List<string> row = [ period.PeriodDate.ToString( PeriodDateFormat, CultureInfo.InvariantCulture ) ];
+			List<string> row = [period.PeriodDate.ToString( PeriodDateFormat, CultureInfo.InvariantCulture )];
 
 			row.AddRange( period.StartingAssets.Select( a => a.Amount.FormatRounded() ) );
 			row.AddRange( period.TaxableIncome.Select( i => i.Amount.FormatRounded() ) );
@@ -111,10 +111,10 @@ public class PlanReporter {
 		EstateSummary summary
 	) {
 		writer.WriteLine();
-		WriteRow( writer, [ "Estate Summary" ] );
-		WriteRow( writer, [ "Gross Estate", summary.GrossEstate.FormatRounded() ] );
-		WriteRow( writer, [ "Terminal Tax", summary.TerminalTax.FormatRounded() ] );
-		WriteRow( writer, [ "Net Estate", summary.NetEstate.FormatRounded() ] );
+		WriteRow( writer, ["Estate Summary"] );
+		WriteRow( writer, ["Gross Estate", summary.GrossEstate.FormatRounded()] );
+		WriteRow( writer, ["Terminal Tax", summary.TerminalTax.FormatRounded()] );
+		WriteRow( writer, ["Net Estate", summary.NetEstate.FormatRounded()] );
 		WriteRow( writer, [
 			$"Net Estate ({summary.PlanStartYear} Dollars)",
 			summary.NetEstateInPlanStartDollars.FormatRounded()
@@ -126,14 +126,14 @@ public class PlanReporter {
 		TaxSummary summary
 	) {
 		writer.WriteLine();
-		WriteRow( writer, [ "Tax Summary" ] );
-		WriteRow( writer, [ "Total Federal Tax", summary.TotalFederalTax.FormatRounded() ] );
-		WriteRow( writer, [ "Total Provincial Tax", summary.TotalProvincialTax.FormatRounded() ] );
-		WriteRow( writer, [ "Total Tax", summary.TotalTax.FormatRounded() ] );
-		WriteRow( writer, [ "Terminal Federal Tax", summary.TerminalFederalTax.FormatRounded() ] );
-		WriteRow( writer, [ "Terminal Provincial Tax", summary.TerminalProvincialTax.FormatRounded() ] );
-		WriteRow( writer, [ "Terminal Tax", summary.TerminalTax.FormatRounded() ] );
-		WriteRow( writer, [ "Total Tax Including Terminal", summary.TotalTaxIncludingTerminal.FormatRounded() ] );
+		WriteRow( writer, ["Tax Summary"] );
+		WriteRow( writer, ["Total Federal Tax", summary.TotalFederalTax.FormatRounded()] );
+		WriteRow( writer, ["Total Provincial Tax", summary.TotalProvincialTax.FormatRounded()] );
+		WriteRow( writer, ["Total Tax", summary.TotalTax.FormatRounded()] );
+		WriteRow( writer, ["Terminal Federal Tax", summary.TerminalFederalTax.FormatRounded()] );
+		WriteRow( writer, ["Terminal Provincial Tax", summary.TerminalProvincialTax.FormatRounded()] );
+		WriteRow( writer, ["Terminal Tax", summary.TerminalTax.FormatRounded()] );
+		WriteRow( writer, ["Total Tax Including Terminal", summary.TotalTaxIncludingTerminal.FormatRounded()] );
 	}
 
 	private static void WriteInsufficientFundsSummary(
@@ -141,8 +141,8 @@ public class PlanReporter {
 		InsufficientFundsSummary summary
 	) {
 		writer.WriteLine();
-		WriteRow( writer, [ "Insufficient Funds Summary" ] );
-		WriteRow( writer, [ "Has Shortfall", summary.HasShortfall.ToString() ] );
+		WriteRow( writer, ["Insufficient Funds Summary"] );
+		WriteRow( writer, ["Has Shortfall", summary.HasShortfall.ToString()] );
 		WriteRow( writer, [
 			"First Shortfall Date",
 			summary.FirstShortfallDate?.ToString( PeriodDateFormat, CultureInfo.InvariantCulture ) ?? string.Empty
@@ -155,7 +155,7 @@ public class PlanReporter {
 			"Shortfall Period Count",
 			summary.ShortfallPeriodCount.ToString( CultureInfo.InvariantCulture )
 		] );
-		WriteRow( writer, [ "Total Unfunded Shortfall", summary.TotalUnfundedShortfall.FormatRounded() ] );
+		WriteRow( writer, ["Total Unfunded Shortfall", summary.TotalUnfundedShortfall.FormatRounded()] );
 	}
 
 	public void WriteToCsv(
@@ -169,7 +169,7 @@ public class PlanReporter {
 
 		CompiledPeriod? firstPeriod = compiledPlan.Periods.FirstOrDefault();
 
-		List<string> header = [ "Period" ];
+		List<string> header = ["Period"];
 
 		if( firstPeriod is not null ) {
 			foreach( CompiledIncome income in compiledPlan.ScheduledIncome[firstPeriod] ) {
@@ -188,7 +188,7 @@ public class PlanReporter {
 		WriteRow( writer, header );
 
 		foreach( CompiledPeriod period in compiledPlan.Periods ) {
-			List<string> row = [ period.PeriodDate.ToString( PeriodDateFormat, CultureInfo.InvariantCulture ) ];
+			List<string> row = [period.PeriodDate.ToString( PeriodDateFormat, CultureInfo.InvariantCulture )];
 
 			row.AddRange( compiledPlan.ScheduledIncome[period].Select( i => i.Amount.FormatRounded() ) );
 			row.AddRange( compiledPlan.Contribution[period].Select( c => c.Amount.FormatRounded() ) );

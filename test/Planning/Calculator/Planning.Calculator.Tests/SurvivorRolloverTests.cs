@@ -12,7 +12,7 @@ public class SurvivorRolloverTests {
 	[Test]
 	public void Calculate_MemberDies_RollsRemainingAssetsOverToTheSurvivor() {
 		// Todd dies at 70, Tina lives to 90, so Todd's balances must pass to Tina.
-		( CalculatedPlan calculatedPlan, CompiledPlan compiledPlan ) = Calculate();
+		(CalculatedPlan calculatedPlan, CompiledPlan compiledPlan) = Calculate();
 
 		DateOnly deathDate = DeathDate( compiledPlan, "Todd" );
 		CalculatedPeriod beforeDeath = calculatedPlan.Periods.Last( p => p.PeriodDate < deathDate );
@@ -34,7 +34,7 @@ public class SurvivorRolloverTests {
 
 	[Test]
 	public void Calculate_MemberDies_PreservesTaxStatusOfRolledOverAssets() {
-		( CalculatedPlan calculatedPlan, CompiledPlan compiledPlan ) = Calculate();
+		(CalculatedPlan calculatedPlan, CompiledPlan compiledPlan) = Calculate();
 
 		DateOnly deathDate = DeathDate( compiledPlan, "Todd" );
 		CalculatedPeriod beforeDeath = calculatedPlan.Periods.Last( p => p.PeriodDate < deathDate );
@@ -103,6 +103,6 @@ public class SurvivorRolloverTests {
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
-		return ( new PlanCalculator().Calculate( plan, compiledPlan ), compiledPlan );
+		return (new PlanCalculator().Calculate( plan, compiledPlan ), compiledPlan);
 	}
 }

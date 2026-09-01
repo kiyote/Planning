@@ -34,8 +34,7 @@ public class RetirementIncomeSearchTests {
 			decimal goGo = ( low + high ) / 2m;
 			if( HasShortfall( goGo ) ) {
 				high = goGo;
-			}
-			else {
+			} else {
 				low = goGo;
 			}
 		}

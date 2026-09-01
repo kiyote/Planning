@@ -1,4 +1,4 @@
-﻿namespace Planning.Model.Plans;
+namespace Planning.Model.Plans;
 
 public record RetirementIncome(
 	decimal GoGo,

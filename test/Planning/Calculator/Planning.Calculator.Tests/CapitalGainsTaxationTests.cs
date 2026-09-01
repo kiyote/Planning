@@ -161,8 +161,8 @@ public class CapitalGainsTaxationTests {
 			compiledPlan,
 			asset,
 			new DateOnly( 2026, 1, 1 ),
-			withdrawal > 0m ? [ new CalculatedWithdrawal( asset.AssetId, withdrawal ) ] : [],
-			contribution > 0m ? [ new CalculatedContribution( asset.AssetId, contribution ) ] : []
+			withdrawal > 0m ? [new CalculatedWithdrawal( asset.AssetId, withdrawal )] : [],
+			contribution > 0m ? [new CalculatedContribution( asset.AssetId, contribution )] : []
 		);
 	}
 
@@ -173,7 +173,7 @@ public class CapitalGainsTaxationTests {
 		decimal retirementIncome
 	) {
 		List<Contribution> contributions = monthlyContribution > 0m
-			? [ new Contribution( "Todd", monthlyContribution, 2026, Indexed: false ) ]
+			? [new Contribution( "Todd", monthlyContribution, 2026, Indexed: false )]
 			: [];
 
 		Plan plan = TestPlanFactory.Create(

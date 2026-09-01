@@ -1,4 +1,4 @@
-﻿namespace Planning.Model.Plans;
+namespace Planning.Model.Plans;
 
 /// <param name="ContributionBacklog">
 /// The unused contribution room carried into the plan. Ignored, and normalized to zero, when

@@ -76,7 +76,7 @@ internal sealed class MemberCompiler {
 
 		decimal factor = monthsFromStandard < 0
 			? 1m - ( -monthsFromStandard * CPPEarlyReductionPercentPerMonth / 100m )
-			: 1m + (monthsFromStandard * CPPDeferralIncreasePercentPerMonth / 100m);
+			: 1m + ( monthsFromStandard * CPPDeferralIncreasePercentPerMonth / 100m );
 
 		return cppPercent * factor;
 	}

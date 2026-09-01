@@ -59,9 +59,9 @@ internal sealed class DesiredIncomeCompiler {
 			}
 
 			if( period.PeriodDate.Month == 12 ) {
-				goGoAmount *= 1 + (plan.AnnualInflationPercent / 100);
-				slowGoAmount *= 1 + (plan.AnnualInflationPercent / 100);
-				noGoAmount *= 1 + (plan.AnnualInflationPercent / 100);
+				goGoAmount *= 1 + ( plan.AnnualInflationPercent / 100 );
+				slowGoAmount *= 1 + ( plan.AnnualInflationPercent / 100 );
+				noGoAmount *= 1 + ( plan.AnnualInflationPercent / 100 );
 			}
 		}
 		return result;

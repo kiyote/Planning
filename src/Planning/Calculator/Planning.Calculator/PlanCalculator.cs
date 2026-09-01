@@ -1,9 +1,9 @@
-﻿using Planning.Model;
-using Planning.Model.Plans;
-using Planning.Model.CompiledPlans;
-using Planning.Model.CalculatedPlans;
-using Planning.Model.Identifiers;
 using Planning.Calculator.Calculators;
+using Planning.Model;
+using Planning.Model.CalculatedPlans;
+using Planning.Model.CompiledPlans;
+using Planning.Model.Identifiers;
+using Planning.Model.Plans;
 
 namespace Planning.Calculator;
 
@@ -201,7 +201,7 @@ public class PlanCalculator {
 
 					// Every taxable account is drawn down on the same schedule, so the tax cost can
 					// be spread proportionally across the proceeds.
-					decimal netProportion = Math.Max( 0m, 1m - (burndownTax / burndownWithdrawal) );
+					decimal netProportion = Math.Max( 0m, 1m - ( burndownTax / burndownWithdrawal ) );
 					burndownTransfer = _burndownPolicy.ApplyTransfers(
 						compiledPlan, endingAssets, burndown.Withdrawals, netProportion, period.PeriodDate );
 
@@ -712,7 +712,7 @@ public class PlanCalculator {
 		TaxPolicy taxPolicy
 	) {
 		return (decimal)Math.Pow(
-			(double)( 1m + (annualInflationPercent / 100m) ),
+			(double)( 1m + ( annualInflationPercent / 100m ) ),
 			periodDate.Year - taxPolicy.Year );
 	}
 

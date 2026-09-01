@@ -10,7 +10,7 @@ namespace Planning.Reporter.Tests;
 
 public class PlanReporterTests {
 
-    [Test]
+	[Test]
 	[SetCulture( "en-US" )]
 	public void WriteCompiledToCSV_WritesExpectedContent() {
 		Plan plan = CreateReportPlan();

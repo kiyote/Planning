@@ -1,4 +1,4 @@
-﻿namespace Planning.Model.Plans;
+namespace Planning.Model.Plans;
 
 
 /// <param name="CPPPercent">

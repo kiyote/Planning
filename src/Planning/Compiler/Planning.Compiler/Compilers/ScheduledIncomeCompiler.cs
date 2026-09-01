@@ -21,10 +21,10 @@ internal sealed class ScheduledIncomeCompiler {
 
 		IDictionary<CompiledPeriod, IEnumerable<CompiledIncome>> result = new Dictionary<CompiledPeriod, IEnumerable<CompiledIncome>>();
 
-		foreach (CompiledPeriod period in periods) {
+		foreach( CompiledPeriod period in periods ) {
 			List<CompiledIncome> incomes = [];
 
-			foreach (CompiledMember member in members) {
+			foreach( CompiledMember member in members ) {
 				CompiledIncome income = new CompiledIncome(
 					"CPP",
 					member.MemberId,
@@ -49,7 +49,7 @@ internal sealed class ScheduledIncomeCompiler {
 				);
 				incomes.Add( income );
 
-				foreach (LifeInsurance lifeInsurance in plan.LifeInsurance.Where( li => li.Member == member.Name ) ) {
+				foreach( LifeInsurance lifeInsurance in plan.LifeInsurance.Where( li => li.Member == member.Name ) ) {
 					decimal insuranceAmount = 0.0m;
 					if( period.PeriodDate.Year == member.DeathDate.Year
 						&& period.PeriodDate.Month == member.DeathDate.Month
@@ -79,7 +79,7 @@ internal sealed class ScheduledIncomeCompiler {
 						&& receiptDate <= member.DeathDate
 					) {
 						int elapsedYears = receiptDate.Year - plan.StartDate.Year;
-						double inflation = (double)(1 + (plan.AnnualInflationPercent / 100));
+						double inflation = (double)( 1 + ( plan.AnnualInflationPercent / 100 ) );
 
 						inheritanceAmount = inheritance.Amount * (decimal)Math.Pow( inflation, elapsedYears );
 					}

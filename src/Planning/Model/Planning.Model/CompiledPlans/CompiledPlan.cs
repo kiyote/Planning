@@ -1,4 +1,4 @@
-﻿using Planning.Model.Plans;
+using Planning.Model.Plans;
 
 namespace Planning.Model.CompiledPlans;
 

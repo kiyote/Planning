@@ -714,7 +714,7 @@ public sealed class PlanCalculatorTests {
 		CalculatedPeriod afterDeath = calculatedPlan.Periods.First( p => p.PeriodDate > new DateOnly( 2025, 1, 1 ) );
 
 		// The survivor's room is consumed normally by surplus deposits over time, so the test is
-		// that it never *increases* — inheriting the account must not hand her Todd's room.
+		// that it never *increases* â€” inheriting the account must not hand her Todd's room.
 		decimal maxSurvivorRoom = calculatedPlan.Periods
 			.Select( p => p.EndingAssets.Single( a => a.AssetId == tinaTfsaId ).ContributionBacklog )
 			.Max();

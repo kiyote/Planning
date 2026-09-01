@@ -106,7 +106,7 @@ public class PlanDeserializationTests {
 
 	[Test]
 	public void Deserialize_FullPlan_BindsEveryMember() {
-		Member[] members = [ .. Deserialize().Members ];
+		Member[] members = [.. Deserialize().Members];
 
 		using( Assert.EnterMultipleScope() ) {
 			Assert.That( members, Has.Length.EqualTo( 2 ) );
@@ -129,7 +129,7 @@ public class PlanDeserializationTests {
 
 	[Test]
 	public void Deserialize_FullPlan_BindsEveryAssetIncludingTheTaxStatusEnum() {
-		Asset[] assets = [ .. Deserialize().Assets ];
+		Asset[] assets = [.. Deserialize().Assets];
 
 		using( Assert.EnterMultipleScope() ) {
 			Assert.That( assets, Has.Length.EqualTo( 2 ) );
@@ -170,7 +170,7 @@ public class PlanDeserializationTests {
 	public void Deserialize_FullPlan_BindsTheLifeInsuranceMemberName() {
 		// The member property was once named "MemberName" in the sample plan, which bound to
 		// null without complaint. This pins the name.
-		LifeInsurance[] policies = [ .. Deserialize().LifeInsurance ];
+		LifeInsurance[] policies = [.. Deserialize().LifeInsurance];
 
 		using( Assert.EnterMultipleScope() ) {
 			Assert.That( policies, Has.Length.EqualTo( 2 ) );
@@ -198,7 +198,7 @@ public class PlanDeserializationTests {
 
 	[Test]
 	public void Deserialize_FullPlan_BindsEveryContributionIncludingTheSpousalContributor() {
-		Contribution[] contributions = [ .. Deserialize().Contributions ];
+		Contribution[] contributions = [.. Deserialize().Contributions];
 
 		using( Assert.EnterMultipleScope() ) {
 			Assert.That( contributions, Has.Length.EqualTo( 2 ) );
@@ -222,9 +222,9 @@ public class PlanDeserializationTests {
 	[Test]
 	public void Deserialize_FullPlan_BindsEveryTaxPolicyValue() {
 		TaxPolicy policy = Deserialize().TaxPolicy;
-		TaxBracket[] federal = [ .. policy.FederalBrackets ];
-		TaxBracket[] provincial = [ .. policy.ProvincialBrackets ];
-		RrifMinimum[] minimums = [ .. policy.RrifMinimums ?? [] ];
+		TaxBracket[] federal = [.. policy.FederalBrackets];
+		TaxBracket[] provincial = [.. policy.ProvincialBrackets];
+		RrifMinimum[] minimums = [.. policy.RrifMinimums ?? []];
 
 		using( Assert.EnterMultipleScope() ) {
 			Assert.That( federal, Has.Length.EqualTo( 2 ) );
@@ -261,7 +261,7 @@ public class PlanDeserializationTests {
 	[Test]
 	public void Deserialize_FullPlan_BindsTheBurndownAndInheritance() {
 		Plan plan = Deserialize();
-		Inheritance[] inheritances = [ .. plan.Inheritance ];
+		Inheritance[] inheritances = [.. plan.Inheritance];
 
 		using( Assert.EnterMultipleScope() ) {
 			Assert.That( plan.Burndown.BurndownYears, Is.EqualTo( 15 ) );

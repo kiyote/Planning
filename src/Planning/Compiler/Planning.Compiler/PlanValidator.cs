@@ -135,7 +135,7 @@ public sealed class PlanValidator {
 		}
 
 		foreach( var duplicate in plan.Assets
-			.GroupBy( a => ( a.Member, a.Name ) )
+			.GroupBy( a => (a.Member, a.Name) )
 			.Where( g => g.Count() > 1 ) ) {
 			result.AddError( $"Member '{duplicate.Key.Member}' has more than one asset named '{duplicate.Key.Name}'; assets must be unique within a member's scope." );
 		}

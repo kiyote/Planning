@@ -13,7 +13,17 @@ namespace Planning.Cli;
 
 internal static class Program {
 
-	private static int Main( string[] args ) {
+	private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions {
+		PropertyNameCaseInsensitive = true,
+		ReadCommentHandling = JsonCommentHandling.Skip,
+		AllowTrailingCommas = true,
+		RespectRequiredConstructorParameters = true,
+		Converters = { new JsonStringEnumConverter() }
+	};
+
+	private static int Main(
+		string[] args
+	) {
 		if( args.Length != 1 ) {
 			Console.Error.WriteLine( "Usage: planning <input-plan.json>" );
 			Console.Error.WriteLine();
@@ -39,14 +49,12 @@ internal static class Program {
 		Plan plan;
 		try {
 			string json = File.ReadAllText( inputPath );
-			plan = JsonSerializer.Deserialize<Plan>( json, SerializerOptions )
+			plan = JsonSerializer.Deserialize<Plan>( json, _serializerOptions )
 				?? throw new InvalidOperationException( "The plan JSON deserialized to null." );
-		}
-		catch( JsonException ex ) {
+		} catch( JsonException ex ) {
 			Console.Error.WriteLine( $"Failed to parse plan JSON: {ex.Message}" );
 			return 1;
-		}
-		catch( Exception ex ) {
+		} catch( Exception ex ) {
 			Console.Error.WriteLine( $"Failed to read plan file: {ex.Message}" );
 			return 1;
 		}
@@ -60,8 +68,7 @@ internal static class Program {
 			}
 
 			new PlanGrapher().SaveTotalAssetsByYear( calculatedPlan, pngPath );
-		}
-		catch( Exception ex ) {
+		} catch( Exception ex ) {
 			Console.Error.WriteLine( $"Failed to calculate plan: {ex.Message}" );
 			return 1;
 		}
@@ -70,12 +77,4 @@ internal static class Program {
 		Console.WriteLine( $"Wrote calculated plan graph to {pngPath}" );
 		return 0;
 	}
-
-	private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
-		PropertyNameCaseInsensitive = true,
-		ReadCommentHandling = JsonCommentHandling.Skip,
-		AllowTrailingCommas = true,
-		RespectRequiredConstructorParameters = true,
-		Converters = { new JsonStringEnumConverter() }
-	};
 }

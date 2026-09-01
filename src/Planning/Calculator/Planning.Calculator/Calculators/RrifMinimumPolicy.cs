@@ -47,7 +47,7 @@ internal sealed class RrifMinimumPolicy {
 		IReadOnlyDictionary<AssetId, decimal> yearStartBalances,
 		IReadOnlyDictionary<AssetId, decimal> withdrawnThisYear
 	) {
-		List<RrifMinimum> minimums = [ .. compiledPlan.TaxPolicy.RrifMinimums ?? [] ];
+		List<RrifMinimum> minimums = [.. compiledPlan.TaxPolicy.RrifMinimums ?? []];
 		if( minimums.Count == 0 ) {
 			return new RrifMinimumWithdrawals( [], 0m );
 		}

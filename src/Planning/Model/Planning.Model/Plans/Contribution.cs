@@ -1,4 +1,4 @@
-﻿namespace Planning.Model.Plans;
+namespace Planning.Model.Plans;
 
 /// <param name="Member">
 /// The member whose account receives the contribution: the annuitant.
