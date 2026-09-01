@@ -1,6 +1,7 @@
 sample-plan.csv
 sample-plan.png
 coverage.ps1
+artifacts/
 
 # Binaries
 *.exe

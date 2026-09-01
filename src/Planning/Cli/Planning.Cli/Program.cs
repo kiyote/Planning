@@ -24,18 +24,28 @@ internal static class Program {
 	private static int Main(
 		string[] args
 	) {
-		if( args.Length != 1 ) {
-			Console.Error.WriteLine( "Usage: planning <input-plan.json>" );
+		string[] positional = [.. args.Where( a => !a.StartsWith( '-' ) )];
+		bool noGraph = args.Any( a => a.Equals( "--no-graph", StringComparison.OrdinalIgnoreCase ) );
+		string[] unknown = [.. args.Where( a =>
+			a.StartsWith( '-' ) && !a.Equals( "--no-graph", StringComparison.OrdinalIgnoreCase ) )];
+
+		if( positional.Length != 1 || unknown.Length != 0 ) {
+			if( unknown.Length != 0 ) {
+				Console.Error.WriteLine( $"Unrecognized option: {unknown[0]}" );
+				Console.Error.WriteLine();
+			}
+			Console.Error.WriteLine( "Usage: planning <input-plan.json> [--no-graph]" );
 			Console.Error.WriteLine();
 			Console.Error.WriteLine( "  <input-plan.json>  Path to a JSON file describing a Plan." );
+			Console.Error.WriteLine( "  --no-graph         Skip writing the plan graph." );
 			Console.Error.WriteLine();
-			Console.Error.WriteLine( "Writes two files alongside the input, sharing its name:" );
+			Console.Error.WriteLine( "Writes the following files alongside the input, sharing its name:" );
 			Console.Error.WriteLine( "  <input-plan>.csv   The calculated CSV report." );
-			Console.Error.WriteLine( "  <input-plan>.png   The calculated plan graph." );
+			Console.Error.WriteLine( "  <input-plan>.png   The calculated plan graph, unless --no-graph is given." );
 			return 1;
 		}
 
-		string inputPath = args[0];
+		string inputPath = positional[0];
 
 		if( !File.Exists( inputPath ) ) {
 			Console.Error.WriteLine( $"Input plan file not found: {inputPath}" );
@@ -67,14 +77,18 @@ internal static class Program {
 				new PlanReporter().WriteToCsv( writer, compiledPlan, calculatedPlan );
 			}
 
-			new PlanGrapher().SaveTotalAssetsByYear( calculatedPlan, pngPath );
+			if( !noGraph ) {
+				new PlanGrapher().SaveTotalAssetsByYear( calculatedPlan, pngPath );
+			}
 		} catch( Exception ex ) {
 			Console.Error.WriteLine( $"Failed to calculate plan: {ex.Message}" );
 			return 1;
 		}
 
 		Console.WriteLine( $"Wrote calculated plan report to {csvPath}" );
-		Console.WriteLine( $"Wrote calculated plan graph to {pngPath}" );
+		if( !noGraph ) {
+			Console.WriteLine( $"Wrote calculated plan graph to {pngPath}" );
+		}
 		return 0;
 	}
 }
