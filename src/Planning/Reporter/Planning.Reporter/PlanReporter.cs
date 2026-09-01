@@ -51,7 +51,7 @@ public class PlanReporter {
 			header.Add( "Actual Withdrawal" );
 			header.Add( "Unfunded Shortfall" );
 			header.Add( "Plan Exhausted" );
-			header.AddRange( firstPeriod.Withdrawals.Select( w => AssetLabel( w.AssetId, " Withdrawl" ) ) );
+			header.AddRange( firstPeriod.Withdrawals.Select( w => AssetLabel( w.AssetId, " Withdrawal" ) ) );
 			header.AddRange( firstPeriod.Contribution.Select( c => AssetLabel( c.AssetId, " Contribution" ) ) );
 			header.AddRange( firstPeriod.EndingAssets.Select( a => AssetLabel( a.AssetId, " [End]" ) ) );
 			header.AddRange( firstPeriod.EndingAssets.Select( a => AssetLabel( a.AssetId, " Backlog" ) ) );
