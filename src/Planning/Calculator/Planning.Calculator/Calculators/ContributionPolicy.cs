@@ -33,12 +33,6 @@ internal sealed record ContributionAllocation(
 /// </summary>
 internal sealed class ContributionPolicy {
 
-	/// <summary>
-	/// Sentinel indicating an account has no contribution cap. An unlimited backlog absorbs
-	/// any contribution without being consumed, and an unlimited annual limit accrues nothing.
-	/// </summary>
-	private const decimal Unlimited = -1m;
-
 	// Contribution preference: fill Taxable room first, then TaxExempt, then CapitalGains.
 	// This is deliberately not the strict inverse of the withdrawal ordering.
 	private static readonly AssetTaxStatus[] ContributionStatusOrder = [
@@ -61,7 +55,7 @@ internal sealed class ContributionPolicy {
 		// skipped because the plan's seed backlog is stated as of the plan start date.
 		if( periodDate.Month == 1 && !isFirstPeriod ) {
 			foreach( CompiledAsset compiledAsset in compiledPlan.Assets ) {
-				if( compiledAsset.AnnualContributionLimit == Unlimited ) {
+				if( compiledAsset.AnnualContributionLimit == CompiledAsset.UnlimitedBacklog ) {
 					continue;
 				}
 
@@ -74,7 +68,7 @@ internal sealed class ContributionPolicy {
 				}
 
 				if( backlogByAsset.TryGetValue( compiledAsset.AssetId, out decimal backlog )
-					&& backlog != Unlimited
+					&& backlog != CalculatedAsset.UnlimitedBacklog
 				) {
 					backlogByAsset[compiledAsset.AssetId] = backlog + compiledAsset.AnnualContributionLimit;
 				}
@@ -173,7 +167,8 @@ internal sealed class ContributionPolicy {
 	/// allows, reducing that room and crediting the deposit account with the amount actually
 	/// applied. The two are the same account except for a spousal contribution, where the
 	/// contributor supplies the room and the annuitant receives the funds. An account with an
-	/// <see cref="Unlimited"/> backlog absorbs the full amount and its backlog is left untouched.
+	/// <see cref="CalculatedAsset.UnlimitedBacklog"/> backlog absorbs the full amount and its
+	/// backlog is left untouched.
 	/// </summary>
 	private static decimal Apply(
 		Dictionary<AssetId, decimal> backlogByAsset,
@@ -186,7 +181,7 @@ internal sealed class ContributionPolicy {
 			return 0;
 		}
 
-		if( available == Unlimited ) {
+		if( available == CalculatedAsset.UnlimitedBacklog ) {
 			appliedByAsset[depositAssetId] = appliedByAsset.GetValueOrDefault( depositAssetId ) + amount;
 
 			return amount;

@@ -46,7 +46,7 @@ internal sealed class IncomeCompiler {
 				);
 				incomes.Add( income );
 
-				foreach (LifeInsurance lifeInsurance in plan.LifeInsurance.Where( li => li.MemberName == member.Name ) ) {
+				foreach (LifeInsurance lifeInsurance in plan.LifeInsurance.Where( li => li.Member == member.Name ) ) {
 					decimal insuranceAmount = 0.0m;
 					if( period.PeriodDate.Year == member.DeathDate.Year
 						&& period.PeriodDate.Month == member.DeathDate.Month
@@ -54,7 +54,7 @@ internal sealed class IncomeCompiler {
 						insuranceAmount = lifeInsurance.Amount;
 					}
 					income = new CompiledIncome(
-						$"{lifeInsurance.MemberName} Life Insurance",
+						$"{lifeInsurance.Member} Life Insurance",
 						member.MemberId,
 						insuranceAmount,
 						false

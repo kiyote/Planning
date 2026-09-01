@@ -46,7 +46,7 @@ internal sealed class MemberCompiler {
 
 			members.Add(
 				new CompiledMember(
-					MemberId: members.Count + 1,
+					MemberId: new( members.Count + 1 ),
 					Name: member.Name,
 					BirthDate: member.BirthDate,
 					DeathDate: member.BirthDate.AddYears( member.TargetAgeInYears ).EndOfMonth(),

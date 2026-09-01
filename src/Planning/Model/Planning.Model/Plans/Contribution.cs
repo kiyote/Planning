@@ -29,4 +29,11 @@ public record Contribution(
 	/// this is a spousal contribution.
 	/// </summary>
 	public string Contributor => IsSpousal ? Spousal! : Member;
+
+	public static readonly Contribution None = new Contribution(
+		Member: "",
+		Amount: 0m,
+		StartYear: 0,
+		Indexed: false
+	);
 }

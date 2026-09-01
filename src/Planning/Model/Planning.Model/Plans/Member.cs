@@ -13,4 +13,13 @@ public record Member(
 	int? RetirementAgeInYears,
 	int CPPStartInYears,
 	decimal CPPPercent
-);
+) {
+	public static readonly Member None = new Member(
+		Name: "",
+		BirthDate: DateOnly.MinValue,
+		TargetAgeInYears: 0,
+		RetirementAgeInYears: null,
+		CPPStartInYears: 0,
+		CPPPercent: 0.0m
+	);
+}

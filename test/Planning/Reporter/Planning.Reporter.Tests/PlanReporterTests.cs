@@ -57,7 +57,7 @@ public class PlanReporterTests {
 		Assert.Multiple( () => {
 			Assert.That(
 				lines[0],
-				Is.EqualTo( "Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],CapitalGains (Todd) [Start],CapitalGains (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,CapitalGains (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,CapitalGains (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,CapitalGains (Todd) Contribution,CapitalGains (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],CapitalGains (Todd) [End],CapitalGains (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,CapitalGains (Todd) Backlog,CapitalGains (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer" ) );
+				Is.EqualTo( "Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],Non-Reg (Todd) [Start],Non-Reg (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,Non-Reg (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,Non-Reg (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,Non-Reg (Todd) Contribution,Non-Reg (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],Non-Reg (Todd) [End],Non-Reg (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,Non-Reg (Todd) Backlog,Non-Reg (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer" ) );
 			Assert.That(
 				lines[1],
 				Is.EqualTo( "Jan 2026,550000.00,0.00,30000.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,False,0.00,0.00,0.00,0.00,0.00,0.00,3500.00,0.00,0.00,0.00,0.00,0.00,556250.00,0.00,30150.00,0.00,0.00,0.00,215581.00,109000.00,147614.00,109000.00,0.00,0.00,586400.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00" ) );
@@ -91,7 +91,11 @@ public class PlanReporterTests {
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd, \"TJ\"", 100m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 50m )
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd, \"TJ\"", 50m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd, \"TJ\"", 50m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 50m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 50m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -224,7 +228,7 @@ public class PlanReporterTests {
 			Assert.That(
 				firstHeader,
 				Is.EqualTo(
-					"Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],CapitalGains (Todd) [Start],CapitalGains (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,CapitalGains (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,CapitalGains (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,CapitalGains (Todd) Contribution,CapitalGains (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],CapitalGains (Todd) [End],CapitalGains (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,CapitalGains (Todd) Backlog,CapitalGains (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer"
+					"Period,RRSP (Todd) [Start],TFSA (Todd) [Start],RRSP (Tina) [Start],TFSA (Tina) [Start],Non-Reg (Todd) [Start],Non-Reg (Tina) [Start],CPP (Todd),OAS (Todd),CPP Survivor (Todd),CPP (Tina),OAS (Tina),CPP Survivor (Tina),Todd Life Insurance (Todd),Tina Life Insurance (Tina),Total Taxable Income,Total Non-Taxable Income,Total Income,Retirement Income,Shortfall,Actual Retirement Income,Requested Withdrawal,Actual Withdrawal,Unfunded Shortfall,Plan Exhausted,RRSP (Todd) Withdrawl,Non-Reg (Todd) Withdrawl,TFSA (Todd) Withdrawl,RRSP (Tina) Withdrawl,Non-Reg (Tina) Withdrawl,TFSA (Tina) Withdrawl,RRSP (Todd) Contribution,TFSA (Todd) Contribution,RRSP (Tina) Contribution,TFSA (Tina) Contribution,Non-Reg (Todd) Contribution,Non-Reg (Tina) Contribution,RRSP (Todd) [End],TFSA (Todd) [End],RRSP (Tina) [End],TFSA (Tina) [End],Non-Reg (Todd) [End],Non-Reg (Tina) [End],RRSP (Todd) Backlog,TFSA (Todd) Backlog,RRSP (Tina) Backlog,TFSA (Tina) Backlog,Non-Reg (Todd) Backlog,Non-Reg (Tina) Backlog,Total Assets,Total Tax,Tax Funding Withdrawal,Unfunded Tax,Burndown Withdrawal,Burndown Tax,Burndown Transfer,RRIF Minimum Withdrawal,RRIF Minimum Transfer"
 				)
 			);
 		} );
@@ -241,7 +245,9 @@ public class PlanReporterTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 550000m, 219_081m, 22_000m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 109_000m, 7_000m ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 30000m, 147_614m, 10_800m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 109_000m, 7_000m )
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 109_000m, 7_000m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
 			],
 			annualInflationPercent: 3m,
 			annualReturnPercent: 6m,

@@ -16,12 +16,6 @@ public class PlanCalculator {
 	private readonly RrifMinimumPolicy _rrifMinimumPolicy = new();
 
 	/// <summary>
-	/// Sentinel indicating an account has no contribution cap; it absorbs any amount without
-	/// consuming room.
-	/// </summary>
-	private const decimal UnlimitedContributionRoom = ShelterAllocator.Unlimited;
-
-	/// <summary>
 	/// The income name the compiler assigns to Old Age Security. Used to isolate OAS from the
 	/// rest of the taxable base so the recovery tax can be capped at the amount received.
 	/// </summary>
@@ -394,7 +388,7 @@ public class PlanCalculator {
 					continue;
 				}
 
-				if( asset.ContributionBacklog != UnlimitedContributionRoom && asset.ContributionBacklog != 0m ) {
+				if( asset.ContributionBacklog != CalculatedAsset.UnlimitedBacklog && asset.ContributionBacklog != 0m ) {
 					endingAssets[i] = asset with { ContributionBacklog = 0m };
 				}
 			}

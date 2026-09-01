@@ -37,7 +37,7 @@ internal sealed class ContributionCompiler {
 					}
 				}
 				CompiledContribution cc = new CompiledContribution(
-					contributions.Count + 1,
+					new( contributions.Count + 1 ),
 					contributor.MemberId,
 					destination.MemberId,
 					contributionAmount

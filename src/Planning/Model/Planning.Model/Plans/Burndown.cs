@@ -12,4 +12,6 @@ namespace Planning.Model.Plans;
 /// </summary>
 public record Burndown(
 	int BurndownYears
-);
+) {
+	public static readonly Burndown None = new Burndown( 0 );
+}

@@ -11,4 +11,6 @@ public record CompiledAsset(
 	decimal Amount,
 	decimal ContributionBacklog,
 	decimal AnnualContributionLimit
-);
+) {
+	public const decimal UnlimitedBacklog = Asset.UnlimitedBacklog;
+}

@@ -5,7 +5,14 @@ using Planning.TestSupport;
 
 namespace Planning.Compiler.Tests;
 
-public class PlanCompilerTests {
+[TestFixture]
+public sealed class PlanCompilerTests {
+
+	public const string MemberTodd = "Todd";
+	public const string MemberTina = "Tina";
+	public const string AssetRRSP = "RRSP";
+	public const string AssetTFSA = "TFSA";
+
 
 	[Test]
 	public void Compile_ValidPlan_DoesNotThrow() {
@@ -27,8 +34,8 @@ public class PlanCompilerTests {
 		Assert.Multiple( () => {
 			Assert.That( members, Has.Length.EqualTo( 2 ) );
 			Assert.That( members[0], Is.EqualTo( new CompiledMember(
-				MemberId: 1,
-				Name: "Todd",
+				MemberId: new( 1 ),
+				Name: MemberTodd,
 				BirthDate: new DateOnly( 1973, 12, 25 ),
 				DeathDate: new DateOnly( 2058, 12, 31 ),
 				RetirementDate: new DateOnly( 2034, 1, 1 ),
@@ -45,8 +52,8 @@ public class PlanCompilerTests {
 			Assert.That( members[1].CPPStartDate, Is.EqualTo( new DateOnly( 2047, 7, 1 ) ) );
 			Assert.That( members[1].OASStartDate, Is.EqualTo( new DateOnly( 2042, 7, 1 ) ) );
 			Assert.That( periods, Has.Length.EqualTo( 552 ) );
-			Assert.That( periods[0], Is.EqualTo( new CompiledPeriod( 1, new DateOnly( 2026, 7, 1 ) ) ) );
-			Assert.That( periods[^1], Is.EqualTo( new CompiledPeriod( 552, new DateOnly( 2072, 6, 1 ) ) ) );
+			Assert.That( periods[0], Is.EqualTo( new CompiledPeriod( new( 1 ), new DateOnly( 2026, 7, 1 ) ) ) );
+			Assert.That( periods[^1], Is.EqualTo( new CompiledPeriod( new( 552 ), new DateOnly( 2072, 6, 1 ) ) ) );
 		} );
 	}
 
@@ -57,15 +64,17 @@ public class PlanCompilerTests {
 			lifeInsurance: []
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
 		CompiledIncome[] income = [.. compiledPlan.Income[firstPeriod]];
 
 		Assert.Multiple( () => {
-			Assert.That( income.Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
-			Assert.That( income.Single( i => i.MemberId == 1 && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
-			Assert.That( income.Single( i => i.MemberId == 1 && i.Name == "CPP Survivor" ).Amount, Is.Zero );
-			Assert.That( income.Single( i => i.MemberId == 2 && i.Name == "CPP" ).Amount, Is.Zero );
-			Assert.That( income.Single( i => i.MemberId == 2 && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
+			Assert.That( income.Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
+			Assert.That( income.Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
+			Assert.That( income.Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP Survivor" ).Amount, Is.Zero );
+			Assert.That( income.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP" ).Amount, Is.Zero );
+			Assert.That( income.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
 		} );
 	}
 
@@ -76,9 +85,11 @@ public class PlanCompilerTests {
 			lifeInsurance: []
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod january = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2059, 1, 1 ) );
 		CompiledIncome survivorIncome = compiledPlan.Income[january]
-			.Single( i => i.MemberId == 2 && i.Name == "CPP Survivor" );
+			.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP Survivor" );
 
 		Assert.That( survivorIncome.Amount, Is.EqualTo( 473.117841m ) );
 	}
@@ -86,21 +97,25 @@ public class PlanCompilerTests {
 	[Test]
 	public void Compile_Contributions_CharacterizesStartInflationAndRetirementStop() {
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( TestPlanFactory.Create() );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
 		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
 		CompiledPeriod toddRetirement = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2034, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 2 ).Amount, Is.Zero );
-			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3283.2m ) );
-			Assert.That( compiledPlan.Contribution[toddRetirement].Single( c => c.MemberId == 1 ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == tinaCompiled.MemberId ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3283.2m ) );
+			Assert.That( compiledPlan.Contribution[toddRetirement].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.Zero );
 		} );
 	}
 
 	[Test]
 	public void Compile_Contributions_StopInTheRetirementMonthOfTheirOwnMember() {
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( TestPlanFactory.Create() );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 
 		// Todd retires 2034-01-01 and Tina 2034-07-01, so each member's contributions run
 		// through their own final working month rather than stopping on a shared year boundary.
@@ -110,12 +125,12 @@ public class PlanCompilerTests {
 		CompiledPeriod july2034 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2034, 7, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Contribution[december2033].Single( c => c.MemberId == 1 ).Amount, Is.Positive );
-			Assert.That( compiledPlan.Contribution[january2034].Single( c => c.MemberId == 1 ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Contribution[december2033].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.Positive );
+			Assert.That( compiledPlan.Contribution[january2034].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.Zero );
 
-			Assert.That( compiledPlan.Contribution[january2034].Single( c => c.MemberId == 2 ).Amount, Is.Positive );
-			Assert.That( compiledPlan.Contribution[june2034].Single( c => c.MemberId == 2 ).Amount, Is.Positive );
-			Assert.That( compiledPlan.Contribution[july2034].Single( c => c.MemberId == 2 ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Contribution[january2034].Single( c => c.MemberId == tinaCompiled.MemberId ).Amount, Is.Positive );
+			Assert.That( compiledPlan.Contribution[june2034].Single( c => c.MemberId == tinaCompiled.MemberId ).Amount, Is.Positive );
+			Assert.That( compiledPlan.Contribution[july2034].Single( c => c.MemberId == tinaCompiled.MemberId ).Amount, Is.Zero );
 		} );
 	}
 
@@ -133,12 +148,14 @@ public class PlanCompilerTests {
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledContribution contribution = compiledPlan.Contribution[compiledPlan.Periods.First()].Single();
 
 		Assert.Multiple( () => {
 			// Todd funds it, so it consumes his room, while Tina's account receives it.
-			Assert.That( contribution.MemberId == 1, Is.True );
-			Assert.That( contribution.DestinationMemberId == 2, Is.True );
+			Assert.That( contribution.MemberId == toddCompiled.MemberId, Is.True );
+			Assert.That( contribution.DestinationMemberId == tinaCompiled.MemberId, Is.True );
 			Assert.That( contribution.IsSpousal, Is.True );
 			Assert.That( contribution.Amount, Is.EqualTo( 3000m ) );
 		} );
@@ -149,11 +166,11 @@ public class PlanCompilerTests {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
 				new Contribution(
-					Member: "Tina",
+					Member: MemberTina,
 					Amount: 3000.0m,
 					StartYear: 2026,
 					Indexed: false,
-					Spousal: "Todd"
+					Spousal: MemberTodd
 				)
 			]
 		);
@@ -175,11 +192,11 @@ public class PlanCompilerTests {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
 				new Contribution(
-					Member: "Todd",
+					Member: MemberTodd,
 					Amount: 3000.0m,
 					StartYear: 2026,
 					Indexed: false,
-					Spousal: "Todd"
+					Spousal: MemberTodd
 				)
 			]
 		);
@@ -196,7 +213,7 @@ public class PlanCompilerTests {
 	public void Compile_Inheritance_IsNonTaxableIncomeInTheBirthdayMonthIndexedForInflation() {
 		Plan plan = TestPlanFactory.Create(
 			inheritance: [
-				new Inheritance( "Todd", 500_000m, AgeReceived: 65 )
+				new Inheritance( MemberTodd, 500_000m, AgeReceived: 65 )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -221,7 +238,7 @@ public class PlanCompilerTests {
 	public void Compile_ZeroAmountInheritance_CompilesNoInheritanceIncome() {
 		Plan plan = TestPlanFactory.Create(
 			inheritance: [
-				new Inheritance( "Todd", 0m, AgeReceived: 65 )
+				new Inheritance( MemberTodd, 0m, AgeReceived: 65 )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -242,19 +259,21 @@ public class PlanCompilerTests {
 	public void Compile_UnindexedContribution_UsesConfiguredAmountForEntirePlan() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
-				new Contribution( "Todd", 3200m, 2026, Indexed: false )
+				new Contribution( MemberTodd, 3200m, 2026, Indexed: false )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 
 		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
 		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
 		CompiledPeriod january2033 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2033, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( compiledPlan.Contribution[january2033].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2033].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
 		} );
 	}
 
@@ -262,17 +281,19 @@ public class PlanCompilerTests {
 	public void Compile_IndexedContribution_GrowsAmountWithInflation() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
-				new Contribution( "Todd", 3200m, 2026, Indexed: true )
+				new Contribution( MemberTodd, 3200m, 2026, Indexed: true )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 
 		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
 		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == 1 ).Amount, Is.EqualTo( 3283.2m ) );
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3283.2m ) );
 		} );
 	}
 
@@ -284,14 +305,16 @@ public class PlanCompilerTests {
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod[] periods = [.. compiledPlan.Periods];
 
 		Assert.Multiple( () => {
-			Assert.That( periods[0], Is.EqualTo( new CompiledPeriod( 1, new DateOnly( 2060, 1, 1 ) ) ) );
+			Assert.That( periods[0], Is.EqualTo( new CompiledPeriod( new(1), new DateOnly( 2060, 1, 1 ) ) ) );
 			Assert.That( periods[^1].PeriodDate, Is.EqualTo( new DateOnly( 2072, 6, 1 ) ) );
 			// Todd (member 1) died 2058-12; his CPP is zero for every compiled period.
 			Assert.That(
-				periods.All( p => compiledPlan.Income[p].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount == 0m ),
+				periods.All( p => compiledPlan.Income[p].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount == 0m ),
 				Is.True
 			);
 		} );
@@ -356,14 +379,15 @@ public class PlanCompilerTests {
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
 		CompiledPeriod beforeStart = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2043, 12, 1 ) );
 		CompiledPeriod atStart = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2044, 1, 1 ) );
 		CompiledPeriod afterDeath = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2059, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Income[beforeStart].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.Zero );
-			Assert.That( compiledPlan.Income[atStart].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
-			Assert.That( compiledPlan.Income[afterDeath].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Income[beforeStart].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Income[atStart].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
+			Assert.That( compiledPlan.Income[afterDeath].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.Zero );
 		} );
 	}
 
@@ -416,14 +440,16 @@ public class PlanCompilerTests {
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod january2044 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2044, 1, 1 ) );
 		CompiledPeriod december2044 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2044, 12, 1 ) );
 		CompiledPeriod january2045 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2045, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Income[january2044].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
-			Assert.That( compiledPlan.Income[december2044].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
-			Assert.That( compiledPlan.Income[january2045].Single( i => i.MemberId == 1 && i.Name == "CPP" ).Amount, Is.EqualTo( 1757.2203504m ) );
+			Assert.That( compiledPlan.Income[january2044].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
+			Assert.That( compiledPlan.Income[december2044].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.EqualTo( 1712.6904m ) );
+			Assert.That( compiledPlan.Income[january2045].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "CPP" ).Amount, Is.EqualTo( 1757.2203504m ) );
 		} );
 	}
 
@@ -436,12 +462,14 @@ public class PlanCompilerTests {
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod beforeStart = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2038, 12, 1 ) );
 		CompiledPeriod atStart = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2039, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Income[beforeStart].Single( i => i.MemberId == 1 && i.Name == "OAS" ).Amount, Is.Zero );
-			Assert.That( compiledPlan.Income[atStart].Single( i => i.MemberId == 1 && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
+			Assert.That( compiledPlan.Income[beforeStart].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "OAS" ).Amount, Is.Zero );
+			Assert.That( compiledPlan.Income[atStart].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
 		} );
 	}
 
@@ -454,13 +482,15 @@ public class PlanCompilerTests {
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		// Todd born 1973-12-25 turns 75 on 2048-12-25.
 		CompiledPeriod beforeSeventyFive = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2048, 12, 1 ) );
 		CompiledPeriod afterSeventyFive = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2049, 1, 1 ) );
 
 		Assert.Multiple( () => {
-			Assert.That( compiledPlan.Income[beforeSeventyFive].Single( i => i.MemberId == 1 && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
-			Assert.That( compiledPlan.Income[afterSeventyFive].Single( i => i.MemberId == 1 && i.Name == "OAS" ).Amount, Is.EqualTo( 817.355m ) );
+			Assert.That( compiledPlan.Income[beforeSeventyFive].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "OAS" ).Amount, Is.EqualTo( 743.05m ) );
+			Assert.That( compiledPlan.Income[afterSeventyFive].Single( i => i.MemberId == toddCompiled.MemberId && i.Name == "OAS" ).Amount, Is.EqualTo( 817.355m ) );
 		} );
 	}
 
@@ -475,16 +505,22 @@ public class PlanCompilerTests {
 			annualInflationPercent: 0m,
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m )
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0.0m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0.0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0.0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0.0m )
 			],
 			lifeInsurance: [],
 			contributions: []
 		);
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+		CompiledMember tinaCompiled = compiledPlan.Members.First( m => m.Name == MemberTina );
 		CompiledPeriod afterToddDeath = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2025, 2, 1 ) );
 		CompiledIncome survivorIncome = compiledPlan.Income[afterToddDeath]
-			.Single( i => i.MemberId == 2 && i.Name == "CPP Survivor" );
+			.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP Survivor" );
 
 		// Survivor already receives the full CPP (1507.65); the partner top-up is capped
 		// by the combined survivor maximum (1531.56), leaving 23.91.

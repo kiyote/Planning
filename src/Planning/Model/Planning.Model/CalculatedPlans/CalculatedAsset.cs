@@ -1,4 +1,5 @@
-﻿using Planning.Model.Identifiers;
+﻿using Planning.Model.CompiledPlans;
+using Planning.Model.Identifiers;
 using Planning.Model.Plans;
 
 namespace Planning.Model.CalculatedPlans;
@@ -22,4 +23,6 @@ public record CalculatedAsset(
 	/// keeps that residue from being taxed as a gain.
 	/// </remarks>
 	public decimal AccruedGain => Math.Max( 0m, Math.Round( Amount - CostBase, 2, MidpointRounding.AwayFromZero ) );
+
+	public const decimal UnlimitedBacklog = CompiledAsset.UnlimitedBacklog;
 }

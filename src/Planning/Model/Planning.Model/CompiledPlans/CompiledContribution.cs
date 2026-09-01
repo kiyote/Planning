@@ -11,7 +11,7 @@ namespace Planning.Model.CompiledPlans;
 /// unless this is a spousal contribution.
 /// </param>
 public record CompiledContribution(
-	int ContributionId,
+	ContributionId ContributionId,
 	MemberId MemberId,
 	MemberId DestinationMemberId,
 	decimal Amount

@@ -147,7 +147,7 @@ public sealed class PlanValidator {
 				.. plan.Assets.Where( a => a.Member == member.Name ).Select( a => a.TaxStatus )
 			];
 
-			foreach( AssetTaxStatus status in Enum.GetValues<AssetTaxStatus>() ) {
+			foreach( AssetTaxStatus status in Enum.GetValues<AssetTaxStatus>().Where( a => a > 0 ) ) {
 				if( !memberStatuses.Contains( status ) ) {
 					result.AddError( $"Member '{member.Name}' must have a {status} asset defined, even if its amount is 0." );
 				}
@@ -164,11 +164,7 @@ public sealed class PlanValidator {
 		Plan plan,
 		PlanValidationResult result
 	) {
-		if( plan.Burndown is null ) {
-			return;
-		}
-
-		if( plan.Burndown.BurndownYears <= 0 ) {
+		if( plan.Burndown.BurndownYears < 0 ) {
 			result.AddError( $"Burndown years ({plan.Burndown.BurndownYears}) must be positive." );
 		}
 	}
@@ -181,12 +177,12 @@ public sealed class PlanValidator {
 		HashSet<string> memberNames = [.. members.Select( m => m.Name )];
 
 		foreach( LifeInsurance insurance in plan.LifeInsurance ) {
-			if( !memberNames.Contains( insurance.MemberName ) ) {
-				result.AddError( $"Life insurance references unknown member '{insurance.MemberName}'." );
+			if( !memberNames.Contains( insurance.Member ) ) {
+				result.AddError( $"Life insurance references unknown member '{insurance.Member}'." );
 			}
 
 			if( insurance.Amount < 0m ) {
-				result.AddError( $"Life insurance for '{insurance.MemberName}' amount ({insurance.Amount}) must be nonnegative." );
+				result.AddError( $"Life insurance for '{insurance.Member}' amount ({insurance.Amount}) must be nonnegative." );
 			}
 		}
 	}

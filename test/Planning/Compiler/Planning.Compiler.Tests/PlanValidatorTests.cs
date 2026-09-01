@@ -157,7 +157,7 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
-	public void Validate_MemberWithPartialAssets_HasEveryTaxStatusSynthesized() {
+	public void Validate_MemberWithPartialAssets_PlanDoesNotValidated() {
 		// A member given only a Taxable account still ends up holding one account of every tax
 		// status, so contributions and rollovers always have a destination.
 		Plan plan = TestPlanFactory.Create(
@@ -171,15 +171,7 @@ public class PlanValidatorTests {
 
 		PlanValidationResult result = new PlanValidator().Validate( plan );
 
-		Assert.Multiple( () => {
-			Assert.That( result.IsValid, Is.True );
-
-			foreach( string memberName in new[] { "Todd", "Tina" } ) {
-				Assert.That(
-					plan.Assets.Where( a => a.Member == memberName ).Select( a => a.TaxStatus ),
-					Is.EquivalentTo( Enum.GetValues<AssetTaxStatus>() ) );
-			}
-		} );
+		Assert.That( result.IsValid, Is.False );
 	}
 
 	[Test]

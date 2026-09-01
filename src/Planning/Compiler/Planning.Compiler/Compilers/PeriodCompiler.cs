@@ -18,7 +18,7 @@ internal sealed class PeriodCompiler {
 		while( current < planEnd ) {
 			periods.Add(
 				new CompiledPeriod(
-					periods.Count + 1,
+					new( periods.Count + 1 ),
 					current
 				)
 			);

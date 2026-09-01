@@ -15,7 +15,7 @@ internal sealed class AssetCompiler {
 
 			result.Add(
 				new CompiledAsset(
-					AssetId: result.Count + 1,
+					AssetId: new( result.Count + 1 ),
 					Name: asset.Name,
 					TaxStatus: asset.TaxStatus,
 					MemberId: member.MemberId,

@@ -74,4 +74,19 @@ public record TaxPolicy(
 	IEnumerable<RrifMinimum>? RrifMinimums = null,
 	decimal OasClawbackThreshold = 90_997m,
 	decimal OasClawbackRate = 15m
-);
+) {
+	public static readonly TaxPolicy None = new TaxPolicy(
+		FederalBrackets: [],
+		ProvincialBrackets: [],
+		AllowPensionSplitting: false,
+		AgeAmountBase: 0m,
+		AgeAmountIncomeThreshold: 0m,
+		AgeAmountReductionRate: 0m,
+		AgeAmountEligibilityAge: 0,
+		PensionIncomeAmount: 0m,
+		PensionIncomeEligibilityAge: 0,
+		RrifMinimums: [],
+		OasClawbackThreshold: 0m,
+		OasClawbackRate: 0m
+	);
+}

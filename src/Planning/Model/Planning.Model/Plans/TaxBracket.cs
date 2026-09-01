@@ -9,4 +9,6 @@ namespace Planning.Model.Plans;
 public record TaxBracket(
 	decimal LowerBound,
 	decimal Rate
-);
+) {
+	public static readonly TaxBracket None = new TaxBracket( 0.0m, 0.0m );
+}

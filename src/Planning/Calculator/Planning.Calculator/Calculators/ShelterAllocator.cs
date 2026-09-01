@@ -19,12 +19,6 @@ namespace Planning.Calculator.Calculators;
 /// </summary>
 internal static class ShelterAllocator {
 
-	/// <summary>
-	/// Sentinel indicating an account has no contribution cap; it absorbs any amount without
-	/// consuming room.
-	/// </summary>
-	public const decimal Unlimited = -1m;
-
 	// Money fills tax-exempt room first, then spills into capital-gains accounts.
 	private static readonly AssetTaxStatus[] DestinationStatusOrder = [
 		AssetTaxStatus.TaxExempt,
@@ -78,7 +72,7 @@ internal static class ShelterAllocator {
 				}
 
 				CalculatedAsset destination = endingAssets[index];
-				bool unlimited = destination.ContributionBacklog == Unlimited;
+				bool unlimited = destination.ContributionBacklog == CalculatedAsset.UnlimitedBacklog;
 				decimal applied = unlimited
 					? remaining
 					: Math.Min( destination.ContributionBacklog, remaining );

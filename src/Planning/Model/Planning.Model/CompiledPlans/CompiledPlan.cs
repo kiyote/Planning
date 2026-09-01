@@ -11,6 +11,5 @@ public record CompiledPlan(
 	IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> Contribution,
 	TaxPolicy TaxPolicy,
 	RetirementPhaseSchedule RetirementPhaseSchedule,
-	Burndown? Burndown
-
+	Burndown? Burndown = null
 );

@@ -15,4 +15,6 @@ namespace Planning.Model.Plans;
 public record RrifMinimum(
 	int Age,
 	decimal Percent
-);
+) {
+	public static readonly RrifMinimum None = new RrifMinimum( 0, 0.0m );
+}

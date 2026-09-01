@@ -40,8 +40,8 @@ public static class TestPlanFactory {
 			),
 			Contributions: contributions ?? CreateContributions(),
 			TaxPolicy: taxPolicy ?? CreateTaxPolicy(),
-			Burndown: burndown,
-			Inheritance: inheritance
+			Burndown: burndown ?? Burndown.None,
+			Inheritance: inheritance ?? []
 		);
 	}
 
@@ -92,7 +92,9 @@ public static class TestPlanFactory {
 			CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 520_000.0m, 10_000m, 2_000m ),
 			CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 30_000.0m, 10_000m, 2_000m ),
 			CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0.0m, 109_000m, 6_000m ),
-			CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0.0m, 109_000m, 6_000m )
+			CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0.0m, 109_000m, 6_000m ),
+			CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0.0m, -1.0m, 0.0m ),
+			CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0.0m, -1.0m, 0.0m )
 		];
 	}
 

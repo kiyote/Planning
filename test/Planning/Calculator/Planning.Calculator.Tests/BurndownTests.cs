@@ -99,7 +99,11 @@ public class BurndownTests {
 			burndown: new Burndown( BurndownYears: 10 ),
 			assets: [
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 100_000m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100_000m )
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 100_000m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m )
 			] );
 
 		PlanValidationResult result = new PlanValidator().Validate( plan );
@@ -124,25 +128,11 @@ public class BurndownTests {
 
 		Assert.Multiple( () => {
 			// Zero years is treated exactly as though no burndown were configured.
-			Assert.That( plan.Burndown, Is.Null );
+			Assert.That( plan.Burndown, Is.EqualTo( Burndown.None ) );
 			Assert.That( new PlanValidator().Validate( plan ).IsValid, Is.True );
 			Assert.That( calculatedPlan.Periods.Sum( p => p.BurndownWithdrawal ), Is.Zero );
 			Assert.That( calculatedPlan.Periods.Sum( p => p.BurndownTransfer ), Is.Zero );
 		} );
-	}
-
-	[Test]
-	public void Validate_NoBurndown_DoesNotRequireBurndownAccounts() {
-		Plan plan = CreatePlan(
-			burndown: null,
-			assets: [
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100_000m ),
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100_000m )
-			] );
-
-		PlanValidationResult result = new PlanValidator().Validate( plan );
-
-		Assert.That( result.IsValid, Is.True );
 	}
 
 	private static CalculatedPlan Calculate(
@@ -176,7 +166,10 @@ public class BurndownTests {
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 300_000m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 20_000m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, 0m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 0m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -284,8 +277,8 @@ public class BurndownTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 300_000m, 0m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Todd", 0m, 20_000m, 0m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, "Tina", 0m, 20_000m, 0m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, -1m ),
-				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, -1m )
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Todd", 0m, -1m, 0m ),
+				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, "Tina", 0m, -1m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
