@@ -8,7 +8,7 @@
   "CPPCombinedSurvivorMaximum": 1531.56,
   "OASMaximum": 743.05,
   "Assets": [
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent":  2.0 },
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": 2.0 },
     { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": null },
     { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true, "CostBase": 0, "AnnualContributionIncreasePercent": null },
     { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ContributionBacklog": 147614, "AnnualContributionLimit": 10800, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": null },
@@ -29,39 +29,39 @@
     "NoGoYears": 10
   },
   "Contributions": [
-    { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": true, "Spousal": "Todd", "AnnualIncreasePercent":  7.0 },
-    { "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd", "AnnualIncreasePercent":  null }
+    { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": true, "Spousal": "Todd", "AnnualIncreasePercent": 7.0 },
+    { "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd", "AnnualIncreasePercent": null }
   ],
   "Inheritance": [
-    { "Member": "Todd", "Amount": 0, "AgeReceived": 65  }
+    { "Member": "Todd", "Amount": 0, "AgeReceived": 65 }
   ],
   "Burndown": {
     "BurndownYears": 0
   },
   "TaxPolicy": {
-    "Year": 2024,
+    "Year": 2025,
     "AllowPensionSplitting": false,
-    "BasicPersonalAmount": 15705,
-    "ProvincialBasicPersonalAmount": 12399,
-    "AgeAmountBase": 8790,
-    "AgeAmountIncomeThreshold": 44325,
+    "BasicPersonalAmount": 16129,
+    "ProvincialBasicPersonalAmount": 12747,
+    "AgeAmountBase": 9028,
+    "AgeAmountIncomeThreshold": 45522,
     "AgeAmountReductionRate": 15.0,
     "AgeAmountEligibilityAge": 65,
     "PensionIncomeAmount": 2000,
     "PensionIncomeEligibilityAge": 65,
-    "OasClawbackThreshold": 90997,
+    "OasClawbackThreshold": 93454,
     "OasClawbackRate": 15.0,
     "FederalBrackets": [
-      { "LowerBound": 0, "Rate": 15.0 },
-      { "LowerBound": 55867, "Rate": 20.5 },
-      { "LowerBound": 111733, "Rate": 26.0 },
-      { "LowerBound": 173205, "Rate": 29.0 },
-      { "LowerBound": 246752, "Rate": 33.0 }
+      { "LowerBound": 0, "Rate": 14.5 },
+      { "LowerBound": 57375, "Rate": 20.5 },
+      { "LowerBound": 114750, "Rate": 26.0 },
+      { "LowerBound": 177882, "Rate": 29.0 },
+      { "LowerBound": 253414, "Rate": 33.0 }
     ],
     "ProvincialBrackets": [
       { "LowerBound": 0, "Rate": 5.05 },
-      { "LowerBound": 51446, "Rate": 9.15 },
-      { "LowerBound": 102894, "Rate": 11.16 },
+      { "LowerBound": 52886, "Rate": 9.15 },
+      { "LowerBound": 105775, "Rate": 11.16 },
       { "LowerBound": 150000, "Rate": 12.16 },
       { "LowerBound": 220000, "Rate": 13.16 }
     ],
@@ -100,4 +100,3 @@
     ]
   }
 }
-
