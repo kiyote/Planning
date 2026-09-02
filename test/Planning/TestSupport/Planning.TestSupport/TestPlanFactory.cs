@@ -145,13 +145,15 @@ public static class TestPlanFactory {
 				Member: "Todd",
 				Amount: 3200.0m,
 				StartYear: 2026,
-				Indexed: true
+				Indexed: true,
+				AnnualIncreasePercent: 2.6m
 			),
 			new Contribution(
 				Member: "Tina",
 				Amount: 3000.0m,
 				StartYear: 2028,
-				Indexed: true
+				Indexed: true,
+				AnnualIncreasePercent: 2.6m
 			)
 		];
 	}

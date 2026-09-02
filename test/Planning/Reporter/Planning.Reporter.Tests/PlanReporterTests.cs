@@ -262,8 +262,8 @@ public class PlanReporterTests {
 				NoGoYears: 10
 			),
 			contributions: [
-				new Contribution( "Todd", 3500, 2026, Indexed: true ),
-				new Contribution( "Tina", 3000, 2028, Indexed: true )
+				new Contribution( "Todd", 3500, 2026, Indexed: true, AnnualIncreasePercent: 3m ),
+				new Contribution( "Tina", 3000, 2028, Indexed: true, AnnualIncreasePercent: 3m )
 			]
 		);
 	}

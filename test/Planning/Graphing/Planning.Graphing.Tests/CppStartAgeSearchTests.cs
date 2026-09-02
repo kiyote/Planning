@@ -101,8 +101,8 @@ public class CppStartAgeSearchTests {
 				NoGoYears: 10
 			),
 			contributions: [
-				new Contribution( "Todd", 3500, 2026, Indexed: false ),
-				new Contribution( "Tina", 3000, 2028, Indexed: false )
+				new Contribution( "Todd", 3500, 2026, Indexed: false, AnnualIncreasePercent: 0m ),
+				new Contribution( "Tina", 3000, 2028, Indexed: false, AnnualIncreasePercent: 0m )
 			]
 		);
 	}

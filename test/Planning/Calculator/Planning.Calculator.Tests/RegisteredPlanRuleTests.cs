@@ -25,7 +25,7 @@ public sealed class RegisteredPlanRuleTests {
 		// next account in the contribution order rather than being accepted or dropped.
 		Plan plan = CreatePlan(
 			toddBirthDate: new DateOnly( 1954, 6, 1 ),
-			contributions: [new Contribution( MemberTodd, 3_000m, 2026, Indexed: false, Spousal: null )] );
+			contributions: [new Contribution( MemberTodd, 3_000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: null )] );
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember todd = compiledPlan.Members.Single( m => m.Name == MemberTodd );
@@ -55,7 +55,7 @@ public sealed class RegisteredPlanRuleTests {
 		// the 71st year is still valid.
 		Plan plan = CreatePlan(
 			toddBirthDate: new DateOnly( 1955, 6, 1 ),
-			contributions: [new Contribution( MemberTodd, 3_000m, 2026, Indexed: false, Spousal: null )] );
+			contributions: [new Contribution( MemberTodd, 3_000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: null )] );
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember todd = compiledPlan.Members.Single( m => m.Name == MemberTodd );
@@ -76,7 +76,7 @@ public sealed class RegisteredPlanRuleTests {
 		// still make spousal contributions to a younger spouse's RRSP.
 		Plan plan = CreatePlan(
 			toddBirthDate: new DateOnly( 1954, 6, 1 ),
-			contributions: [new Contribution( MemberTina, 3_000m, 2026, Indexed: false, Spousal: MemberTodd )] );
+			contributions: [new Contribution( MemberTina, 3_000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: MemberTodd )] );
 
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 		CompiledMember tina = compiledPlan.Members.Single( m => m.Name == MemberTina );

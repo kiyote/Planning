@@ -32,7 +32,7 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true ),
 			],
 			contributions: [
-				new Contribution( MemberTina, 3000m, 2026, Indexed: false, Spousal: MemberTodd )
+				new Contribution( MemberTina, 3000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: MemberTodd )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -69,7 +69,7 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTina, 0m, hasUnlimitedContributionRoom: true )
 			],
 			contributions: [
-				new Contribution( MemberTina, 3000m, 2026, Indexed: false, Spousal: MemberTodd )
+				new Contribution( MemberTina, 3000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: MemberTodd )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -102,6 +102,7 @@ public sealed class PlanCalculatorTests {
 					Amount: 3000.0m,
 					StartYear: 2026,
 					Indexed: false,
+					AnnualIncreasePercent: 0m,
 					Spousal: MemberTodd
 				)
 			]
@@ -349,7 +350,7 @@ public sealed class PlanCalculatorTests {
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m, 0m, 0m ),
 			],
 			contributions: [
-				new Contribution( MemberTodd, 5_000m, 2026, Indexed: false )
+				new Contribution( MemberTodd, 5_000m, 2026, Indexed: false, AnnualIncreasePercent: 0m )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );

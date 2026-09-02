@@ -144,6 +144,7 @@ public sealed class PlanCompilerTests {
 					Amount: 3000.0m,
 					StartYear: 2026,
 					Indexed: false,
+					AnnualIncreasePercent: 0m,
 					Spousal: "Todd"
 				)
 			]
@@ -171,6 +172,7 @@ public sealed class PlanCompilerTests {
 					Amount: 3000.0m,
 					StartYear: 2026,
 					Indexed: false,
+					AnnualIncreasePercent: 0m,
 					Spousal: MemberTodd
 				)
 			]
@@ -197,6 +199,7 @@ public sealed class PlanCompilerTests {
 					Amount: 3000.0m,
 					StartYear: 2026,
 					Indexed: false,
+					AnnualIncreasePercent: 0m,
 					Spousal: MemberTodd
 				)
 			]
@@ -260,7 +263,7 @@ public sealed class PlanCompilerTests {
 	public void Compile_UnindexedContribution_UsesConfiguredAmountForEntirePlan() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
-				new Contribution( MemberTodd, 3200m, 2026, Indexed: false )
+				new Contribution( MemberTodd, 3200m, 2026, Indexed: false, AnnualIncreasePercent: 0m )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -279,10 +282,12 @@ public sealed class PlanCompilerTests {
 	}
 
 	[Test]
-	public void Compile_IndexedContribution_GrowsAmountWithInflation() {
+	public void Compile_IndexedContribution_GrowsAtItsOwnRateRatherThanPlanInflation() {
+		// The 4% increase is deliberately different from the plan's 2.6% inflation so the
+		// assertion fails if the compiler ever falls back to the plan-wide rate.
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
-				new Contribution( MemberTodd, 3200m, 2026, Indexed: true )
+				new Contribution( MemberTodd, 3200m, 2026, Indexed: true, AnnualIncreasePercent: 4.0m )
 			]
 		);
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
@@ -294,7 +299,7 @@ public sealed class PlanCompilerTests {
 
 		Assert.Multiple( () => {
 			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
-			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3283.2m ) );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3328m ).Within( 0.01m ) );
 		} );
 	}
 

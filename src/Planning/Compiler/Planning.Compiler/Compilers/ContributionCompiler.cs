@@ -28,10 +28,15 @@ internal sealed class ContributionCompiler {
 					&& period.PeriodDate < contributor.RetirementDate
 				) {
 					if( contribution.Indexed ) {
+						// The contribution grows at its own stated rate rather than the plan's
+						// inflation, since a rising contribution reflects a raise or a savings
+						// decision rather than the cost of living. Growth is measured from the
+						// plan start so the stated amount is always in plan-start dollars,
+						// whatever year the contribution begins.
 						int elapsedYears = period.PeriodDate.Year - plan.StartDate.Year;
-						double inflation = (double)( 1 + ( plan.AnnualInflationPercent / 100 ) );
+						double increase = (double)( 1 + ( contribution.AnnualIncreasePercent / 100 ) );
 
-						contributionAmount = contribution.Amount * (decimal)Math.Pow( inflation, elapsedYears );
+						contributionAmount = contribution.Amount * (decimal)Math.Pow( increase, elapsedYears );
 					} else {
 						contributionAmount = contribution.Amount;
 					}

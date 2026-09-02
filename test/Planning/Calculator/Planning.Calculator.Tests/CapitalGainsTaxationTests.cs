@@ -170,7 +170,7 @@ public class CapitalGainsTaxationTests {
 		decimal retirementIncome
 	) {
 		List<Contribution> contributions = monthlyContribution > 0m
-			? [new Contribution( "Todd", monthlyContribution, 2026, Indexed: false )]
+			? [new Contribution( "Todd", monthlyContribution, 2026, Indexed: false, AnnualIncreasePercent: 0m )]
 			: [];
 
 		Plan plan = TestPlanFactory.Create(

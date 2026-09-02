@@ -3,6 +3,16 @@ namespace Planning.Model.Plans;
 /// <param name="Member">
 /// The member whose account receives the contribution: the annuitant.
 /// </param>
+/// <param name="Indexed">
+/// Whether <paramref name="Amount"/> grows over time. When false the contribution stays flat at
+/// the stated amount for the life of the plan.
+/// </param>
+/// <param name="AnnualIncreasePercent">
+/// The rate at which <paramref name="Amount"/> grows each year while <paramref name="Indexed"/>
+/// is set. This is deliberately independent of the plan's inflation rate, because the reason a
+/// contribution rises is a raise or a deliberate savings decision rather than the cost of living.
+/// Ignored entirely when <paramref name="Indexed"/> is false.
+/// </param>
 /// <param name="Spousal">
 /// The member who funds the contribution, when that is not <paramref name="Member"/>. A spousal
 /// contribution consumes the contributor's registered room rather than the annuitant's, and
@@ -15,6 +25,7 @@ public record Contribution(
 	decimal Amount,
 	int StartYear,
 	bool Indexed,
+	decimal AnnualIncreasePercent,
 	string? Spousal = null
 ) {
 
@@ -34,6 +45,7 @@ public record Contribution(
 		Member: "",
 		Amount: 0m,
 		StartYear: 0,
-		Indexed: false
+		Indexed: false,
+		AnnualIncreasePercent: 0m
 	);
 }

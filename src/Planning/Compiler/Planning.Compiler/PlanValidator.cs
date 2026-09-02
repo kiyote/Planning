@@ -255,6 +255,12 @@ public sealed class PlanValidator {
 				result.AddError( $"Contribution for '{contribution.Member}' start year ({contribution.StartYear}) must be a valid year." );
 			}
 
+			// A shrinking contribution is almost certainly a typo, and compounding a negative
+			// rate over decades drives the amount to nothing without ever failing loudly.
+			if( contribution.Indexed && contribution.AnnualIncreasePercent < 0m ) {
+				result.AddError( $"Contribution for '{contribution.Member}' annual increase ({contribution.AnnualIncreasePercent}) must be nonnegative." );
+			}
+
 			// A spousal contribution must name a real, different member to fund it. Naming the
 			// annuitant themselves is simply an ordinary contribution and needs no error.
 			if( !string.IsNullOrWhiteSpace( contribution.Spousal )

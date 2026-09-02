@@ -201,7 +201,7 @@ public class PlanValidatorTests {
 	public void Validate_ContributionReferencesUnknownSpousalContributor_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
-				new Contribution( "Tina", 3000m, 2026, Indexed: false, Spousal: "Nobody" )
+				new Contribution( "Tina", 3000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: "Nobody" )
 			]
 		);
 
@@ -214,7 +214,7 @@ public class PlanValidatorTests {
 	public void Validate_ContributionNamingItselfAsSpousal_ReportsNoError() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [
-				new Contribution( "Todd", 3000m, 2026, Indexed: false, Spousal: "Todd" )
+				new Contribution( "Todd", 3000m, 2026, Indexed: false, AnnualIncreasePercent: 0m, Spousal: "Todd" )
 			]
 		);
 
@@ -232,13 +232,40 @@ public class PlanValidatorTests {
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Tina", 100m )
 			],
 			contributions: [
-				new Contribution( "Todd", 1000m, 2030, Indexed: false )
+				new Contribution( "Todd", 1000m, 2030, Indexed: false, AnnualIncreasePercent: 0m )
 			]
 		);
 
 		PlanValidationResult result = new PlanValidator().Validate( plan );
 
 		Assert.That( result.IsValid, Is.False );
+	}
+
+	[Test]
+	public void Validate_IndexedContributionWithNegativeIncrease_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( "Todd", 1000m, 2030, Indexed: true, AnnualIncreasePercent: -1.0m )
+			]
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.False );
+	}
+
+	[Test]
+	public void Validate_UnindexedContributionWithNegativeIncrease_IsIgnored() {
+		// The rate is meaningless when the contribution is flat, so it must not be policed.
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( "Todd", 1000m, 2030, Indexed: false, AnnualIncreasePercent: -1.0m )
+			]
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.True );
 	}
 
 	[Test]

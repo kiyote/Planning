@@ -55,8 +55,8 @@ public class PlanDeserializationTests {
 			"NoGoYears": 12
 		},
 		"Contributions": [
-			{ "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": true, "Spousal": "Tina" },
-			{ "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd" }
+			{ "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": true, "AnnualIncreasePercent": 2.0, "Spousal": "Tina" },
+			{ "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "AnnualIncreasePercent": 0.0, "Spousal": "Todd" }
 		],
 		"TaxPolicy": {
 			"Year": 2024,
@@ -209,6 +209,7 @@ public class PlanDeserializationTests {
 			Assert.That( contributions[0].Amount, Is.EqualTo( 3_500m ) );
 			Assert.That( contributions[0].StartYear, Is.EqualTo( 2026 ) );
 			Assert.That( contributions[0].Indexed, Is.True );
+			Assert.That( contributions[0].AnnualIncreasePercent, Is.EqualTo( 2.0m ) );
 			Assert.That( contributions[0].Spousal, Is.EqualTo( "Tina" ) );
 			Assert.That( contributions[0].IsSpousal, Is.True );
 
@@ -216,6 +217,7 @@ public class PlanDeserializationTests {
 			Assert.That( contributions[1].Amount, Is.EqualTo( 3_000m ) );
 			Assert.That( contributions[1].StartYear, Is.EqualTo( 2028 ) );
 			Assert.That( contributions[1].Indexed, Is.False );
+			Assert.That( contributions[1].AnnualIncreasePercent, Is.EqualTo( 0.0m ) );
 			Assert.That( contributions[1].Spousal, Is.EqualTo( "Todd" ) );
 			Assert.That( contributions[1].IsSpousal, Is.True );
 		}
