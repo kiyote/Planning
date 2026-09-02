@@ -32,6 +32,8 @@ public class RrifMinimumTests {
 			"FederalBrackets": [ { "LowerBound": 0, "Rate": 15.0 } ],
 			"ProvincialBrackets": [ { "LowerBound": 0, "Rate": 5.05 } ],
 			"AllowPensionSplitting": false,
+			"BasicPersonalAmount": 15705,
+			"ProvincialBasicPersonalAmount": 12399,
 			"AgeAmountBase": 8790,
 			"AgeAmountIncomeThreshold": 44325,
 			"AgeAmountReductionRate": 15.0,

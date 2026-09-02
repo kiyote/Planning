@@ -308,12 +308,14 @@ public class PlanGrapher {
 	/// Aggregates the household's total asset value, unfunded shortfall, total tax, total
 	/// income, and total withdrawals to a single value per calendar year. Total assets use the
 	/// final period recorded within each year; shortfall, total tax, total income, and total
-	/// withdrawals are summed across all periods in the year.
+	/// withdrawals are summed across all periods in the year. The terminal tax is added to the
+	/// final year so the graph shows the full cost of the deemed disposition at death rather
+	/// than understating the last year's liability.
 	/// </summary>
 	private static IReadOnlyList<YearlyTotal> BuildYearlyTotals(
 		CalculatedPlan calculatedPlan
 	) {
-		return [.. calculatedPlan.Periods
+		List<YearlyTotal> yearlyTotals = [.. calculatedPlan.Periods
 			.GroupBy( p => p.PeriodDate.Year )
 			.OrderBy( g => g.Key )
 			.Select( g => {
@@ -331,5 +333,13 @@ public class PlanGrapher {
 					TotalWithdrawals: (double)g.Sum( p => p.Withdrawals.Sum( w => w.Amount ) )
 				);
 			} )];
+
+		decimal terminalTax = calculatedPlan.TaxSummary.TerminalTax;
+		if( yearlyTotals.Count > 0 && terminalTax != 0m ) {
+			YearlyTotal finalYear = yearlyTotals[^1];
+			yearlyTotals[^1] = finalYear with { TotalTax = finalYear.TotalTax + (double)terminalTax };
+		}
+
+		return yearlyTotals;
 	}
 }

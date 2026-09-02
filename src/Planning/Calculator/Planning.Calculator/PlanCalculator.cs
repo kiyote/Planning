@@ -57,11 +57,28 @@ public class PlanCalculator {
 		Dictionary<AssetId, decimal> withdrawnThisYear = [];
 		int currentTrackingYear = 0;
 
+		// A tax-exempt withdrawal gives back the room it consumed, but not until January 1 of the
+		// following year, so the prior year's tally is carried across the year boundary.
+		Dictionary<AssetId, decimal> restoredRoomByAsset = [];
+
 		// Spousal contributions are attributed back to the contributing spouse on withdrawal for
 		// a rolling three-year window, so the ledger spans the whole projection.
 		SpousalAttributionLedger spousalAttribution = new SpousalAttributionLedger();
 
-		foreach( CompiledPeriod period in compiledPlan.Periods ) {
+		List<CompiledPeriod> compiledPeriods = [.. compiledPlan.Periods];
+
+		// Only tax-exempt accounts get their room back on withdrawal; registered room is gone for
+		// good and unregistered accounts have no cap to restore.
+		List<AssetId> taxExemptAssetIds = [.. compiledPlan.Assets
+			.Where( a => a.TaxStatus == AssetTaxStatus.TaxExempt )
+			.Select( a => a.AssetId )];
+
+		// The terminal tax stacks on top of the death-year return, so the bases that shaped that
+		// return have to survive the settlement that clears them.
+		Dictionary<MemberId, decimal> finalYearSplittableByMember = [];
+		Dictionary<MemberId, decimal> finalYearOasByMember = [];
+
+		foreach( CompiledPeriod period in compiledPeriods ) {
 			List<CalculatedAsset> startingAssets = [.. currentAssets];
 
 			// A new calendar year resets the RRIF measurement window: the opening balances become
@@ -69,6 +86,9 @@ public class PlanCalculator {
 			if( period.PeriodDate.Year != currentTrackingYear ) {
 				currentTrackingYear = period.PeriodDate.Year;
 				yearStartBalances = currentAssets.ToDictionary( a => a.AssetId, a => a.Amount );
+				restoredRoomByAsset = taxExemptAssetIds
+					.Where( withdrawnThisYear.ContainsKey )
+					.ToDictionary( id => id, id => withdrawnThisYear[id] );
 				withdrawnThisYear = [];
 				spousalAttribution.Prune( currentTrackingYear );
 			}
@@ -85,7 +105,8 @@ public class PlanCalculator {
 			// Accrue this year's contribution room and allocate the period's contributions against it,
 			// spilling into the member's next most tax-efficient account when room runs out.
 			bool isFirstPeriod = periods.Count == 0;
-			ContributionAllocation allocation = _contributionPolicy.AllocateContributions( compiledPlan, currentAssets, period.PeriodDate, isFirstPeriod, compiledPlan.Contribution[period] );
+			decimal roomInflationIndex = InflationIndex( plan.AnnualInflationPercent, period.PeriodDate, compiledPlan.TaxPolicy );
+			ContributionAllocation allocation = _contributionPolicy.AllocateContributions( compiledPlan, currentAssets, period.PeriodDate, isFirstPeriod, compiledPlan.Contribution[period], restoredRoomByAsset, roomInflationIndex );
 			IReadOnlyList<CalculatedContribution> contributions = allocation.Contributions;
 			currentAssets = [.. allocation.Assets];
 
@@ -148,7 +169,12 @@ public class PlanCalculator {
 			// annual settlement does not fund the same liability from assets a second time.
 			Dictionary<MemberId, decimal> preFundedTaxByMember = [];
 
+			// The plan ends on the last member's death, which rarely falls in December. Tax on the
+			// income drawn up to that point is still payable, so the final period is a settlement
+			// point in its own right; otherwise the year of death would be charged nothing at all.
+			bool isFinalPeriod = period.PeriodNumber == compiledPeriods[^1].PeriodNumber;
 			bool isYearEnd = period.PeriodDate.Month == 12;
+			bool isTaxSettlementPeriod = isYearEnd || isFinalPeriod;
 
 			if( isYearEnd ) {
 				// The mandatory minimum is settled before the burndown, because it is compulsory
@@ -208,8 +234,13 @@ public class PlanCalculator {
 				}
 			}
 
-			if( isYearEnd && yearlyTaxableByMember.Count > 0 ) {
-				TaxSettlement settlement = SettleAnnualTax( compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember );
+			if( isTaxSettlementPeriod && yearlyTaxableByMember.Count > 0 ) {
+				if( isFinalPeriod ) {
+					finalYearSplittableByMember = new( yearlySplittableByMember );
+					finalYearOasByMember = new( yearlyOasByMember );
+				}
+
+				TaxSettlement settlement = SettleAnnualTax( compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, period.PeriodDate, plan.AnnualInflationPercent, endingAssets, preFundedTaxByMember, withdrawnThisYear );
 				taxes = settlement.Taxes;
 				totalTax = taxes.Sum( t => t.TotalTax );
 				taxFundingWithdrawal = settlement.TaxFundingWithdrawal;
@@ -262,7 +293,8 @@ public class PlanCalculator {
 			currentAssets = endingAssets;
 		}
 
-		MemberTax terminalTax = CalculateTerminalTax( plan, compiledPlan, periods );
+		MemberTax terminalTax = CalculateTerminalTax(
+			plan, compiledPlan, periods, finalYearSplittableByMember, finalYearOasByMember );
 
 		CalculatedPlan calculatedPlan = new CalculatedPlan(
 			periods,
@@ -282,20 +314,31 @@ public class PlanCalculator {
 	/// (CapitalGains) balances realize their accrued gain at the capital-gains inclusion rate,
 	/// and TFSA (TaxExempt) balances pass tax-free. The result is charged at the same brackets,
 	/// inflation indexing and credits used for annual settlement.
+	///
+	/// The deemed disposition is reported on the same final return as the income the member drew
+	/// before dying, so it is assessed incrementally: the tax on the year's base plus the deemed
+	/// income, less the tax on the base alone. That makes the deemed income stack on the bracket
+	/// position the year had already reached rather than re-entering at the lowest bracket, and
+	/// stops the non-refundable credits from being granted a second time in the same year.
 	/// </summary>
 	private MemberTax CalculateTerminalTax(
 		Plan plan,
 		CompiledPlan compiledPlan,
-		IReadOnlyList<CalculatedPeriod> periods
+		IReadOnlyList<CalculatedPeriod> periods,
+		Dictionary<MemberId, decimal> finalYearSplittableByMember,
+		Dictionary<MemberId, decimal> finalYearOasByMember
 	) {
 		if( periods.Count == 0 ) {
 			return new MemberTax( 0m, 0m );
 		}
 
 		CalculatedPeriod finalPeriod = periods[^1];
-		DateOnly deathDate = compiledPlan.Members.Max( m => m.DeathDate );
 		decimal inflationIndex = InflationIndex(
 			plan.AnnualInflationPercent, finalPeriod.PeriodDate, compiledPlan.TaxPolicy );
+
+		// The base the death-year return was already settled on, post pension splitting.
+		Dictionary<MemberId, decimal> finalYearTaxableByMember = finalPeriod.Taxes
+			.ToDictionary( t => t.MemberId, t => t.TaxableAmount );
 
 		IReadOnlyDictionary<AssetId, CompiledAsset> assetsById = compiledPlan.Assets.ToDictionary( a => a.AssetId );
 
@@ -320,15 +363,19 @@ public class PlanCalculator {
 				continue;
 			}
 
-			// A deemed disposition is not eligible pension income, so no splittable income is
-			// carried in and the Pension Income Amount does not apply to the terminal bill.
-			// No OAS is carried in either: the deemed disposition is settled at death and the
-			// year's OAS clawback is already assessed in the normal annual settlement.
-			MemberTax memberTax = ComputeMemberTax(
-				compiledPlan, member, deemedIncome, [], [], deathDate, inflationIndex );
+			// A deemed disposition is not itself eligible pension income, so the splittable and
+			// OAS bases are the year's own: carrying them into both sides of the comparison
+			// keeps the Pension Income Amount and the OAS recovery tax consistent between them,
+			// and leaves only the genuine marginal cost of the deemed income in the difference.
+			decimal baseTaxable = finalYearTaxableByMember.GetValueOrDefault( member.MemberId );
 
-			federalTax += memberTax.FederalTax;
-			provincialTax += memberTax.ProvincialTax;
+			MemberTax taxWithDeemedIncome = ComputeMemberTax(
+				compiledPlan, member, baseTaxable + deemedIncome, finalYearSplittableByMember, finalYearOasByMember, finalPeriod.PeriodDate, inflationIndex );
+			MemberTax taxWithoutDeemedIncome = ComputeMemberTax(
+				compiledPlan, member, baseTaxable, finalYearSplittableByMember, finalYearOasByMember, finalPeriod.PeriodDate, inflationIndex );
+
+			federalTax += Math.Max( 0m, taxWithDeemedIncome.FederalTax - taxWithoutDeemedIncome.FederalTax );
+			provincialTax += Math.Max( 0m, taxWithDeemedIncome.ProvincialTax - taxWithoutDeemedIncome.ProvincialTax );
 		}
 
 		return new MemberTax( federalTax, provincialTax );
@@ -584,9 +631,10 @@ public class PlanCalculator {
 	/// <summary>
 	/// Produces a copy of the per-member taxable base after (optionally) reallocating eligible
 	/// RRSP income between two spouses to reduce combined tax. Splitting only applies when the
-	/// tax policy allows it, both members are age 65 or older at year end, and each member has
-	/// eligible RRSP income. Up to 50% of the higher earner's eligible income is transferred to
-	/// the lower earner, capped at the amount needed to equalize their taxable bases.
+	/// tax policy allows it, both members are alive, the member giving up income is age 65 or
+	/// older at year end, and they have eligible RRSP income. Up to 50% of the higher earner's
+	/// eligible income is transferred to the lower earner, capped at the amount needed to
+	/// equalize their taxable bases.
 	/// </summary>
 	private Dictionary<MemberId, decimal> ApplyPensionSplitting(
 		CompiledPlan compiledPlan,
@@ -604,12 +652,7 @@ public class PlanCalculator {
 		CompiledMember first = members[0];
 		CompiledMember second = members[1];
 
-		// Both spouses must be alive and at least 65 at year end for splitting to apply.
-		if( periodDate < first.BirthDate.AddYears( 65 )
-			|| periodDate < second.BirthDate.AddYears( 65 )
-		) {
-			return result;
-		}
+		// Both spouses must still be alive for there to be a joint return to split across.
 		if( first.DeathDate <= periodDate || second.DeathDate <= periodDate ) {
 			return result;
 		}
@@ -621,6 +664,13 @@ public class PlanCalculator {
 		CompiledMember lower = higher == first ? second : first;
 		decimal higherTaxable = higher == first ? firstTaxable : secondTaxable;
 		decimal lowerTaxable = higher == first ? secondTaxable : firstTaxable;
+
+		// Only the transferring pensioner's age matters: RRIF income qualifies for splitting once
+		// its recipient is 65 at year end. The receiving spouse's age is irrelevant to the CRA,
+		// so a younger spouse can still be allocated a share.
+		if( periodDate < higher.BirthDate.AddYears( 65 ) ) {
+			return result;
+		}
 
 		yearlySplittableByMember.TryGetValue( higher.MemberId, out decimal higherEligible );
 		if( higherEligible <= 0m ) {
@@ -647,7 +697,8 @@ public class PlanCalculator {
 		DateOnly periodDate,
 		decimal annualInflationPercent,
 		List<CalculatedAsset> endingAssets,
-		IReadOnlyDictionary<MemberId, decimal> preFundedTaxByMember
+		IReadOnlyDictionary<MemberId, decimal> preFundedTaxByMember,
+		Dictionary<AssetId, decimal> withdrawnThisYear
 	) {
 		decimal inflationIndex = InflationIndex( annualInflationPercent, periodDate, compiledPlan.TaxPolicy );
 
@@ -684,7 +735,8 @@ public class PlanCalculator {
 				member.MemberId,
 				memberTax.TotalTax - preFunded,
 				endingAssets,
-				deferredTaxableByMember
+				deferredTaxableByMember,
+				withdrawnThisYear
 			);
 
 			totalFunded += funded;
@@ -721,7 +773,8 @@ public class PlanCalculator {
 
 	/// <summary>
 	/// Calculates a single member's federal and provincial tax on their (post-splitting) taxable
-	/// base, after applying the Age Amount and Pension Income Amount non-refundable credits.
+	/// base, after applying the Basic Personal Amount, Age Amount, and Pension Income Amount
+	/// non-refundable credits, and adding the Ontario surtax and Health Premium.
 	/// </summary>
 	private MemberTax ComputeMemberTax(
 		CompiledPlan compiledPlan,
@@ -735,6 +788,18 @@ public class PlanCalculator {
 		decimal federalTax = _taxCalculator.CalculateTax( compiledPlan.TaxPolicy.FederalBrackets, taxableAmount, inflationIndex );
 		decimal provincialTax = _taxCalculator.CalculateTax( compiledPlan.TaxPolicy.ProvincialBrackets, taxableAmount, inflationIndex );
 
+		// The Basic Personal Amount is claimed by every member regardless of age or income, and
+		// is applied first because it is the credit that shelters the bottom of the income range
+		// that the others stack on top of. Unlike the Age Amount it reduces provincial tax too,
+		// each jurisdiction valuing its own amount at its own lowest rate.
+		decimal federalBasicPersonalCredit = _taxCalculator.CalculateBasicPersonalAmountCredit(
+			compiledPlan.TaxPolicy.BasicPersonalAmount, compiledPlan.TaxPolicy.FederalBrackets, inflationIndex );
+		federalTax = Math.Max( 0m, federalTax - federalBasicPersonalCredit );
+
+		decimal provincialBasicPersonalCredit = _taxCalculator.CalculateBasicPersonalAmountCredit(
+			compiledPlan.TaxPolicy.ProvincialBasicPersonalAmount, compiledPlan.TaxPolicy.ProvincialBrackets, inflationIndex );
+		provincialTax = Math.Max( 0m, provincialTax - provincialBasicPersonalCredit );
+
 		// Reduce federal tax by the non-refundable federal Age Amount credit for members who
 		// are old enough at year end. The credit can only reduce federal tax to zero.
 		int ageAtYearEnd = periodDate.Year - member.BirthDate.Year;
@@ -745,6 +810,12 @@ public class PlanCalculator {
 		decimal ageAmountCredit = _taxCalculator.CalculateAgeAmountCredit(
 			compiledPlan.TaxPolicy, taxableAmount, ageAmountEligible, inflationIndex );
 		federalTax = Math.Max( 0m, federalTax - ageAmountCredit );
+
+		// Ontario runs its own Age Amount in parallel, claimed on the same eligibility but with a
+		// smaller base and valued at the provincial rate, so an eligible member receives both.
+		decimal ontarioAgeAmountCredit = _taxCalculator.CalculateOntarioAgeAmountCredit(
+			compiledPlan.TaxPolicy, taxableAmount, ageAmountEligible, inflationIndex );
+		provincialTax = Math.Max( 0m, provincialTax - ontarioAgeAmountCredit );
 
 		// Reduce federal tax by the non-refundable federal Pension Income Amount credit. Under
 		// the modelling assumption that a member's RRSP becomes a RRIF at retirement, their
@@ -761,6 +832,12 @@ public class PlanCalculator {
 			decimal pensionIncomeCredit = _taxCalculator.CalculatePensionIncomeCredit(
 				compiledPlan.TaxPolicy, eligiblePensionIncome, inflationIndex );
 			federalTax = Math.Max( 0m, federalTax - pensionIncomeCredit );
+
+			// Ontario's parallel Pension Income Amount is claimed on the same income under the
+			// same conditions, using a smaller base valued at the provincial rate.
+			decimal ontarioPensionIncomeCredit = _taxCalculator.CalculateOntarioPensionIncomeCredit(
+				compiledPlan.TaxPolicy, eligiblePensionIncome, inflationIndex );
+			provincialTax = Math.Max( 0m, provincialTax - ontarioPensionIncomeCredit );
 		}
 
 		// The OAS recovery tax is an additional federal tax rather than a credit, so it is added
@@ -770,6 +847,12 @@ public class PlanCalculator {
 			federalTax += _taxCalculator.CalculateOasClawback(
 				compiledPlan.TaxPolicy, taxableAmount, oasReceived, inflationIndex );
 		}
+
+		// The Ontario surtax is charged on provincial tax payable, so it must come after the
+		// provincial credits have reduced that base. The Health Premium is charged on income
+		// instead and is independent of both, but is collected as provincial tax.
+		provincialTax += _taxCalculator.CalculateOntarioSurtax( provincialTax, inflationIndex );
+		provincialTax += _taxCalculator.CalculateOntarioHealthPremium( taxableAmount );
 
 		return new MemberTax( federalTax, provincialTax );
 	}
@@ -837,7 +920,8 @@ public class PlanCalculator {
 		MemberId memberId,
 		decimal taxOwed,
 		List<CalculatedAsset> endingAssets,
-		Dictionary<MemberId, decimal> deferredTaxableByMember
+		Dictionary<MemberId, decimal> deferredTaxableByMember,
+		Dictionary<AssetId, decimal> withdrawnThisYear
 	) {
 		if( taxOwed <= 0m ) {
 			return 0m;
@@ -872,6 +956,11 @@ public class PlanCalculator {
 				CostBase = asset.CostBase - realized.CostBaseConsumed
 			};
 			remaining -= deducted;
+
+			// Funding the tax bill is a real withdrawal from the account, so it counts toward the
+			// year's tally: it satisfies part of any RRIF minimum and, for a TFSA, restores
+			// contribution room in the following year.
+			withdrawnThisYear[asset.AssetId] = withdrawnThisYear.GetValueOrDefault( asset.AssetId ) + deducted;
 
 			CompiledAsset compiledAsset = assetsById[asset.AssetId];
 			if( realized.TaxableIncome != 0m ) {

@@ -20,6 +20,18 @@ namespace Planning.Model.Plans;
 /// <see cref="AgeAmountIncomeThreshold"/>. The resulting amount reduces federal tax at the
 /// lowest federal bracket rate. The CRA 2024 value is $8,790.
 /// </param>
+/// <param name="BasicPersonalAmount">
+/// The federal Basic Personal Amount (non-refundable), in nominal start-year dollars. Every
+/// member is entitled to it regardless of age or income, and it reduces federal tax at the
+/// lowest federal bracket rate. The CRA 2024 value is $15,705. The reduction of this amount
+/// for members in the top bracket is deliberately not modelled. Set to zero to disable.
+/// </param>
+/// <param name="ProvincialBasicPersonalAmount">
+/// The provincial Basic Personal Amount (non-refundable), in nominal start-year dollars,
+/// valued at the lowest provincial bracket rate. It is configured separately from
+/// <see cref="BasicPersonalAmount"/> because the provincial amount and the rate it is valued
+/// at both differ from the federal ones. The Ontario 2024 value is $12,399.
+/// </param>
 /// <param name="AgeAmountIncomeThreshold">
 /// The net-income threshold above which the Age Amount is reduced, in nominal start-year
 /// dollars. The CRA 2024 value is $44,325.
@@ -72,6 +84,8 @@ public record TaxPolicy(
 	IEnumerable<TaxBracket> FederalBrackets,
 	IEnumerable<TaxBracket> ProvincialBrackets,
 	bool AllowPensionSplitting,
+	decimal BasicPersonalAmount,
+	decimal ProvincialBasicPersonalAmount,
 	decimal AgeAmountBase,
 	decimal AgeAmountIncomeThreshold,
 	decimal AgeAmountReductionRate,
@@ -87,6 +101,8 @@ public record TaxPolicy(
 		FederalBrackets: [],
 		ProvincialBrackets: [],
 		AllowPensionSplitting: false,
+		BasicPersonalAmount: 0m,
+		ProvincialBasicPersonalAmount: 0m,
 		AgeAmountBase: 0m,
 		AgeAmountIncomeThreshold: 0m,
 		AgeAmountReductionRate: 0m,

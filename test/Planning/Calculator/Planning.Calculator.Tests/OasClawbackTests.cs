@@ -147,6 +147,11 @@ public class OasClawbackTests {
 	/// The complement of the test above: a household whose income never approaches the
 	/// threshold must be completely unaffected. This guards against the clawback leaking into
 	/// low-income plans through a mis-tracked OAS amount.
+	///
+	/// The comparison is against the annual settlements only. The deemed disposition on the
+	/// final return is deliberately excluded, because collapsing the whole RRIF into one year's
+	/// income legitimately carries even a modest household over the threshold, and the recovery
+	/// tax that follows is correct rather than a leak.
 	/// </summary>
 	[Test]
 	public void Calculate_LowIncomeRetiree_IsUnaffectedByTheClawback() {
@@ -154,9 +159,9 @@ public class OasClawbackTests {
 		CalculatedPlan withoutClawback = Calculate( clawbackThreshold: 0m, retirementIncome: 1_500m, rrsp: 40_000m );
 
 		Assert.That(
-			withClawback.TaxSummary.TotalTaxIncludingTerminal,
-			Is.EqualTo( withoutClawback.TaxSummary.TotalTaxIncludingTerminal ).Within( 0.01m ),
-			"A household that never exceeds the threshold must pay exactly the same tax either way." );
+			withClawback.TaxSummary.TotalTax,
+			Is.EqualTo( withoutClawback.TaxSummary.TotalTax ).Within( 0.01m ),
+			"A household whose annual income never exceeds the threshold must pay exactly the same tax either way." );
 	}
 
 	private static CalculatedPlan Calculate(

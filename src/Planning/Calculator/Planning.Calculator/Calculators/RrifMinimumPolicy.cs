@@ -17,10 +17,11 @@ internal sealed record RrifMinimumWithdrawals(
 /// Enforces the mandatory minimum RRIF withdrawal.
 ///
 /// Once an RRSP is converted to a RRIF the holder must withdraw a prescribed percentage of the
-/// account's January 1 balance each year, whether or not the income is wanted. The requirement is
-/// assessed once per calendar year, in December, against the withdrawals already taken from the
-/// account during that year: only the shortfall is forced out, so a plan that already drew more
-/// than its minimum is unaffected.
+/// account's January 1 balance each year, whether or not the income is wanted. No minimum is
+/// required for the year the RRIF is established, so the obligation starts the year after
+/// conversion. The requirement is assessed once per calendar year, in December, against the
+/// withdrawals already taken from the account during that year: only the shortfall is forced out,
+/// so a plan that already drew more than its minimum is unaffected.
 ///
 /// Because the forced amount is by definition in excess of the income the plan asked for, it is
 /// not spent. It is redirected into the owning member's tax-exempt accounts while contribution
@@ -30,8 +31,8 @@ internal sealed record RrifMinimumWithdrawals(
 internal sealed class RrifMinimumPolicy {
 
 	/// <summary>
-	/// The age at which conversion to a RRIF becomes mandatory, so that the minimum applies even
-	/// to a member who has not retired.
+	/// The age by the end of which conversion to a RRIF becomes mandatory, so that the minimum
+	/// applies even to a member who has not retired.
 	/// </summary>
 	private const int MandatoryConversionAge = 71;
 
@@ -73,9 +74,15 @@ internal sealed class RrifMinimumPolicy {
 			int age = AgeAt( member.BirthDate, yearStart );
 
 			// The RRSP is modelled as converting to a RRIF at retirement, and conversion is
-			// mandatory by age 71 regardless.
-			bool converted = yearStart >= member.RetirementDate || age >= MandatoryConversionAge;
-			if( !converted ) {
+			// mandatory by the end of the year the holder turns 71 regardless. No minimum is
+			// required for the year the RRIF is established, so the first minimum falls in the
+			// year after conversion.
+			DateOnly mandatoryConversionDate = new DateOnly( member.BirthDate.Year + MandatoryConversionAge, 12, 31 );
+			DateOnly conversionDate = member.RetirementDate < mandatoryConversionDate
+				? member.RetirementDate
+				: mandatoryConversionDate;
+
+			if( conversionDate.Year >= periodDate.Year ) {
 				continue;
 			}
 

@@ -81,7 +81,7 @@ public sealed class PlanCalculatorTests {
 		];
 
 		ContributionAllocation allocation = new ContributionPolicy().AllocateContributions(
-			compiledPlan, assets, firstPeriod.PeriodDate, isFirstPeriod: true, compiledPlan.Contribution[firstPeriod] );
+			compiledPlan, assets, firstPeriod.PeriodDate, isFirstPeriod: true, compiledPlan.Contribution[firstPeriod], restoredRoomByAsset: new Dictionary<AssetId, decimal>(), inflationIndex: 1m );
 
 		using( Assert.EnterMultipleScope() ) {
 			// Only Todd's 1,000 is recorded as spousal, so only that much can ever be attributed.
@@ -385,6 +385,9 @@ public sealed class PlanCalculatorTests {
 	[Test]
 	public void Calculate_TaxableRoom_StopsAccruingAfterRetirementYear() {
 		Plan plan = TestPlanFactory.Create(
+			// This test is about when accrual stops, not how much accrues, so inflation is
+			// pinned to zero to keep the room amounts at their nominal limits.
+			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
 			assets: [
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 0m, 0m, 1_000m ),
@@ -989,6 +992,9 @@ public sealed class PlanCalculatorTests {
 		// Two retired members, each with their own taxable RRSP and no government income yet,
 		// running a full calendar year so December settlement can be observed. Zero inflation
 		// and zero return keep withdrawals flat and the taxable base inside the lowest brackets.
+		// The draw is set well above the Basic Personal Amount so each member has tax actually
+		// payable after credits, which is what these settlement mechanics need in order to be
+		// observable at all.
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
@@ -996,8 +1002,8 @@ public sealed class PlanCalculatorTests {
 				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 100_000m ),
-				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 100_000m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 500_000m ),
+				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTina, 500_000m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTodd, 0m ),
 				TestPlanFactory.CreateAsset( AssetTFSA, AssetTaxStatus.TaxExempt, MemberTina, 0m ),
 				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
@@ -1007,10 +1013,10 @@ public sealed class PlanCalculatorTests {
 			annualReturnPercent: 0m,
 			lifeInsurance: [],
 			retirementIncome: new RetirementIncome(
-				GoGo: 500m,
-				SlowGo: 500m,
+				GoGo: 6_000m,
+				SlowGo: 6_000m,
 				SlowGoYears: 0,
-				NoGo: 500m,
+				NoGo: 6_000m,
 				NoGoYears: 0
 			),
 			contributions: []

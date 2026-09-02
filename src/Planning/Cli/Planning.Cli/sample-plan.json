@@ -1,8 +1,8 @@
 {
   "StartDate": "2026-01-01",
   "Members": [
-    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90 },
-    { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": null, "CPPStartInYears": 65, "CPPPercent": 50 }
+    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 80, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90 },
+    { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 90, "RetirementAgeInYears": null, "CPPStartInYears": 65, "CPPPercent": 50 }
   ],
   "CPPMaximum": 1507.65,
   "CPPCombinedSurvivorMaximum": 1531.56,
@@ -22,10 +22,10 @@
     { "Member": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
-    "GoGo": 6000,
-    "SlowGo": 5000,
+    "GoGo": 7000,
+    "SlowGo": 5500,
     "SlowGoYears": 10,
-    "NoGo": 5500,
+    "NoGo": 6000,
     "NoGoYears": 10
   },
   "Contributions": [
@@ -41,6 +41,8 @@
   "TaxPolicy": {
     "Year": 2024,
     "AllowPensionSplitting": false,
+    "BasicPersonalAmount": 15705,
+    "ProvincialBasicPersonalAmount": 12399,
     "AgeAmountBase": 8790,
     "AgeAmountIncomeThreshold": 44325,
     "AgeAmountReductionRate": 15.0,

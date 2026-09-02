@@ -64,6 +64,8 @@ public static class TestPlanFactory {
 				new TaxBracket( LowerBound: 220_000m, Rate: 13.16m )
 			],
 			AllowPensionSplitting: false,
+			BasicPersonalAmount: 15_705m,
+			ProvincialBasicPersonalAmount: 12_399m,
 			AgeAmountBase: 8_790m,
 			AgeAmountIncomeThreshold: 44_325m,
 			AgeAmountReductionRate: 15m,
