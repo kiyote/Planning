@@ -9,8 +9,9 @@ namespace Planning.Model.Plans;
 /// </param>
 /// <param name="AnnualIncreasePercent">
 /// The rate at which <paramref name="Amount"/> grows each year while <paramref name="Indexed"/>
-/// is set. This is deliberately independent of the plan's inflation rate, because the reason a
-/// contribution rises is a raise or a deliberate savings decision rather than the cost of living.
+/// is set. Stating a rate decouples the contribution from the cost of living, because the reason
+/// a contribution rises is usually a raise or a deliberate savings decision. Null falls back to
+/// the plan's inflation rate, for a contribution that is only meant to hold its real value.
 /// Ignored entirely when <paramref name="Indexed"/> is false.
 /// </param>
 /// <param name="Spousal">
@@ -25,7 +26,7 @@ public record Contribution(
 	decimal Amount,
 	int StartYear,
 	bool Indexed,
-	decimal AnnualIncreasePercent,
+	decimal? AnnualIncreasePercent,
 	string? Spousal = null
 ) {
 
@@ -46,6 +47,6 @@ public record Contribution(
 		Amount: 0m,
 		StartYear: 0,
 		Indexed: false,
-		AnnualIncreasePercent: 0m
+		AnnualIncreasePercent: null
 	);
 }

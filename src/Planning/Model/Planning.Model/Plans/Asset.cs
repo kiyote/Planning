@@ -21,6 +21,13 @@ namespace Planning.Model.Plans;
 /// registered account's withdrawal is taxed as income, or not at all, so a cost base has no
 /// meaning there and is rejected by validation rather than silently ignored.
 /// </param>
+/// <param name="AnnualContributionIncreasePercent">
+/// The rate at which <paramref name="AnnualContributionLimit"/> itself grows each year. Null
+/// leaves the limit tracking the plan's inflation rate, which is how CRA indexes the published
+/// RRSP and TFSA limits. Supplying a value overrides that for this account alone, for a limit
+/// that is expected to move on something other than inflation. Meaningless, and ignored, when
+/// <paramref name="HasUnlimitedContributionRoom"/> is set.
+/// </param>
 public record Asset(
 	string Name,
 	AssetTaxStatus TaxStatus,
@@ -29,7 +36,8 @@ public record Asset(
 	decimal ContributionBacklog,
 	decimal AnnualContributionLimit,
 	bool HasUnlimitedContributionRoom,
-	decimal CostBase
+	decimal CostBase,
+	decimal? AnnualContributionIncreasePercent
 ) {
 
 	/// <summary>
@@ -41,5 +49,5 @@ public record Asset(
 	/// <inheritdoc cref="ContributionBacklog"/>
 	public decimal AnnualContributionLimit { get; init; } = HasUnlimitedContributionRoom ? 0m : AnnualContributionLimit;
 
-	public static readonly Asset None = new Asset( "", AssetTaxStatus.Unknown, "", 0.0m, 0.0m, 0.0m, false, 0.0m );
+	public static readonly Asset None = new Asset( "", AssetTaxStatus.Unknown, "", 0.0m, 0.0m, 0.0m, false, 0.0m, null );
 }

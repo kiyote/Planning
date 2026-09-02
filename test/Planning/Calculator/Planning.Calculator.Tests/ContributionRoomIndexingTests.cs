@@ -90,6 +90,41 @@ public sealed class ContributionRoomIndexingTests {
 		Assert.That( afterDecades, Is.GreaterThan( unindexed ) );
 	}
 
+	[Test]
+	public void AllocateContributions_AssetStatingItsOwnIncrease_IndexesAtThatRateRatherThanInflation() {
+		// The accrual year is 2027 and the plan starts in 2026, so a 10% rate compounds once:
+		// 10,000 x 1.1 = 11,000. The supplied inflation index of 1.234 would instead give 12,340,
+		// so the assertion fails if the plan-wide rate is used. It also pins the anchor to the
+		// plan start rather than the tax policy year of 2024, which would compound three times.
+		CompiledPlan compiledPlan = CompilePlan( annualContributionIncreasePercent: 10m );
+
+		decimal room = AccruedRoom( compiledPlan, AssetTaxStatus.Taxable, inflationIndex: 1.234m );
+
+		Assert.That( room, Is.EqualTo( 11_000m ).Within( 0.01m ) );
+	}
+
+	[Test]
+	public void AllocateContributions_AssetStatingItsOwnIncrease_IsStillRoundedWhenTaxExempt() {
+		// The override changes only the rate, not the CRA-style $500 step: 7,000 x 1.1 = 7,700,
+		// which must present as 7,500.
+		CompiledPlan compiledPlan = CompilePlan( annualContributionIncreasePercent: 10m );
+
+		decimal room = AccruedRoom( compiledPlan, AssetTaxStatus.TaxExempt, inflationIndex: 1m );
+
+		Assert.That( room, Is.EqualTo( 7_500m ) );
+	}
+
+	[Test]
+	public void AllocateContributions_AssetWithoutAnIncreaseRate_FallsBackToPlanInflation() {
+		// A null rate must reproduce the inflation-indexed figure exactly, so existing plans that
+		// say nothing about the limit keep behaving as they always did.
+		CompiledPlan compiledPlan = CompilePlan( annualContributionIncreasePercent: null );
+
+		decimal room = AccruedRoom( compiledPlan, AssetTaxStatus.Taxable, inflationIndex: 1.234m );
+
+		Assert.That( room, Is.EqualTo( 12_340m ) );
+	}
+
 	/// <summary>
 	/// Accrues a January's room for the first asset of the given status and returns the increase
 	/// over the backlog it started with, which isolates the accrual from the seed backlog.
@@ -116,6 +151,7 @@ public sealed class ContributionRoomIndexingTests {
 			isFirstPeriod: false,
 			compiledPlan.Contribution[period],
 			new Dictionary<AssetId, decimal>(),
+			compiledPlan.Periods.First().PeriodDate.Year,
 			inflationIndex );
 
 		decimal before = target.ContributionBacklog;
@@ -124,7 +160,9 @@ public sealed class ContributionRoomIndexingTests {
 		return after - before;
 	}
 
-	private static CompiledPlan CompilePlan() {
+	private static CompiledPlan CompilePlan(
+		decimal? annualContributionIncreasePercent = null
+	) {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
@@ -132,8 +170,8 @@ public sealed class ContributionRoomIndexingTests {
 				new Member( MemberTina, new DateOnly( 1976, 6, 1 ), 95, 90, 70, 50m )
 			],
 			assets: [
-				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTodd, 100_000m, 50_000m, 10_000m ),
-				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, MemberTodd, 0m, 50_000m, 7_000m ),
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTodd, 100_000m, 50_000m, 10_000m, annualContributionIncreasePercent: annualContributionIncreasePercent ),
+				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, MemberTodd, 0m, 50_000m, 7_000m, annualContributionIncreasePercent: annualContributionIncreasePercent ),
 				TestPlanFactory.CreateAsset( "Non-Reg", AssetTaxStatus.CapitalGains, MemberTodd, 0m, hasUnlimitedContributionRoom: true ),
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTina, 100_000m, 50_000m, 10_000m ),
 				TestPlanFactory.CreateAsset( "TFSA", AssetTaxStatus.TaxExempt, MemberTina, 0m, 50_000m, 7_000m ),

@@ -81,7 +81,7 @@ public sealed class PlanCalculatorTests {
 		];
 
 		ContributionAllocation allocation = new ContributionPolicy().AllocateContributions(
-			compiledPlan, assets, firstPeriod.PeriodDate, isFirstPeriod: true, compiledPlan.Contribution[firstPeriod], restoredRoomByAsset: new Dictionary<AssetId, decimal>(), inflationIndex: 1m );
+			compiledPlan, assets, firstPeriod.PeriodDate, isFirstPeriod: true, compiledPlan.Contribution[firstPeriod], restoredRoomByAsset: new Dictionary<AssetId, decimal>(), planStartYear: compiledPlan.Periods.First().PeriodDate.Year, inflationIndex: 1m );
 
 		using( Assert.EnterMultipleScope() ) {
 			// Only Todd's 1,000 is recorded as spousal, so only that much can ever be attributed.

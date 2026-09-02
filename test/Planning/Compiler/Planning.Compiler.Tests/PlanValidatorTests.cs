@@ -242,6 +242,19 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
+	public void Validate_AssetWithNegativeContributionIncrease_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			assets: [
+				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m, annualContributionIncreasePercent: -1.0m )
+			]
+		);
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.False );
+	}
+
+	[Test]
 	public void Validate_IndexedContributionWithNegativeIncrease_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			contributions: [

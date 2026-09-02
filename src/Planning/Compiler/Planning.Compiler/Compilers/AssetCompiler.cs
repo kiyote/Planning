@@ -23,7 +23,8 @@ internal sealed class AssetCompiler {
 					ContributionBacklog: asset.ContributionBacklog,
 					AnnualContributionLimit: asset.AnnualContributionLimit,
 					HasUnlimitedContributionRoom: asset.HasUnlimitedContributionRoom,
-					CostBase: asset.CostBase
+					CostBase: asset.CostBase,
+					AnnualContributionIncreasePercent: asset.AnnualContributionIncreasePercent
 				)
 			);
 		}

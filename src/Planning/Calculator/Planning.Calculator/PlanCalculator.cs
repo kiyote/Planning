@@ -105,8 +105,10 @@ public class PlanCalculator {
 			// Accrue this year's contribution room and allocate the period's contributions against it,
 			// spilling into the member's next most tax-efficient account when room runs out.
 			bool isFirstPeriod = periods.Count == 0;
-			decimal roomInflationIndex = InflationIndex( plan.AnnualInflationPercent, period.PeriodDate, compiledPlan.TaxPolicy );
-			ContributionAllocation allocation = _contributionPolicy.AllocateContributions( compiledPlan, currentAssets, period.PeriodDate, isFirstPeriod, compiledPlan.Contribution[period], restoredRoomByAsset, roomInflationIndex );
+			decimal roomInflationIndex = (decimal)Math.Pow(
+				(double)( 1m + ( plan.AnnualInflationPercent / 100m ) ),
+				period.PeriodDate.Year - planStartYear );
+			ContributionAllocation allocation = _contributionPolicy.AllocateContributions( compiledPlan, currentAssets, period.PeriodDate, isFirstPeriod, compiledPlan.Contribution[period], restoredRoomByAsset, planStartYear, roomInflationIndex );
 			IReadOnlyList<CalculatedContribution> contributions = allocation.Contributions;
 			currentAssets = [.. allocation.Assets];
 

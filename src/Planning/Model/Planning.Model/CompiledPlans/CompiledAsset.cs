@@ -12,7 +12,8 @@ public record CompiledAsset(
 	decimal ContributionBacklog,
 	decimal AnnualContributionLimit,
 	bool HasUnlimitedContributionRoom,
-	decimal CostBase
+	decimal CostBase,
+	decimal? AnnualContributionIncreasePercent
 ) {
 
 	/// <inheritdoc cref="Asset.ContributionBacklog"/>

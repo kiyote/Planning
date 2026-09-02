@@ -145,6 +145,12 @@ public sealed class PlanValidator {
 			if( asset.TaxStatus != AssetTaxStatus.CapitalGains && asset.HasUnlimitedContributionRoom ) {
 				result.AddError( $"Asset '{asset.Name}' has unlimited contribution room but its tax status is {asset.TaxStatus}; only CapitalGains assets can have unlimited contribution room." );
 			}
+
+			// A shrinking contribution limit is almost certainly a typo, and compounding a
+			// negative rate over decades erodes the room to nothing without ever failing loudly.
+			if( asset.AnnualContributionIncreasePercent < 0m ) {
+				result.AddError( $"Asset '{asset.Name}' annual contribution increase ({asset.AnnualContributionIncreasePercent}) must be nonnegative." );
+			}
 		}
 
 		foreach( var duplicate in plan.Assets

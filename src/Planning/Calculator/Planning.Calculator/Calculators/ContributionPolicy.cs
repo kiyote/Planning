@@ -70,6 +70,7 @@ internal sealed class ContributionPolicy {
 		bool isFirstPeriod,
 		IEnumerable<CompiledContribution> contributions,
 		IReadOnlyDictionary<AssetId, decimal> restoredRoomByAsset,
+		int planStartYear,
 		decimal inflationIndex
 	) {
 		Dictionary<AssetId, decimal> backlogByAsset = assets
@@ -100,7 +101,7 @@ internal sealed class ContributionPolicy {
 					compiledAsset.TaxStatus == AssetTaxStatus.Taxable
 					&& IsAfterRetirementYear( compiledPlan, compiledAsset, periodDate )
 						? 0m
-						: IndexedAnnualRoom( compiledAsset, inflationIndex );
+						: IndexedAnnualRoom( compiledAsset, periodDate, planStartYear, inflationIndex );
 
 				decimal addedRoom = accruedRoom + restoredRoom;
 				if( addedRoom <= 0m ) {
@@ -196,6 +197,12 @@ internal sealed class ContributionPolicy {
 	/// The annual contribution room accrued for an asset in the year being calculated, indexed
 	/// from the nominal limit the plan states.
 	///
+	/// An asset that states its own increase rate is indexed at that rate instead of the plan's
+	/// inflation, for a limit expected to move on something other than the cost of living. Both
+	/// are anchored on the plan's start year, since that is the year the stated limit is expressed
+	/// in, so the two are interchangeable and an unstated rate reproduces the inflation-indexed
+	/// figure exactly.
+	///
 	/// Tax-exempt (TFSA) room is additionally rounded to the nearest $500, because CRA indexes
 	/// the TFSA dollar limit and then rounds it, producing the occasional step increases seen in
 	/// the published limits. Registered room derived from earned income is not rounded that way,
@@ -203,9 +210,17 @@ internal sealed class ContributionPolicy {
 	/// </summary>
 	private static decimal IndexedAnnualRoom(
 		CompiledAsset asset,
+		DateOnly periodDate,
+		int planStartYear,
 		decimal inflationIndex
 	) {
-		decimal indexed = asset.AnnualContributionLimit * inflationIndex;
+		decimal index = asset.AnnualContributionIncreasePercent.HasValue
+			? (decimal)Math.Pow(
+				(double)( 1m + ( asset.AnnualContributionIncreasePercent.Value / 100m ) ),
+				periodDate.Year - planStartYear )
+			: inflationIndex;
+
+		decimal indexed = asset.AnnualContributionLimit * index;
 
 		if( asset.TaxStatus != AssetTaxStatus.TaxExempt ) {
 			return indexed;

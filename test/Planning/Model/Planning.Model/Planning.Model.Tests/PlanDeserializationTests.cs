@@ -38,8 +38,8 @@ public class PlanDeserializationTests {
 		"CPPCombinedSurvivorMaximum": 1531.56,
 		"OASMaximum": 743.05,
 		"Assets": [
-			{ "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0 },
-			{ "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 12345, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false, "CostBase": 0 }
+			{ "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": 2.0 },
+			{ "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Tina", "Amount": 12345, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": null }
 		],
 		"AnnualInflationPercent": 3.0,
 		"AnnualReturnPercent": 6.0,
@@ -144,6 +144,7 @@ public class PlanDeserializationTests {
 			Assert.That( assets[0].AnnualContributionLimit, Is.EqualTo( 22_000m ) );
 			Assert.That( assets[0].HasUnlimitedContributionRoom, Is.False );
 			Assert.That( assets[0].CostBase, Is.Zero );
+			Assert.That( assets[0].AnnualContributionIncreasePercent, Is.EqualTo( 2.0m ) );
 
 			Assert.That( assets[1].Name, Is.EqualTo( "TFSA" ) );
 			Assert.That( assets[1].TaxStatus, Is.EqualTo( AssetTaxStatus.TaxExempt ) );
@@ -153,6 +154,9 @@ public class PlanDeserializationTests {
 			Assert.That( assets[1].AnnualContributionLimit, Is.EqualTo( 7_000m ) );
 			Assert.That( assets[1].HasUnlimitedContributionRoom, Is.False );
 			Assert.That( assets[1].CostBase, Is.Zero );
+			// A null rate is the signal to fall back to the plan's inflation, so it must survive
+			// binding as null rather than collapsing to zero.
+			Assert.That( assets[1].AnnualContributionIncreasePercent, Is.Null );
 		}
 	}
 

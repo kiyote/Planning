@@ -118,7 +118,8 @@ public static class TestPlanFactory {
 		decimal contributionBacklog = 0m,
 		decimal annualContributionLimit = 0m,
 		bool hasUnlimitedContributionRoom = false,
-		decimal costBase = 0m
+		decimal costBase = 0m,
+		decimal? annualContributionIncreasePercent = null
 	) {
 		return new Asset(
 			Name: name,
@@ -128,7 +129,8 @@ public static class TestPlanFactory {
 			ContributionBacklog: contributionBacklog,
 			AnnualContributionLimit: annualContributionLimit,
 			HasUnlimitedContributionRoom: hasUnlimitedContributionRoom,
-			CostBase: costBase
+			CostBase: costBase,
+			AnnualContributionIncreasePercent: annualContributionIncreasePercent
 		);
 	}
 

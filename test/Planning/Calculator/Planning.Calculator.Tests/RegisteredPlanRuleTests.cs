@@ -200,6 +200,7 @@ public sealed class RegisteredPlanRuleTests {
 			isFirstPeriod: false,
 			compiledPlan.Contribution[period],
 			restoredRoomByAsset ?? new Dictionary<AssetId, decimal>(),
+			planStartYear: compiledPlan.Periods.First().PeriodDate.Year,
 			inflationIndex: 1m );
 	}
 

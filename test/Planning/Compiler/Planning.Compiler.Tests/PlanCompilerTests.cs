@@ -304,6 +304,44 @@ public sealed class PlanCompilerTests {
 	}
 
 	[Test]
+	public void Compile_IndexedContributionWithoutARate_GrowsAtPlanInflation() {
+		// Saying nothing about the rate means the contribution is only meant to hold its real
+		// value, so it tracks the plan's 2.6% inflation: 3200 x 1.026 = 3283.20.
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( MemberTodd, 3200m, 2026, Indexed: true, AnnualIncreasePercent: null )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+
+		CompiledPeriod firstPeriod = compiledPlan.Periods.First();
+		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
+
+		Assert.Multiple( () => {
+			Assert.That( compiledPlan.Contribution[firstPeriod].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
+			Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3283.20m ).Within( 0.01m ) );
+		} );
+	}
+
+	[Test]
+	public void Compile_UnindexedContributionWithoutARate_StaysFlat() {
+		// The rate is ignored entirely when the contribution is not indexed, so a null rate must
+		// not be mistaken for an instruction to track inflation.
+		Plan plan = TestPlanFactory.Create(
+			contributions: [
+				new Contribution( MemberTodd, 3200m, 2026, Indexed: false, AnnualIncreasePercent: null )
+			]
+		);
+		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
+		CompiledMember toddCompiled = compiledPlan.Members.First( m => m.Name == MemberTodd );
+
+		CompiledPeriod january2027 = compiledPlan.Periods.Single( p => p.PeriodDate == new DateOnly( 2027, 1, 1 ) );
+
+		Assert.That( compiledPlan.Contribution[january2027].Single( c => c.MemberId == toddCompiled.MemberId ).Amount, Is.EqualTo( 3200m ) );
+	}
+
+	[Test]
 	public void Compile_PlanStartingAfterMemberDeath_CompilesRemainingPeriods() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2060, 1, 1 ),
