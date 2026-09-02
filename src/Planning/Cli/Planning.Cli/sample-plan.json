@@ -22,10 +22,10 @@
     { "Member": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
-    "GoGo": 7000,
-    "SlowGo": 5500,
+    "GoGo": 6000,
+    "SlowGo": 5000,
     "SlowGoYears": 10,
-    "NoGo": 6000,
+    "NoGo": 5500,
     "NoGoYears": 10
   },
   "Contributions": [

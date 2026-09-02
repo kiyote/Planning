@@ -36,6 +36,8 @@ internal static class Program {
 			a.Equals( "--sweepannualpercents", StringComparison.OrdinalIgnoreCase ) );
 		bool sweepRetirementIncome = args.Any( a =>
 			a.Equals( "--sweepretirementincome", StringComparison.OrdinalIgnoreCase ) );
+		bool sweepAges = args.Any( a =>
+			a.Equals( "--sweepages", StringComparison.OrdinalIgnoreCase ) );
 
 		decimal[]? sweepReturnRates;
 		decimal? sweepTolerance;
@@ -67,23 +69,29 @@ internal static class Program {
 			&& !a.Equals( "--no-graph", StringComparison.OrdinalIgnoreCase )
 			&& !a.Equals( "--sweepannualpercents", StringComparison.OrdinalIgnoreCase )
 			&& !a.Equals( "--sweepretirementincome", StringComparison.OrdinalIgnoreCase )
+			&& !a.Equals( "--sweepages", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--returns=", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--tolerance=", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--slowgo-ratio=", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--nogo-ratio=", StringComparison.OrdinalIgnoreCase ) )];
 
-		if( positional.Length != 1 || unknown.Length != 0 || ( sweepAnnualPercents && sweepRetirementIncome ) ) {
+		int sweepCount = ( sweepAnnualPercents ? 1 : 0 )
+			+ ( sweepRetirementIncome ? 1 : 0 )
+			+ ( sweepAges ? 1 : 0 );
+
+		if( positional.Length != 1 || unknown.Length != 0 || sweepCount > 1 ) {
 			if( unknown.Length != 0 ) {
 				Console.Error.WriteLine( $"Unrecognized option: {unknown[0]}" );
 				Console.Error.WriteLine();
 			}
-			if( sweepAnnualPercents && sweepRetirementIncome ) {
-				Console.Error.WriteLine( "Choose only one of --sweepannualpercents or --sweepretirementincome." );
+			if( sweepCount > 1 ) {
+				Console.Error.WriteLine( "Choose only one of --sweepannualpercents, --sweepretirementincome or --sweepages." );
 				Console.Error.WriteLine();
 			}
 			Console.Error.WriteLine( "Usage: planning <input-plan.json> [--no-graph]" );
 			Console.Error.WriteLine( "       planning <input-plan.json> --sweepannualpercents [--returns=<list>] [--tolerance=<pct>]" );
 			Console.Error.WriteLine( "       planning <input-plan.json> --sweepretirementincome [--slowgo-ratio=<f>] [--nogo-ratio=<f>] [--tolerance=<amt>]" );
+			Console.Error.WriteLine( "       planning <input-plan.json> --sweepages" );
 			Console.Error.WriteLine();
 			Console.Error.WriteLine( "  <input-plan.json>       Path to a JSON file describing a Plan." );
 			Console.Error.WriteLine( "  --no-graph              Skip writing the plan graph." );
@@ -91,6 +99,9 @@ internal static class Program {
 			Console.Error.WriteLine( "                          inflation, instead of writing files." );
 			Console.Error.WriteLine( "  --sweepretirementincome Report the highest solvent GoGo income, holding the plan's" );
 			Console.Error.WriteLine( "                          rates fixed, instead of writing files." );
+			Console.Error.WriteLine( "  --sweepages             Report the earliest solvent retirement age, holding the" );
+			Console.Error.WriteLine( "                          plan's rates and income fixed. Members that both declare" );
+			Console.Error.WriteLine( "                          a retirement age move in lockstep." );
 			Console.Error.WriteLine( "  --returns=<list>        Comma-separated returns to measure the inflation ceiling" );
 			Console.Error.WriteLine( "                          against. Defaults to 5.5,6.0." );
 			Console.Error.WriteLine( "  --slowgo-ratio=<f>      SlowGo as a fraction of GoGo. Defaults to 0.80." );
@@ -128,7 +139,7 @@ internal static class Program {
 			return 1;
 		}
 
-		if( sweepAnnualPercents || sweepRetirementIncome ) {
+		if( sweepAnnualPercents || sweepRetirementIncome || sweepAges ) {
 			try {
 				if( sweepAnnualPercents ) {
 					SolvencySweep.RunAnnualPercents(
@@ -136,6 +147,8 @@ internal static class Program {
 						sweepReturnRates ?? DefaultSweepReturnRates,
 						sweepTolerance ?? DefaultSweepTolerance,
 						Console.Out );
+				} else if( sweepAges ) {
+					SolvencySweep.RunRetirementAges( plan, Console.Out );
 				} else {
 					SolvencySweep.RunRetirementIncome(
 						plan,

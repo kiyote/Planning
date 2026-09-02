@@ -18,6 +18,9 @@ namespace Planning.Cli;
 /// <see cref="RunRetirementIncome"/> instead holds the rates fixed and searches for the largest
 /// retirement income the plan can sustain.
 ///
+/// <see cref="RunRetirementAges"/> holds the rates and the income fixed and searches for the
+/// earliest retirement the plan can still fund.
+///
 /// In both cases every variable other than the one being searched is left at whatever the plan
 /// file says, so editing something like a member's TargetAgeInYears and re-running reports the
 /// new edges.
@@ -113,6 +116,129 @@ internal static class SolvencySweep {
 		output.WriteLine(
 			$"  At that income: net estate {result.EstateSummary.NetEstate:N2} " +
 			$"({result.EstateSummary.NetEstateInPlanStartDollars:N2} in plan-start dollars)" );
+	}
+
+	/// <summary>
+	/// Searches for the earliest retirement the plan can still fund, holding inflation, return
+	/// and retirement income at whatever the plan file says. Only members that already declare a
+	/// retirement age are moved; a member with no retirement age never retires, so there is
+	/// nothing to search for them. When both members declare one they move in lockstep -- the
+	/// same number of years is added to each -- so the household keeps the relative stagger it
+	/// was configured with.
+	/// </summary>
+	public static void RunRetirementAges(
+		Plan plan,
+		TextWriter output
+	) {
+		WritePlanSummary( plan, output );
+
+		Member[] members = [.. plan.Members];
+		Member[] retiring = [.. members.Where( m => m.RetirementAgeInYears.HasValue )];
+
+		output.WriteLine(
+			$"Earliest solvent retirement at {plan.AnnualReturnPercent:F2}% return / " +
+			$"{plan.AnnualInflationPercent:F2}% inflation:" );
+
+		if( retiring.Length == 0 ) {
+			output.WriteLine( "  No member declares a retirement age -- there is nothing to search." );
+			return;
+		}
+
+		if( retiring.Length == 1 ) {
+			output.WriteLine(
+				$"  Only {retiring[0].Name} retires; the other member's age is left alone." );
+		} else {
+			output.WriteLine(
+				"  Retirement ages move in lockstep, preserving the configured stagger of " +
+				$"{DescribeStagger( retiring )}." );
+		}
+
+		// A member cannot retire before the plan starts, and must still reach their target age
+		// after retiring, so the shift is bounded by whichever member binds first.
+		int minimumShift = retiring.Max( m => AgeAt( m, plan.StartDate ) - m.RetirementAgeInYears!.Value );
+		int maximumShift = retiring.Min( m => m.TargetAgeInYears - 1 - m.RetirementAgeInYears!.Value );
+
+		if( minimumShift > maximumShift ) {
+			output.WriteLine( "  No retirement age satisfies every member -- nothing to search." );
+			return;
+		}
+
+		// Ages are whole years and the range is a few decades at most, so walk it from the
+		// earliest candidate upward rather than assuming later retirement is always safer.
+		for( int shift = minimumShift; shift <= maximumShift; shift++ ) {
+			Plan candidate = ShiftRetirementAges( plan, shift );
+
+			if( HasShortfallInPlan( candidate ) ) {
+				continue;
+			}
+
+			CalculatedPlan result = CalculateFor( candidate );
+
+			foreach( Member member in candidate.Members.Where( m => m.RetirementAgeInYears.HasValue ) ) {
+				Member configured = members.First( m => m.Name == member.Name );
+				output.WriteLine(
+					$"  {member.Name}: retires at {member.RetirementAgeInYears}, " +
+					$"{Describe( member.RetirementAgeInYears!.Value - configured.RetirementAgeInYears!.Value )} " +
+					$"the configured {configured.RetirementAgeInYears}" );
+			}
+
+			output.WriteLine(
+				$"  At those ages: net estate {result.EstateSummary.NetEstate:N2} " +
+				$"({result.EstateSummary.NetEstateInPlanStartDollars:N2} in plan-start dollars)" );
+			return;
+		}
+
+		output.WriteLine(
+			"  Short at every retirement age in the range -- no retirement date funds this plan." );
+	}
+
+	private static string Describe(
+		int yearsFromConfigured
+	) {
+		if( yearsFromConfigured == 0 ) {
+			return "matching";
+		}
+
+		int years = Math.Abs( yearsFromConfigured );
+		string direction = yearsFromConfigured < 0 ? "earlier than" : "later than";
+
+		return $"{years} year(s) {direction}";
+	}
+
+	private static string DescribeStagger(
+		IReadOnlyList<Member> retiring
+	) {
+		return string.Join(
+			", ",
+			retiring.Select( m => $"{m.Name} at {m.RetirementAgeInYears}" ) );
+	}
+
+	/// <summary>
+	/// Adds the same number of years to every declared retirement age. Members without one are
+	/// left untouched so the sweep never invents a retirement they did not ask for.
+	/// </summary>
+	private static Plan ShiftRetirementAges(
+		Plan plan,
+		int shift
+	) {
+		return plan with {
+			Members = [.. plan.Members.Select( m => m.RetirementAgeInYears.HasValue
+				? m with { RetirementAgeInYears = m.RetirementAgeInYears.Value + shift }
+				: m )]
+		};
+	}
+
+	private static int AgeAt(
+		Member member,
+		DateOnly date
+	) {
+		int age = date.Year - member.BirthDate.Year;
+
+		if( member.BirthDate.AddYears( age ) > date ) {
+			age--;
+		}
+
+		return age;
 	}
 
 	private static void WritePlanSummary(
@@ -326,6 +452,18 @@ internal static class SolvencySweep {
 			AnnualInflationPercent = annualInflationPercent
 		};
 
+		return CalculateFor( plan );
+	}
+
+	private static bool HasShortfallInPlan(
+		Plan plan
+	) {
+		return CalculateFor( plan ).InsufficientFunds.HasShortfall;
+	}
+
+	private static CalculatedPlan CalculateFor(
+		Plan plan
+	) {
 		CompiledPlan compiledPlan = new PlanCompiler().Compile( plan );
 
 		return new PlanCalculator().Calculate( plan, compiledPlan );
