@@ -25,7 +25,7 @@ internal static class Program {
 	private const decimal DefaultIncomeTolerance = 1m;
 	private const decimal DefaultSlowGoRatio = 0.80m;
 	private const decimal DefaultNoGoRatio = 0.90m;
-	private static readonly decimal[] DefaultSweepReturnRates = [5.5m, 6.0m];
+	private static readonly decimal[] _defaultSweepReturnRates = [5.5m, 6.0m];
 
 	private static int Main(
 		string[] args
@@ -39,27 +39,23 @@ internal static class Program {
 		bool sweepAges = args.Any( a =>
 			a.Equals( "--sweepages", StringComparison.OrdinalIgnoreCase ) );
 
-		decimal[]? sweepReturnRates;
-		decimal? sweepTolerance;
-		decimal? slowGoRatio;
-		decimal? noGoRatio;
 
-		if( !TryParseDecimalList( args, "--returns", out sweepReturnRates ) ) {
+		if( !TryParseDecimalList( args, "--returns", out decimal[]? sweepReturnRates ) ) {
 			Console.Error.WriteLine( "Invalid --returns value; expected a comma-separated list of percentages." );
 			return 1;
 		}
 
-		if( !TryParseDecimal( args, "--tolerance", out sweepTolerance ) ) {
+		if( !TryParseDecimal( args, "--tolerance", out decimal? sweepTolerance ) ) {
 			Console.Error.WriteLine( "Invalid --tolerance value; expected a positive number." );
 			return 1;
 		}
 
-		if( !TryParseDecimal( args, "--slowgo-ratio", out slowGoRatio ) ) {
+		if( !TryParseDecimal( args, "--slowgo-ratio", out decimal? slowGoRatio ) ) {
 			Console.Error.WriteLine( "Invalid --slowgo-ratio value; expected a positive fraction of GoGo." );
 			return 1;
 		}
 
-		if( !TryParseDecimal( args, "--nogo-ratio", out noGoRatio ) ) {
+		if( !TryParseDecimal( args, "--nogo-ratio", out decimal? noGoRatio ) ) {
 			Console.Error.WriteLine( "Invalid --nogo-ratio value; expected a positive fraction of GoGo." );
 			return 1;
 		}
@@ -144,7 +140,7 @@ internal static class Program {
 				if( sweepAnnualPercents ) {
 					SolvencySweep.RunAnnualPercents(
 						plan,
-						sweepReturnRates ?? DefaultSweepReturnRates,
+						sweepReturnRates ?? _defaultSweepReturnRates,
 						sweepTolerance ?? DefaultSweepTolerance,
 						Console.Out );
 				} else if( sweepAges ) {
