@@ -177,6 +177,62 @@ public class TaxCalculatorTests {
 	}
 
 	[Test]
+	public void CalculateFederalBasicPersonalAmountCredit_IncomeBelowPhaseOutStart_ValuesTheFullAmount() {
+		TaxCalculator calculator = new TaxCalculator();
+		TaxPolicy policy = CreatePolicy();
+
+		decimal credit = calculator.CalculateFederalBasicPersonalAmountCredit( policy, netIncome: 100_000m, inflationIndex: 1m );
+
+		Assert.That( credit, Is.EqualTo( policy.BasicPersonalAmount * 0.15m ) );
+	}
+
+	[Test]
+	public void CalculateFederalBasicPersonalAmountCredit_IncomeAtOrAbovePhaseOutEnd_ValuesOnlyTheMinimum() {
+		TaxCalculator calculator = new TaxCalculator();
+		TaxPolicy policy = CreatePolicy();
+
+		decimal credit = calculator.CalculateFederalBasicPersonalAmountCredit( policy, netIncome: 300_000m, inflationIndex: 1m );
+
+		Assert.That( credit, Is.EqualTo( policy.BasicPersonalAmountMinimum * 0.15m ) );
+	}
+
+	[Test]
+	public void CalculateFederalBasicPersonalAmountCredit_IncomeInsideThePhaseOutRange_IsInterpolatedLinearly() {
+		TaxCalculator calculator = new TaxCalculator();
+		TaxPolicy policy = CreatePolicy();
+
+		// Halfway between the phase-out start (173,205) and end (246,752), half of the
+		// additional amount above the minimum should remain.
+		decimal netIncome = ( policy.BasicPersonalAmountPhaseOutStart + policy.BasicPersonalAmountPhaseOutEnd ) / 2m;
+		decimal credit = calculator.CalculateFederalBasicPersonalAmountCredit( policy, netIncome, inflationIndex: 1m );
+
+		decimal additionalAmount = policy.BasicPersonalAmount - policy.BasicPersonalAmountMinimum;
+		decimal expectedAmount = policy.BasicPersonalAmountMinimum + ( additionalAmount / 2m );
+		Assert.That( credit, Is.EqualTo( expectedAmount * 0.15m ) );
+	}
+
+	[Test]
+	public void CalculateFederalBasicPersonalAmountCredit_IsIndexed_SoThresholdsKeepPaceWithBrackets() {
+		TaxCalculator calculator = new TaxCalculator();
+		TaxPolicy policy = CreatePolicy();
+
+		// At 1.5x indexing, the phase-out end rises to 1.5x, so income of 1.5x the unindexed
+		// phase-out start remains below the (also indexed) start and claims the full amount.
+		decimal netIncome = policy.BasicPersonalAmountPhaseOutStart * 1.5m;
+		decimal credit = calculator.CalculateFederalBasicPersonalAmountCredit( policy, netIncome, inflationIndex: 1.5m );
+
+		Assert.That( credit, Is.EqualTo( policy.BasicPersonalAmount * 1.5m * 0.15m ) );
+	}
+
+	[Test]
+	public void CalculateFederalBasicPersonalAmountCredit_AmountOfZero_DisablesTheCredit() {
+		TaxCalculator calculator = new TaxCalculator();
+		TaxPolicy policy = CreatePolicy() with { BasicPersonalAmount = 0m };
+
+		Assert.That( calculator.CalculateFederalBasicPersonalAmountCredit( policy, netIncome: 300_000m, inflationIndex: 1m ), Is.Zero );
+	}
+
+	[Test]
 	public void CalculateOntarioAgeAmountCredit_IneligibleMember_ReturnsZero() {
 		TaxCalculator calculator = new TaxCalculator();
 
@@ -282,6 +338,9 @@ public class TaxCalculatorTests {
 			ProvincialBrackets: [new TaxBracket( LowerBound: 0m, Rate: 5.05m )],
 			AllowPensionSplitting: false,
 			BasicPersonalAmount: 15_705m,
+			BasicPersonalAmountMinimum: 14_156m,
+			BasicPersonalAmountPhaseOutStart: 173_205m,
+			BasicPersonalAmountPhaseOutEnd: 246_752m,
 			ProvincialBasicPersonalAmount: 12_399m,
 			AgeAmountBase: 8_790m,
 			AgeAmountIncomeThreshold: 44_325m,

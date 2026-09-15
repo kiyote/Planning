@@ -178,9 +178,9 @@ public class CapitalGainsTaxationTests {
 			members: [
 				// Todd is born late enough that the contribution years (from 2026 until his
 				// retirement at 66) actually fall inside the projection.
-				new Member( "Todd", new DateOnly( 1985, 1, 1 ), 70, 66, 70, 80m ),
+				new Member( "Todd", new DateOnly( 1985, 1, 1 ), 70, 66, 70, 80m, 65 ),
 				// Tina predeceases Todd holding nothing, so all tax falls on Todd alone.
-				new Member( "Tina", new DateOnly( 1986, 1, 1 ), 66, 65, 70, 50m )
+				new Member( "Tina", new DateOnly( 1986, 1, 1 ), 66, 65, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 0m, 0m, 0m ),

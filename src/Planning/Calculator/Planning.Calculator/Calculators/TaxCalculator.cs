@@ -110,16 +110,14 @@ internal sealed class TaxCalculator {
 	}
 
 	/// <summary>
-	/// Computes the Basic Personal Amount non-refundable tax credit for a single jurisdiction.
-	/// Every member is entitled to it regardless of age, income, or income type, which is what
-	/// distinguishes it from the Age Amount and the Pension Income Amount. The amount is valued
-	/// at that jurisdiction's lowest bracket rate, so the federal and provincial credits differ
-	/// both in the amount claimed and in the rate it is valued at. The amount is expressed in
-	/// nominal start-year dollars and indexed by inflation for the year being calculated.
-	///
-	/// The federal amount is reduced for members whose income reaches the top bracket. That
-	/// phase-out is deliberately not modelled, so the credit is slightly overstated for the
-	/// highest incomes.
+	/// Computes the Basic Personal Amount non-refundable tax credit for a jurisdiction that
+	/// claims a flat amount regardless of income, such as the Ontario provincial credit. The
+	/// federal credit is phased out at higher incomes and is computed instead by
+	/// <see cref="CalculateFederalBasicPersonalAmountCredit"/>.
+	/// The amount is valued at that jurisdiction's lowest bracket rate, so the federal and
+	/// provincial credits differ both in the amount claimed and in the rate it is valued at.
+	/// The amount is expressed in nominal start-year dollars and indexed by inflation for the
+	/// year being calculated.
 	/// </summary>
 	/// <param name="basicPersonalAmount">The jurisdiction's basic personal amount, in nominal start-year dollars.</param>
 	/// <param name="brackets">That jurisdiction's brackets, whose lowest rate values the credit.</param>
@@ -136,6 +134,56 @@ internal sealed class TaxCalculator {
 
 		decimal lowestRate = LowestBracketRate( brackets );
 		return basicPersonalAmount * inflationIndex * ( lowestRate / 100m );
+	}
+
+	/// <summary>
+	/// Computes the federal Basic Personal Amount non-refundable tax credit for a member. Every
+	/// member is entitled to at least <see cref="TaxPolicy.BasicPersonalAmountMinimum"/>
+	/// regardless of age, income, or income type. The amount above that floor -- up to
+	/// <see cref="TaxPolicy.BasicPersonalAmount"/> -- is phased out linearly as net income rises
+	/// from <see cref="TaxPolicy.BasicPersonalAmountPhaseOutStart"/> to
+	/// <see cref="TaxPolicy.BasicPersonalAmountPhaseOutEnd"/>, matching the CRA rule in effect
+	/// since 2020. The resulting amount is valued at the lowest federal bracket rate. Amounts
+	/// and thresholds are expressed in nominal start-year dollars and indexed by inflation for
+	/// the year being calculated.
+	/// </summary>
+	/// <param name="policy">The tax policy carrying the Basic Personal Amount parameters and federal brackets.</param>
+	/// <param name="netIncome">The member's net income for the year (their taxable base).</param>
+	/// <param name="inflationIndex">Multiplier applied to the amounts and thresholds to index them for the year.</param>
+	/// <returns>The federal tax reduction (never negative) provided by the Basic Personal Amount credit.</returns>
+	public decimal CalculateFederalBasicPersonalAmountCredit(
+		TaxPolicy policy,
+		decimal netIncome,
+		decimal inflationIndex
+	) {
+		if( policy is null || policy.BasicPersonalAmount <= 0m ) {
+			return 0m;
+		}
+
+		decimal minimumAmount = policy.BasicPersonalAmountMinimum * inflationIndex;
+		decimal maximumAmount = policy.BasicPersonalAmount * inflationIndex;
+		decimal phaseOutStart = policy.BasicPersonalAmountPhaseOutStart * inflationIndex;
+		decimal phaseOutEnd = policy.BasicPersonalAmountPhaseOutEnd * inflationIndex;
+
+		decimal additionalAmount = Math.Max( 0m, maximumAmount - minimumAmount );
+
+		decimal eligibleAdditionalAmount;
+		if( phaseOutEnd <= phaseOutStart || netIncome <= phaseOutStart ) {
+			eligibleAdditionalAmount = additionalAmount;
+		} else if( netIncome >= phaseOutEnd ) {
+			eligibleAdditionalAmount = 0m;
+		} else {
+			decimal phaseOutFraction = ( netIncome - phaseOutStart ) / ( phaseOutEnd - phaseOutStart );
+			eligibleAdditionalAmount = additionalAmount * ( 1m - phaseOutFraction );
+		}
+
+		decimal eligibleAmount = minimumAmount + eligibleAdditionalAmount;
+		if( eligibleAmount <= 0m ) {
+			return 0m;
+		}
+
+		decimal lowestRate = LowestBracketRate( policy.FederalBrackets );
+		return eligibleAmount * ( lowestRate / 100m );
 	}
 
 	/// <summary>

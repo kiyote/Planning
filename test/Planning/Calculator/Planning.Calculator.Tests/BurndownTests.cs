@@ -160,8 +160,8 @@ public class BurndownTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 90, 66, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 90, 66, 70, 50m )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 90, 66, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1971, 1, 1 ), 90, 66, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 300_000m, 0m, 0m ),
@@ -269,8 +269,8 @@ public class BurndownTests {
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 90, 66, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1961, 1, 1 ), 90, 65, 70, 50m )
+				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 90, 66, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1961, 1, 1 ), 90, 65, 70, 50m, 65 )
 			],
 			assets: assets ?? [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 300_000m, 0m, 0m ),

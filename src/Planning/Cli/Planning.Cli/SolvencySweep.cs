@@ -33,6 +33,12 @@ internal static class SolvencySweep {
 	private const decimal MaxInflation = 25m;
 	private const decimal MinGoGo = 0m;
 	private const decimal MaxGoGo = 100_000m;
+	private const int MinCPPStartInYears = 60;
+	private const int MaxCPPStartInYears = 70;
+	private const int MinOASStartInYears = 65;
+	private const int MaxOASStartInYears = 70;
+	private const int MinBurndownYears = 0;
+	private const int MaxBurndownYears = 20;
 
 	public static void RunAnnualPercents(
 		Plan plan,
@@ -190,6 +196,209 @@ internal static class SolvencySweep {
 
 		output.WriteLine(
 			"  Short at every retirement age in the range -- no retirement date funds this plan." );
+	}
+
+	/// <summary>
+	/// Searches for the combination of CPP start ages that maximizes the net estate at the end
+	/// of the plan, holding every other variable -- rates, retirement ages and income -- at
+	/// whatever the plan file says. Each member's CPP start age is searched independently, since
+	/// there is no reason to expect two members to share an optimal age. The valid range is
+	/// small (60 to 70 inclusive) and net estate is not guaranteed to be monotonic in CPP start
+	/// age, so every combination in the range is evaluated rather than narrowing with a binary
+	/// search.
+	/// </summary>
+	public static void RunSweepCpp(
+		Plan plan,
+		TextWriter output
+	) {
+		WritePlanSummary( plan, output );
+
+		Member[] members = [.. plan.Members];
+
+		output.WriteLine(
+			$"Highest net estate by CPP start age at {plan.AnnualReturnPercent:F2}% return / " +
+			$"{plan.AnnualInflationPercent:F2}% inflation:" );
+
+		int[] ages = [.. Enumerable.Range( MinCPPStartInYears, MaxCPPStartInYears - MinCPPStartInYears + 1 )];
+
+		IEnumerable<int[]> combinations = CartesianProduct( members.Length, ages );
+
+		int[]? bestCombination = null;
+		CalculatedPlan? bestResult = null;
+
+		foreach( int[] combination in combinations ) {
+			Plan candidate = plan with {
+				Members = [.. members.Select( ( m, i ) => m with { CPPStartInYears = combination[i] } )]
+			};
+
+			CalculatedPlan result = CalculateFor( candidate );
+
+			if( result.InsufficientFunds.HasShortfall ) {
+				continue;
+			}
+
+			if( bestResult is null || result.EstateSummary.NetEstate > bestResult.EstateSummary.NetEstate ) {
+				bestCombination = combination;
+				bestResult = result;
+			}
+		}
+
+		if( bestResult is null || bestCombination is null ) {
+			output.WriteLine(
+				"  Short at every CPP start age in the range -- no combination funds this plan." );
+			return;
+		}
+
+		for( int i = 0; i < members.Length; i++ ) {
+			output.WriteLine(
+				$"  {members[i].Name}: CPP at {bestCombination[i]}, " +
+				$"{Describe( bestCombination[i] - members[i].CPPStartInYears )} the configured " +
+				$"{members[i].CPPStartInYears}" );
+		}
+
+		output.WriteLine(
+			$"  At those ages: net estate {bestResult.EstateSummary.NetEstate:N2} " +
+			$"({bestResult.EstateSummary.NetEstateInPlanStartDollars:N2} in plan-start dollars)" );
+	}
+
+	/// <summary>
+	/// Searches for the combination of OAS start ages that maximizes the net estate at the end
+	/// of the plan, holding every other variable -- rates, retirement ages, CPP start ages and
+	/// income -- at whatever the plan file says. Each member's OAS start age is searched
+	/// independently. Unlike CPP, OAS has no early-start option, so the valid range is 65 to 70
+	/// inclusive. Net estate is not guaranteed to be monotonic in OAS start age, so every
+	/// combination in the range is evaluated rather than narrowing with a binary search.
+	/// </summary>
+	public static void RunSweepOAS(
+		Plan plan,
+		TextWriter output
+	) {
+		WritePlanSummary( plan, output );
+
+		Member[] members = [.. plan.Members];
+
+		output.WriteLine(
+			$"Highest net estate by OAS start age at {plan.AnnualReturnPercent:F2}% return / " +
+			$"{plan.AnnualInflationPercent:F2}% inflation:" );
+
+		int[] ages = [.. Enumerable.Range( MinOASStartInYears, MaxOASStartInYears - MinOASStartInYears + 1 )];
+
+		IEnumerable<int[]> combinations = CartesianProduct( members.Length, ages );
+
+		int[]? bestCombination = null;
+		CalculatedPlan? bestResult = null;
+
+		foreach( int[] combination in combinations ) {
+			Plan candidate = plan with {
+				Members = [.. members.Select( ( m, i ) => m with { OASStartInYears = combination[i] } )]
+			};
+
+			CalculatedPlan result = CalculateFor( candidate );
+
+			if( result.InsufficientFunds.HasShortfall ) {
+				continue;
+			}
+
+			if( bestResult is null || result.EstateSummary.NetEstate > bestResult.EstateSummary.NetEstate ) {
+				bestCombination = combination;
+				bestResult = result;
+			}
+		}
+
+		if( bestResult is null || bestCombination is null ) {
+			output.WriteLine(
+				"  Short at every OAS start age in the range -- no combination funds this plan." );
+			return;
+		}
+
+		for( int i = 0; i < members.Length; i++ ) {
+			output.WriteLine(
+				$"  {members[i].Name}: OAS at {bestCombination[i]}, " +
+				$"{Describe( bestCombination[i] - members[i].OASStartInYears )} the configured " +
+				$"{members[i].OASStartInYears}" );
+		}
+
+		output.WriteLine(
+			$"  At those ages: net estate {bestResult.EstateSummary.NetEstate:N2} " +
+			$"({bestResult.EstateSummary.NetEstateInPlanStartDollars:N2} in plan-start dollars)" );
+	}
+
+	/// <summary>
+	/// Produces every combination of the given values across the given number of positions --
+	/// the cross product used to search each member's CPP start age independently.
+	/// </summary>
+	private static IEnumerable<int[]> CartesianProduct(
+		int positionCount,
+		IReadOnlyList<int> values
+	) {
+		int[] current = new int[positionCount];
+		return Generate( 0 );
+
+		IEnumerable<int[]> Generate(
+			int position
+		) {
+			if( position == positionCount ) {
+				yield return [.. current];
+				yield break;
+			}
+
+			foreach( int value in values ) {
+				current[position] = value;
+				foreach( int[] result in Generate( position + 1 ) ) {
+					yield return result;
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Searches for the burndown window that maximizes the net estate at the end of the plan,
+	/// holding every other variable -- rates, retirement ages, CPP start ages and income -- at
+	/// whatever the plan file says. The valid range is small (0 to 20 years inclusive) and net
+	/// estate is not guaranteed to be monotonic in the burndown window, so every year in the
+	/// range is evaluated rather than narrowing with a binary search.
+	/// </summary>
+	public static void RunSweepBurndown(
+		Plan plan,
+		TextWriter output
+	) {
+		WritePlanSummary( plan, output );
+
+		output.WriteLine(
+			$"Highest net estate by burndown years at {plan.AnnualReturnPercent:F2}% return / " +
+			$"{plan.AnnualInflationPercent:F2}% inflation:" );
+
+		int? bestBurndownYears = null;
+		CalculatedPlan? bestResult = null;
+
+		for( int burndownYears = MinBurndownYears; burndownYears <= MaxBurndownYears; burndownYears++ ) {
+			Plan candidate = plan with { Burndown = new Burndown( burndownYears ) };
+
+			CalculatedPlan result = CalculateFor( candidate );
+
+			if( result.InsufficientFunds.HasShortfall ) {
+				continue;
+			}
+
+			if( bestResult is null || result.EstateSummary.NetEstate > bestResult.EstateSummary.NetEstate ) {
+				bestBurndownYears = burndownYears;
+				bestResult = result;
+			}
+		}
+
+		if( bestResult is null || bestBurndownYears is null ) {
+			output.WriteLine(
+				"  Short at every burndown window in the range -- no window funds this plan." );
+			return;
+		}
+
+		output.WriteLine(
+			$"  BurndownYears: {bestBurndownYears}, " +
+			$"{Describe( bestBurndownYears.Value - plan.Burndown.BurndownYears )} the configured " +
+			$"{plan.Burndown.BurndownYears}" );
+		output.WriteLine(
+			$"  At that window: net estate {bestResult.EstateSummary.NetEstate:N2} " +
+			$"({bestResult.EstateSummary.NetEstateInPlanStartDollars:N2} in plan-start dollars)" );
 	}
 
 	private static string Describe(

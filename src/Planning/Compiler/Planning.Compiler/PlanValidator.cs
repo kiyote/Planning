@@ -6,6 +6,8 @@ public sealed class PlanValidator {
 
 	private const int MinimumCPPStartAge = 60;
 	private const int MaximumCPPStartAge = 70;
+	private const int MinimumOASStartAge = 65;
+	private const int MaximumOASStartAge = 70;
 	private const int RequiredHouseholdSize = 2;
 	private const int MaximumTaxPolicyAgeInYears = 5;
 
@@ -71,6 +73,11 @@ public sealed class PlanValidator {
 
 			if( member.CPPPercent < 0m || member.CPPPercent > 100m ) {
 				result.AddError( $"Member '{member.Name}' CPP percentage ({member.CPPPercent}) must be between 0 and 100 inclusive." );
+			}
+
+			if( member.OASStartInYears < MinimumOASStartAge
+				|| member.OASStartInYears > MaximumOASStartAge ) {
+				result.AddError( $"Member '{member.Name}' OAS start age ({member.OASStartInYears}) must be between {MinimumOASStartAge} and {MaximumOASStartAge} inclusive." );
 			}
 		}
 
@@ -220,6 +227,24 @@ public sealed class PlanValidator {
 			result.AddError( $"Tax policy year ({policyYear}) must not be after the plan start year ({planStartYear})." );
 		} else if( policyYear < planStartYear - MaximumTaxPolicyAgeInYears ) {
 			result.AddError( $"Tax policy year ({policyYear}) must not be more than {MaximumTaxPolicyAgeInYears} years before the plan start year ({planStartYear})." );
+		}
+
+		TaxPolicy policy = plan.TaxPolicy;
+
+		if( policy.BasicPersonalAmountMinimum < 0m ) {
+			result.AddError( $"Basic Personal Amount minimum ({policy.BasicPersonalAmountMinimum}) must be nonnegative." );
+		}
+
+		if( policy.BasicPersonalAmount > 0m && policy.BasicPersonalAmountMinimum > policy.BasicPersonalAmount ) {
+			result.AddError( $"Basic Personal Amount minimum ({policy.BasicPersonalAmountMinimum}) must not exceed the Basic Personal Amount ({policy.BasicPersonalAmount})." );
+		}
+
+		if( policy.BasicPersonalAmountPhaseOutStart < 0m ) {
+			result.AddError( $"Basic Personal Amount phase-out start ({policy.BasicPersonalAmountPhaseOutStart}) must be nonnegative." );
+		}
+
+		if( policy.BasicPersonalAmountPhaseOutEnd < policy.BasicPersonalAmountPhaseOutStart ) {
+			result.AddError( $"Basic Personal Amount phase-out end ({policy.BasicPersonalAmountPhaseOutEnd}) must not be before the phase-out start ({policy.BasicPersonalAmountPhaseOutStart})." );
 		}
 	}
 

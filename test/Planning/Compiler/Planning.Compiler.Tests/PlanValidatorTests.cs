@@ -57,10 +57,62 @@ public class PlanValidatorTests {
 	}
 
 	[Test]
+	public void Validate_BasicPersonalAmountMinimumIsNegative_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { BasicPersonalAmountMinimum = -1m } );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "Basic Personal Amount minimum" ).And.Some.Contains( "must be nonnegative" ) );
+	}
+
+	[Test]
+	public void Validate_BasicPersonalAmountMinimumExceedsTheMaximum_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { BasicPersonalAmount = 10_000m, BasicPersonalAmountMinimum = 14_156m } );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "must not exceed the Basic Personal Amount" ) );
+	}
+
+	[Test]
+	public void Validate_BasicPersonalAmountDisabled_MinimumExceedingItIsIgnored() {
+		// A BasicPersonalAmount of zero means the credit is switched off entirely, so an
+		// inherited nonzero minimum should not be flagged as exceeding it.
+		Plan plan = TestPlanFactory.Create(
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { BasicPersonalAmount = 0m } );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.True, string.Join( "; ", result.Errors ) );
+	}
+
+	[Test]
+	public void Validate_BasicPersonalAmountPhaseOutStartIsNegative_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { BasicPersonalAmountPhaseOutStart = -1m } );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "phase-out start" ).And.Some.Contains( "must be nonnegative" ) );
+	}
+
+	[Test]
+	public void Validate_BasicPersonalAmountPhaseOutEndBeforeStart_ReportsError() {
+		Plan plan = TestPlanFactory.Create(
+			taxPolicy: TestPlanFactory.CreateTaxPolicy() with { BasicPersonalAmountPhaseOutStart = 200_000m, BasicPersonalAmountPhaseOutEnd = 100_000m } );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "phase-out end" ).And.Some.Contains( "must not be before the phase-out start" ) );
+	}
+
+	[Test]
 	public void Validate_WrongHouseholdSize_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m )
@@ -78,8 +130,8 @@ public class PlanValidatorTests {
 	public void Validate_DuplicateMemberNames_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m ),
-				new Member( "Todd", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 80m )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m, 65 ),
+				new Member( "Todd", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 80m, 65 )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -95,8 +147,8 @@ public class PlanValidatorTests {
 	public void Validate_RetirementAgeNotBeforeTarget_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 60, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 60, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65 )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -115,8 +167,8 @@ public class PlanValidatorTests {
 	) {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, cppStartAge, 80m ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, cppStartAge, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65 )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -132,8 +184,8 @@ public class PlanValidatorTests {
 	public void Validate_NoMemberSpecifiesRetirementAge_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, null, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, null, 70, 50m )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, null, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, null, 70, 50m, 65 )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -286,8 +338,8 @@ public class PlanValidatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 2030, 1, 1 ), 85, 60, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m )
+				new Member( "Todd", new DateOnly( 2030, 1, 1 ), 85, 60, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65 )
 			],
 			assets: [],
 			lifeInsurance: [],

@@ -793,9 +793,10 @@ public class PlanCalculator {
 		// The Basic Personal Amount is claimed by every member regardless of age or income, and
 		// is applied first because it is the credit that shelters the bottom of the income range
 		// that the others stack on top of. Unlike the Age Amount it reduces provincial tax too,
-		// each jurisdiction valuing its own amount at its own lowest rate.
-		decimal federalBasicPersonalCredit = _taxCalculator.CalculateBasicPersonalAmountCredit(
-			compiledPlan.TaxPolicy.BasicPersonalAmount, compiledPlan.TaxPolicy.FederalBrackets, inflationIndex );
+		// each jurisdiction valuing its own amount at its own lowest rate. The federal amount is
+		// phased out at higher incomes; the provincial amount is not.
+		decimal federalBasicPersonalCredit = _taxCalculator.CalculateFederalBasicPersonalAmountCredit(
+			compiledPlan.TaxPolicy, taxableAmount, inflationIndex );
 		federalTax = Math.Max( 0m, federalTax - federalBasicPersonalCredit );
 
 		decimal provincialBasicPersonalCredit = _taxCalculator.CalculateBasicPersonalAmountCredit(

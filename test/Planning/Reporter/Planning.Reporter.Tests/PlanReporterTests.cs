@@ -85,8 +85,8 @@ public class PlanReporterTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd, \"TJ\"", new DateOnly( 1976, 1, 15 ), 50, 40, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1976, 3, 15 ), 50, 40, 70, 50m )
+				new Member( "Todd, \"TJ\"", new DateOnly( 1976, 1, 15 ), 50, 40, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1976, 3, 15 ), 50, 40, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd, \"TJ\"", 100m ),
@@ -237,8 +237,8 @@ public class PlanReporterTests {
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 31 ), 85, 60, 70, 80m ),
-				new Member( "Tina", new DateOnly( 1976, 7, 22 ), 95, null, 65, 50m )
+				new Member( "Todd", new DateOnly( 1973, 12, 31 ), 85, 60, 70, 80m, 65 ),
+				new Member( "Tina", new DateOnly( 1976, 7, 22 ), 95, null, 65, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 550000m, 219_081m, 22_000m ),

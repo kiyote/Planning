@@ -1,8 +1,8 @@
 {
   "StartDate": "2026-01-01",
   "Members": [
-    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 80, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90 },
-    { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 90, "RetirementAgeInYears": null, "CPPStartInYears": 65, "CPPPercent": 50 }
+    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 66, "CPPPercent": 90, "OASStartInYears": 65 },
+    { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": null, "CPPStartInYears": 63, "CPPPercent": 50, "OASStartInYears": 65 }
   ],
   "CPPMaximum": 1507.65,
   "CPPCombinedSurvivorMaximum": 1531.56,
@@ -23,14 +23,14 @@
   ],
   "RetirementIncome": {
     "GoGo": 7000,
-    "SlowGo": 6000,
+    "SlowGo": 5500,
     "SlowGoYears": 10,
-    "NoGo": 6500,
+    "NoGo": 6000,
     "NoGoYears": 10
   },
   "Contributions": [
     { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": true, "Spousal": "Todd", "AnnualIncreasePercent": 7.0 },
-    { "Member": "Tina", "Amount": 3000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd", "AnnualIncreasePercent": null }
+    { "Member": "Tina", "Amount": 2000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd", "AnnualIncreasePercent": null }
   ],
   "Inheritance": [
     { "Member": "Todd", "Amount": 0, "AgeReceived": 65 }
@@ -39,33 +39,41 @@
     "BurndownYears": 0
   },
   "TaxPolicy": {
-    "Year": 2025,
+    "Year": 2026,
     "AllowPensionSplitting": false,
-    "BasicPersonalAmount": 16129,
-    "ProvincialBasicPersonalAmount": 12747,
-    "AgeAmountBase": 9028,
-    "AgeAmountIncomeThreshold": 45522,
+    "BasicPersonalAmount": 16452,
+    "BasicPersonalAmountMinimum": 14829,
+    "BasicPersonalAmountPhaseOutStart": 181440,
+    "BasicPersonalAmountPhaseOutEnd": 258482,
+    "ProvincialBasicPersonalAmount": 12989,
+    "AgeAmountBase": 9208,
+    "AgeAmountIncomeThreshold": 46432,
     "AgeAmountReductionRate": 15.0,
     "AgeAmountEligibilityAge": 65,
     "PensionIncomeAmount": 2000,
     "PensionIncomeEligibilityAge": 65,
-    "OasClawbackThreshold": 93454,
+    "OasClawbackThreshold": 95323,
     "OasClawbackRate": 15.0,
     "FederalBrackets": [
-      { "LowerBound": 0, "Rate": 14.5 },
-      { "LowerBound": 57375, "Rate": 20.5 },
-      { "LowerBound": 114750, "Rate": 26.0 },
-      { "LowerBound": 177882, "Rate": 29.0 },
-      { "LowerBound": 253414, "Rate": 33.0 }
+      { "LowerBound": 0, "Rate": 14.0 },
+      { "LowerBound": 58523, "Rate": 20.5 },
+      { "LowerBound": 117045, "Rate": 26.0 },
+      { "LowerBound": 181440, "Rate": 29.0 },
+      { "LowerBound": 258482, "Rate": 33.0 }
     ],
     "ProvincialBrackets": [
       { "LowerBound": 0, "Rate": 5.05 },
-      { "LowerBound": 52886, "Rate": 9.15 },
-      { "LowerBound": 105775, "Rate": 11.16 },
+      { "LowerBound": 53891, "Rate": 9.15 },
+      { "LowerBound": 107785, "Rate": 11.16 },
       { "LowerBound": 150000, "Rate": 12.16 },
       { "LowerBound": 220000, "Rate": 13.16 }
     ],
     "RRIFMinimums": [
+      { "Age": 60, "Percent": 3.33 },
+      { "Age": 61, "Percent": 3.45 },
+      { "Age": 62, "Percent": 3.57 },
+      { "Age": 63, "Percent": 3.70 },
+      { "Age": 64, "Percent": 3.85 },
       { "Age": 65, "Percent": 4.00 },
       { "Age": 66, "Percent": 4.17 },
       { "Age": 67, "Percent": 4.35 },

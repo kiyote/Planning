@@ -91,8 +91,8 @@ public sealed class BasicPersonalAmountTests {
 				// Both members retire immediately and die before 65, so neither ever collects
 				// CPP or OAS. The RRIF draw is therefore the only income, which keeps the
 				// comparison against the personal amount exact.
-				new Member( MemberTodd, new DateOnly( 1966, 1, 1 ), 64, 60, 70, 80m ),
-				new Member( MemberTina, new DateOnly( 1967, 1, 1 ), 63, 60, 70, 50m )
+				new Member( MemberTodd, new DateOnly( 1966, 1, 1 ), 64, 60, 70, 80m, 65 ),
+				new Member( MemberTina, new DateOnly( 1967, 1, 1 ), 63, 60, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTodd, 2_000_000m, 0m, 0m ),

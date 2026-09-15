@@ -177,8 +177,8 @@ public class OasClawbackTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 80, 66, 65, 100m ),
-				new Member( "Tina", new DateOnly( 1961, 1, 1 ), 80, 66, 65, 100m )
+				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 80, 66, 65, 100m, 65 ),
+				new Member( "Tina", new DateOnly( 1961, 1, 1 ), 80, 66, 65, 100m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", rrsp, 0m, 0m ),

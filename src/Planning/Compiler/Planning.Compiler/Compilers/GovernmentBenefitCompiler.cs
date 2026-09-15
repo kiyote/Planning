@@ -89,12 +89,12 @@ internal sealed class GovernmentBenefitCompiler {
 			result[period] = new Dictionary<CompiledMember, decimal>();
 			foreach( CompiledMember member in members ) {
 				if( member.OASStartDate <= period.PeriodDate && member.DeathDate > period.PeriodDate ) {
-					decimal oasMultiplier = 1.0m;
-					// 10% top-up at age 75
-					if( member.BirthDate.AddYears( 75 ) <= period.PeriodDate ) {
-						oasMultiplier = 1.1m;
-					}
-					result[period][member] = maximumOAS * oasMultiplier;
+						decimal oasMultiplier = member.OASMultiplier;
+						// 10% top-up at age 75
+						if( member.BirthDate.AddYears( 75 ) <= period.PeriodDate ) {
+							oasMultiplier *= 1.1m;
+						}
+						result[period][member] = maximumOAS * oasMultiplier;
 				} else {
 					result[period][member] = 0.0m;
 				}

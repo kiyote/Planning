@@ -21,16 +21,36 @@ namespace Planning.Model.Plans;
 /// lowest federal bracket rate. The CRA 2024 value is $8,790.
 /// </param>
 /// <param name="BasicPersonalAmount">
-/// The federal Basic Personal Amount (non-refundable), in nominal start-year dollars. Every
-/// member is entitled to it regardless of age or income, and it reduces federal tax at the
-/// lowest federal bracket rate. The CRA 2024 value is $15,705. The reduction of this amount
-/// for members in the top bracket is deliberately not modelled. Set to zero to disable.
+/// The maximum federal Basic Personal Amount (non-refundable), in nominal start-year dollars,
+/// available to members with net income at or below
+/// <see cref="BasicPersonalAmountPhaseOutStart"/>. Every member is entitled to at least
+/// <see cref="BasicPersonalAmountMinimum"/> regardless of income; the amount above that floor
+/// is phased out linearly between <see cref="BasicPersonalAmountPhaseOutStart"/> and
+/// <see cref="BasicPersonalAmountPhaseOutEnd"/>. The resulting amount reduces federal tax at
+/// the lowest federal bracket rate. The CRA 2024 value is $15,705. Set to zero to disable.
+/// </param>
+/// <param name="BasicPersonalAmountMinimum">
+/// The floor of the federal Basic Personal Amount, in nominal start-year dollars, that every
+/// member receives regardless of income, even once fully phased out. The CRA 2024 value is
+/// $14,156.
+/// </param>
+/// <param name="BasicPersonalAmountPhaseOutStart">
+/// The net-income threshold, in nominal start-year dollars, at or below which the full
+/// <see cref="BasicPersonalAmount"/> is available. Above this threshold the amount above
+/// <see cref="BasicPersonalAmountMinimum"/> is phased out linearly. The CRA 2024 value is
+/// $173,205 (the threshold of the fourth federal bracket).
+/// </param>
+/// <param name="BasicPersonalAmountPhaseOutEnd">
+/// The net-income threshold, in nominal start-year dollars, at or above which the federal
+/// Basic Personal Amount is fully phased out to <see cref="BasicPersonalAmountMinimum"/>. The
+/// CRA 2024 value is $246,752 (the threshold of the fifth federal bracket).
 /// </param>
 /// <param name="ProvincialBasicPersonalAmount">
 /// The provincial Basic Personal Amount (non-refundable), in nominal start-year dollars,
 /// valued at the lowest provincial bracket rate. It is configured separately from
 /// <see cref="BasicPersonalAmount"/> because the provincial amount and the rate it is valued
-/// at both differ from the federal ones. The Ontario 2024 value is $12,399.
+/// at both differ from the federal ones, and because Ontario runs no equivalent phase-out.
+/// The Ontario 2024 value is $12,399.
 /// </param>
 /// <param name="AgeAmountIncomeThreshold">
 /// The net-income threshold above which the Age Amount is reduced, in nominal start-year
@@ -85,6 +105,9 @@ public record TaxPolicy(
 	IEnumerable<TaxBracket> ProvincialBrackets,
 	bool AllowPensionSplitting,
 	decimal BasicPersonalAmount,
+	decimal BasicPersonalAmountMinimum,
+	decimal BasicPersonalAmountPhaseOutStart,
+	decimal BasicPersonalAmountPhaseOutEnd,
 	decimal ProvincialBasicPersonalAmount,
 	decimal AgeAmountBase,
 	decimal AgeAmountIncomeThreshold,
@@ -102,6 +125,9 @@ public record TaxPolicy(
 		ProvincialBrackets: [],
 		AllowPensionSplitting: false,
 		BasicPersonalAmount: 0m,
+		BasicPersonalAmountMinimum: 0m,
+		BasicPersonalAmountPhaseOutStart: 0m,
+		BasicPersonalAmountPhaseOutEnd: 0m,
 		ProvincialBasicPersonalAmount: 0m,
 		AgeAmountBase: 0m,
 		AgeAmountIncomeThreshold: 0m,

@@ -31,8 +31,8 @@ public class PlanDeserializationTests {
 	{
 		"StartDate": "2026-03-15",
 		"Members": [
-			{ "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90 },
-			{ "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": 62, "CPPStartInYears": 65, "CPPPercent": 50 }
+			{ "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90, "OASStartInYears": 65 },
+			{ "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": 62, "CPPStartInYears": 65, "CPPPercent": 50, "OASStartInYears": 65 }
 		],
 		"CPPMaximum": 1507.65,
 		"CPPCombinedSurvivorMaximum": 1531.56,
@@ -69,6 +69,9 @@ public class PlanDeserializationTests {
 			],
 			"AllowPensionSplitting": true,
 			"BasicPersonalAmount": 15705,
+			"BasicPersonalAmountMinimum": 14156,
+			"BasicPersonalAmountPhaseOutStart": 173205,
+			"BasicPersonalAmountPhaseOutEnd": 246752,
 			"ProvincialBasicPersonalAmount": 12399,
 			"AgeAmountBase": 8790,
 			"AgeAmountIncomeThreshold": 44325,
@@ -119,6 +122,7 @@ public class PlanDeserializationTests {
 			Assert.That( members[0].RetirementAgeInYears, Is.EqualTo( 60 ) );
 			Assert.That( members[0].CPPStartInYears, Is.EqualTo( 70 ) );
 			Assert.That( members[0].CPPPercent, Is.EqualTo( 90m ) );
+			Assert.That( members[0].OASStartInYears, Is.EqualTo( 65 ) );
 
 			Assert.That( members[1].Name, Is.EqualTo( "Tina" ) );
 			Assert.That( members[1].BirthDate, Is.EqualTo( new DateOnly( 1976, 7, 22 ) ) );
@@ -126,6 +130,7 @@ public class PlanDeserializationTests {
 			Assert.That( members[1].RetirementAgeInYears, Is.EqualTo( 62 ) );
 			Assert.That( members[1].CPPStartInYears, Is.EqualTo( 65 ) );
 			Assert.That( members[1].CPPPercent, Is.EqualTo( 50m ) );
+			Assert.That( members[1].OASStartInYears, Is.EqualTo( 65 ) );
 		}
 	}
 
@@ -248,6 +253,9 @@ public class PlanDeserializationTests {
 			Assert.That( policy.Year, Is.EqualTo( 2024 ) );
 			Assert.That( policy.AllowPensionSplitting, Is.True );
 			Assert.That( policy.BasicPersonalAmount, Is.EqualTo( 15_705m ) );
+			Assert.That( policy.BasicPersonalAmountMinimum, Is.EqualTo( 14_156m ) );
+			Assert.That( policy.BasicPersonalAmountPhaseOutStart, Is.EqualTo( 173_205m ) );
+			Assert.That( policy.BasicPersonalAmountPhaseOutEnd, Is.EqualTo( 246_752m ) );
 			Assert.That( policy.ProvincialBasicPersonalAmount, Is.EqualTo( 12_399m ) );
 			Assert.That( policy.AgeAmountBase, Is.EqualTo( 8_790m ) );
 			Assert.That( policy.AgeAmountIncomeThreshold, Is.EqualTo( 44_325m ) );

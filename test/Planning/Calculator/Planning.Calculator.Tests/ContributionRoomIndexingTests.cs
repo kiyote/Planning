@@ -166,8 +166,8 @@ public sealed class ContributionRoomIndexingTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( MemberTodd, new DateOnly( 1975, 6, 1 ), 95, 90, 70, 80m ),
-				new Member( MemberTina, new DateOnly( 1976, 6, 1 ), 95, 90, 70, 50m )
+				new Member( MemberTodd, new DateOnly( 1975, 6, 1 ), 95, 90, 70, 80m, 65 ),
+				new Member( MemberTina, new DateOnly( 1976, 6, 1 ), 95, 90, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTodd, 100_000m, 50_000m, 10_000m, annualContributionIncreasePercent: annualContributionIncreasePercent ),

@@ -33,6 +33,9 @@ public class RrifMinimumTests {
 			"ProvincialBrackets": [ { "LowerBound": 0, "Rate": 5.05 } ],
 			"AllowPensionSplitting": false,
 			"BasicPersonalAmount": 15705,
+			"BasicPersonalAmountMinimum": 14156,
+			"BasicPersonalAmountPhaseOutStart": 173205,
+			"BasicPersonalAmountPhaseOutEnd": 246752,
 			"ProvincialBasicPersonalAmount": 12399,
 			"AgeAmountBase": 8790,
 			"AgeAmountIncomeThreshold": 44325,
@@ -204,8 +207,8 @@ public class RrifMinimumTests {
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
 				// Already past the mandatory conversion age at the plan start.
-				new Member( "Todd", new DateOnly( 1950, 1, 1 ), 85, 60, 70, 90m ),
-				new Member( "Tina", new DateOnly( 1951, 1, 1 ), 80, 60, 65, 50m )
+				new Member( "Todd", new DateOnly( 1950, 1, 1 ), 85, 60, 70, 90m, 65 ),
+				new Member( "Tina", new DateOnly( 1951, 1, 1 ), 80, 60, 65, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 500_000m, 0m, 0m ),

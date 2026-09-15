@@ -126,8 +126,8 @@ public sealed class RegisteredPlanRuleTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( MemberTodd, new DateOnly( 1960, 1, 1 ), 70, 60, 70, 80m ),
-				new Member( MemberTina, new DateOnly( 1961, 1, 1 ), 66, 60, 70, 50m )
+				new Member( MemberTodd, new DateOnly( 1960, 1, 1 ), 70, 60, 70, 80m, 65 ),
+				new Member( MemberTina, new DateOnly( 1961, 1, 1 ), 66, 60, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTodd, 0m, 0m, 0m ),
@@ -213,8 +213,8 @@ public sealed class RegisteredPlanRuleTests {
 			members: [
 				// Contributions only compile while the contributor is still working, so both
 				// members are kept in employment for the whole window under test.
-				new Member( MemberTodd, toddBirthDate, 95, 90, 70, 80m ),
-				new Member( MemberTina, new DateOnly( 1975, 6, 1 ), 95, 90, 70, 50m )
+				new Member( MemberTodd, toddBirthDate, 95, 90, 70, 80m, 65 ),
+				new Member( MemberTina, new DateOnly( 1975, 6, 1 ), 95, 90, 70, 50m, 65 )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, MemberTodd, 100_000m, 50_000m, 10_000m ),

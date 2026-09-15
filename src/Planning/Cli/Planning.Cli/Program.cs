@@ -38,6 +38,12 @@ internal static class Program {
 			a.Equals( "--sweepretirementincome", StringComparison.OrdinalIgnoreCase ) );
 		bool sweepAges = args.Any( a =>
 			a.Equals( "--sweepages", StringComparison.OrdinalIgnoreCase ) );
+		bool sweepCpp = args.Any( a =>
+			a.Equals( "--sweepcpp", StringComparison.OrdinalIgnoreCase ) );
+		bool sweepOas = args.Any( a =>
+			a.Equals( "--sweepoas", StringComparison.OrdinalIgnoreCase ) );
+		bool sweepBurndown = args.Any( a =>
+			a.Equals( "--sweepburndown", StringComparison.OrdinalIgnoreCase ) );
 
 
 		if( !TryParseDecimalList( args, "--returns", out decimal[]? sweepReturnRates ) ) {
@@ -66,6 +72,9 @@ internal static class Program {
 			&& !a.Equals( "--sweepannualpercents", StringComparison.OrdinalIgnoreCase )
 			&& !a.Equals( "--sweepretirementincome", StringComparison.OrdinalIgnoreCase )
 			&& !a.Equals( "--sweepages", StringComparison.OrdinalIgnoreCase )
+			&& !a.Equals( "--sweepcpp", StringComparison.OrdinalIgnoreCase )
+			&& !a.Equals( "--sweepoas", StringComparison.OrdinalIgnoreCase )
+			&& !a.Equals( "--sweepburndown", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--returns=", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--tolerance=", StringComparison.OrdinalIgnoreCase )
 			&& !a.StartsWith( "--slowgo-ratio=", StringComparison.OrdinalIgnoreCase )
@@ -73,7 +82,10 @@ internal static class Program {
 
 		int sweepCount = ( sweepAnnualPercents ? 1 : 0 )
 			+ ( sweepRetirementIncome ? 1 : 0 )
-			+ ( sweepAges ? 1 : 0 );
+			+ ( sweepAges ? 1 : 0 )
+			+ ( sweepCpp ? 1 : 0 )
+			+ ( sweepOas ? 1 : 0 )
+			+ ( sweepBurndown ? 1 : 0 );
 
 		if( positional.Length != 1 || unknown.Length != 0 || sweepCount > 1 ) {
 			if( unknown.Length != 0 ) {
@@ -81,13 +93,16 @@ internal static class Program {
 				Console.Error.WriteLine();
 			}
 			if( sweepCount > 1 ) {
-				Console.Error.WriteLine( "Choose only one of --sweepannualpercents, --sweepretirementincome or --sweepages." );
+				Console.Error.WriteLine( "Choose only one of --sweepannualpercents, --sweepretirementincome, --sweepages, --sweepcpp, --sweepoas or --sweepburndown." );
 				Console.Error.WriteLine();
 			}
 			Console.Error.WriteLine( "Usage: planning <input-plan.json> [--no-graph]" );
 			Console.Error.WriteLine( "       planning <input-plan.json> --sweepannualpercents [--returns=<list>] [--tolerance=<pct>]" );
 			Console.Error.WriteLine( "       planning <input-plan.json> --sweepretirementincome [--slowgo-ratio=<f>] [--nogo-ratio=<f>] [--tolerance=<amt>]" );
 			Console.Error.WriteLine( "       planning <input-plan.json> --sweepages" );
+			Console.Error.WriteLine( "       planning <input-plan.json> --sweepcpp" );
+			Console.Error.WriteLine( "       planning <input-plan.json> --sweepoas" );
+			Console.Error.WriteLine( "       planning <input-plan.json> --sweepburndown" );
 			Console.Error.WriteLine();
 			Console.Error.WriteLine( "  <input-plan.json>       Path to a JSON file describing a Plan." );
 			Console.Error.WriteLine( "  --no-graph              Skip writing the plan graph." );
@@ -98,6 +113,14 @@ internal static class Program {
 			Console.Error.WriteLine( "  --sweepages             Report the earliest solvent retirement age, holding the" );
 			Console.Error.WriteLine( "                          plan's rates and income fixed. Members that both declare" );
 			Console.Error.WriteLine( "                          a retirement age move in lockstep." );
+			Console.Error.WriteLine( "  --sweepcpp              Report the CPP start age(s) that maximize net estate," );
+			Console.Error.WriteLine( "                          holding every other variable fixed. Each member's CPP" );
+			Console.Error.WriteLine( "                          start age is searched independently." );
+			Console.Error.WriteLine( "  --sweepoas              Report the OAS start age(s) (65-70) that maximize net" );
+			Console.Error.WriteLine( "                          estate, holding every other variable fixed. Each" );
+			Console.Error.WriteLine( "                          member's OAS start age is searched independently." );
+			Console.Error.WriteLine( "  --sweepburndown         Report the BurndownYears (0-20) that maximizes net estate," );
+			Console.Error.WriteLine( "                          holding every other variable fixed." );
 			Console.Error.WriteLine( "  --returns=<list>        Comma-separated returns to measure the inflation ceiling" );
 			Console.Error.WriteLine( "                          against. Defaults to 5.5,6.0." );
 			Console.Error.WriteLine( "  --slowgo-ratio=<f>      SlowGo as a fraction of GoGo. Defaults to 0.80." );
@@ -135,7 +158,7 @@ internal static class Program {
 			return 1;
 		}
 
-		if( sweepAnnualPercents || sweepRetirementIncome || sweepAges ) {
+		if( sweepAnnualPercents || sweepRetirementIncome || sweepAges || sweepCpp || sweepOas || sweepBurndown ) {
 			try {
 				if( sweepAnnualPercents ) {
 					SolvencySweep.RunAnnualPercents(
@@ -145,6 +168,12 @@ internal static class Program {
 						Console.Out );
 				} else if( sweepAges ) {
 					SolvencySweep.RunRetirementAges( plan, Console.Out );
+				} else if( sweepCpp ) {
+					SolvencySweep.RunSweepCpp( plan, Console.Out );
+				} else if( sweepOas ) {
+					SolvencySweep.RunSweepOAS( plan, Console.Out );
+				} else if( sweepBurndown ) {
+					SolvencySweep.RunSweepBurndown( plan, Console.Out );
 				} else {
 					SolvencySweep.RunRetirementIncome(
 						plan,

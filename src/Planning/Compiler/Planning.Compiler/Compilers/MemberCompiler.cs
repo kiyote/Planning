@@ -24,6 +24,18 @@ internal sealed class MemberCompiler {
 	/// </summary>
 	private const decimal CPPDeferralIncreasePercentPerMonth = 0.7m;
 
+	/// <summary>
+	/// The age at which OAS is paid at its unadjusted rate. Unlike CPP, OAS has no early-start
+	/// option, so deferring past this age only ever increases the amount.
+	/// </summary>
+	private const int OASStandardStartAge = 65;
+
+	/// <summary>
+	/// The permanent increase, per month, for each month OAS is deferred past
+	/// <see cref="OASStandardStartAge"/>. Deferring to 70 therefore pays 136% of the age-65 amount.
+	/// </summary>
+	private const decimal OASDeferralIncreasePercentPerMonth = 0.6m;
+
 	public IReadOnlyList<CompiledMember> Compile(
 		Plan plan
 	) {
@@ -52,8 +64,9 @@ internal sealed class MemberCompiler {
 					DeathDate: member.BirthDate.AddYears( member.TargetAgeInYears ).EndOfMonth(),
 					RetirementDate: retirementStart,
 					CPPStartDate: member.BirthDate.AddYears( member.CPPStartInYears ).StartOfNextMonth(),
-					OASStartDate: member.BirthDate.AddYears( 65 ).StartOfNextMonth(),
-					CPPPercent: AdjustCPPForStartAge( member.CPPPercent, member.CPPStartInYears )
+					OASStartDate: member.BirthDate.AddYears( member.OASStartInYears ).StartOfNextMonth(),
+					CPPPercent: AdjustCPPForStartAge( member.CPPPercent, member.CPPStartInYears ),
+					OASMultiplier: AdjustOASForStartAge( member.OASStartInYears )
 				)
 			);
 		}
@@ -79,5 +92,19 @@ internal sealed class MemberCompiler {
 			: 1m + ( monthsFromStandard * CPPDeferralIncreasePercentPerMonth / 100m );
 
 		return cppPercent * factor;
+	}
+
+	/// <summary>
+	/// Computes the permanent OAS deferral multiplier for a member's chosen start age. There is
+	/// no early-start option for OAS, so <paramref name="oasStartInYears"/> is expected to be at
+	/// or after <see cref="OASStandardStartAge"/>; deferring past it increases the multiplier
+	/// above 1.0.
+	/// </summary>
+	private static decimal AdjustOASForStartAge(
+		int oasStartInYears
+	) {
+		int monthsFromStandard = ( oasStartInYears - OASStandardStartAge ) * 12;
+
+		return 1m + ( monthsFromStandard * OASDeferralIncreasePercentPerMonth / 100m );
 	}
 }

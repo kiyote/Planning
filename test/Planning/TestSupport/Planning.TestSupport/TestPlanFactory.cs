@@ -65,6 +65,9 @@ public static class TestPlanFactory {
 			],
 			AllowPensionSplitting: false,
 			BasicPersonalAmount: 15_705m,
+			BasicPersonalAmountMinimum: 14_156m,
+			BasicPersonalAmountPhaseOutStart: 173_205m,
+			BasicPersonalAmountPhaseOutEnd: 246_752m,
 			ProvincialBasicPersonalAmount: 12_399m,
 			AgeAmountBase: 8_790m,
 			AgeAmountIncomeThreshold: 44_325m,
@@ -86,7 +89,8 @@ public static class TestPlanFactory {
 				TargetAgeInYears: 85,
 				RetirementAgeInYears: 60,
 				CPPStartInYears: 70,
-				CPPPercent: 80m
+				CPPPercent: 80m,
+				OASStartInYears: 65
 			),
 			new Member(
 				Name: "Tina",
@@ -94,7 +98,8 @@ public static class TestPlanFactory {
 				TargetAgeInYears: 95,
 				RetirementAgeInYears: 57,
 				CPPStartInYears: 70,
-				CPPPercent: 50m
+				CPPPercent: 50m,
+				OASStartInYears: 65
 			)
 		];
 	}
