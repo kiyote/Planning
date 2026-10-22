@@ -386,7 +386,8 @@ public class PlanCalculator {
 	/// <summary>
 	/// Collects every graphable timeline event for the plan: each member's lifecycle events
 	/// (retirement, CPP start, OAS start, inheritance receipt, and death) and the
-	/// retirement-income phase transitions (Go-Go, Slow-Go, and No-Go), ordered by date.
+	/// retirement-income phase transitions (Go-Go, Slow-Go, and No-Go), plus expenditures,
+	/// ordered by date.
 	/// </summary>
 	private static IReadOnlyList<PlanEvent> BuildEvents(
 		Plan plan,
@@ -414,6 +415,9 @@ public class PlanCalculator {
 		events.Add( new PlanEvent( schedule.GoGoStart, "Go-Go", PlanEventKind.RetirementPhase ) );
 		events.Add( new PlanEvent( schedule.SlowGoStart, "Slow-Go", PlanEventKind.RetirementPhase ) );
 		events.Add( new PlanEvent( schedule.NoGoStart, "No-Go", PlanEventKind.RetirementPhase ) );
+
+		events.AddRange( compiledPlan.Expenditures.Select( e =>
+			new PlanEvent( e.Period.PeriodDate, e.Name, PlanEventKind.Expenditure ) ) );
 
 		return [.. events.OrderBy( e => e.Date )];
 	}

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 using Planning.Model.Plans;
@@ -91,6 +92,10 @@ public class PlanDeserializationTests {
 		},
 		"Inheritance": [
 			{ "Member": "Todd", "Amount": 50000, "AgeReceived": 65 }
+		],
+		"Expenditures": [
+			{ "Amount": 12345, "Indexed": true, "Repeats": true, "IntervalYears": 7, "StartYear": 2020, "Name": "Vehicle" },
+			{ "Amount": 6789, "Indexed": false, "Repeats": false, "IntervalYears": null, "StartYear": 2035, "Name": "Roof" }
 		]
 	}
 	""";
@@ -289,6 +294,56 @@ public class PlanDeserializationTests {
 			Assert.That( inheritances[0].Amount, Is.EqualTo( 50_000m ) );
 			Assert.That( inheritances[0].AgeReceived, Is.EqualTo( 65 ) );
 		}
+	}
+
+	[Test]
+	public void Deserialize_FullPlan_BindsEveryExpenditureField() {
+		Expenditure[] expenditures = [.. Deserialize().Expenditures];
+
+		Assert.That( expenditures, Is.EqualTo( new[] {
+			new Expenditure( 12345m, Indexed: true, Repeats: true, IntervalYears: 7, StartYear: 2020, Name: "Vehicle" ),
+			new Expenditure( 6789m, Indexed: false, Repeats: false, IntervalYears: null, StartYear: 2035, Name: "Roof" )
+		} ) );
+	}
+
+	[Test]
+	public void Deserialize_PlanMissingExpenditures_Throws() {
+		JsonObject json = JsonNode.Parse( PlanJson )!.AsObject();
+		json.Remove( "Expenditures" );
+
+		Assert.That(
+			() => JsonSerializer.Deserialize<Plan>( json.ToJsonString(), SerializerOptions ),
+			Throws.InstanceOf<JsonException>() );
+	}
+
+	[Test]
+	public void Deserialize_EmptyExpenditures_IsValid() {
+		JsonObject json = JsonNode.Parse( PlanJson )!.AsObject();
+		json["Expenditures"] = new JsonArray();
+
+		Plan plan = JsonSerializer.Deserialize<Plan>( json.ToJsonString(), SerializerOptions )!;
+
+		using( Assert.EnterMultipleScope() ) {
+			Assert.That( plan.Expenditures, Is.Empty );
+			Assert.That( Plan.None.Expenditures, Is.Empty );
+		}
+	}
+
+	[TestCase( "Amount" )]
+	[TestCase( "Indexed" )]
+	[TestCase( "Repeats" )]
+	[TestCase( "IntervalYears" )]
+	[TestCase( "StartYear" )]
+	[TestCase( "Name" )]
+	public void Deserialize_ExpenditureMissingARequiredField_Throws(
+		string field
+	) {
+		JsonObject json = JsonNode.Parse( PlanJson )!.AsObject();
+		json["Expenditures"]![0]!.AsObject().Remove( field );
+
+		Assert.That(
+			() => JsonSerializer.Deserialize<Plan>( json.ToJsonString(), SerializerOptions ),
+			Throws.InstanceOf<JsonException>() );
 	}
 
 	[Test]

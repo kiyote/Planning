@@ -18,7 +18,8 @@ public static class TestPlanFactory {
 		IEnumerable<Contribution>? contributions = null,
 		TaxPolicy? taxPolicy = null,
 		Burndown? burndown = null,
-		IEnumerable<Inheritance>? inheritance = null
+		IEnumerable<Inheritance>? inheritance = null,
+		IEnumerable<Expenditure>? expenditures = null
 	) {
 		return new Plan(
 			StartDate: startDate ?? new DateOnly( 2026, 7, 1 ),
@@ -40,7 +41,8 @@ public static class TestPlanFactory {
 			Contributions: contributions ?? CreateContributions(),
 			TaxPolicy: taxPolicy ?? CreateTaxPolicy(),
 			Burndown: burndown ?? Burndown.None,
-			Inheritance: inheritance ?? []
+			Inheritance: inheritance ?? [],
+			Expenditures: expenditures ?? []
 		);
 	}
 

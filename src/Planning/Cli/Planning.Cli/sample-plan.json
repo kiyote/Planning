@@ -1,14 +1,14 @@
 {
-  "StartDate": "2026-01-01",
+  "StartDate": "2026-11-01",
   "Members": [
-    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 66, "CPPPercent": 90, "OASStartInYears": 65 },
-    { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": null, "CPPStartInYears": 63, "CPPPercent": 50, "OASStartInYears": 65 }
+    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 80, "OASStartInYears": 65 },
+    { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": null, "CPPStartInYears": 65, "CPPPercent": 50, "OASStartInYears": 65 }
   ],
   "CPPMaximum": 1507.65,
   "CPPCombinedSurvivorMaximum": 1531.56,
   "OASMaximum": 743.05,
   "Assets": [
-    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 550000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": 2.0 },
+    { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Todd", "Amount": 650000, "ContributionBacklog": 219081, "AnnualContributionLimit": 22000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": 2.0 },
     { "Name": "TFSA", "TaxStatus": "TaxExempt", "Member": "Todd", "Amount": 0, "ContributionBacklog": 109000, "AnnualContributionLimit": 7000, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": null },
     { "Name": "Non-Reg", "TaxStatus": "CapitalGains", "Member": "Todd", "Amount": 0, "ContributionBacklog": 0, "AnnualContributionLimit": 0, "HasUnlimitedContributionRoom": true, "CostBase": 0, "AnnualContributionIncreasePercent": null },
     { "Name": "RRSP", "TaxStatus": "Taxable", "Member": "Tina", "Amount": 30000, "ContributionBacklog": 147614, "AnnualContributionLimit": 10800, "HasUnlimitedContributionRoom": false, "CostBase": 0, "AnnualContributionIncreasePercent": null },
@@ -22,18 +22,22 @@
     { "Member": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
-    "GoGo": 7000,
-    "SlowGo": 5500,
+    "GoGo": 5800,
+    "SlowGo": 4600,
+    "NoGo": 5200,
     "SlowGoYears": 10,
-    "NoGo": 6000,
     "NoGoYears": 10
   },
   "Contributions": [
     { "Member": "Todd", "Amount": 3500, "StartYear": 2026, "Indexed": true, "Spousal": "Todd", "AnnualIncreasePercent": 7.0 },
-    { "Member": "Tina", "Amount": 2000, "StartYear": 2028, "Indexed": false, "Spousal": "Todd", "AnnualIncreasePercent": null }
+    { "Member": "Tina", "Amount": 0, "StartYear": 2028, "Indexed": false, "Spousal": "Todd", "AnnualIncreasePercent": null }
   ],
   "Inheritance": [
-    { "Member": "Todd", "Amount": 0, "AgeReceived": 65 }
+    { "Member": "Todd", "Amount": 0, "AgeReceived": 63 }
+  ],
+  "Expenditures": [
+    { "Amount": 50000, "Indexed": true, "Repeats": true, "IntervalYears": 15, "StartYear": 2020, "Name": "Vehicle" },
+    { "Amount": 25000, "Indexed": true, "Repeats": true, "IntervalYears": 25, "StartYear": 2020, "Name": "Roof" }
   ],
   "Burndown": {
     "BurndownYears": 0

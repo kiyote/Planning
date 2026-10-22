@@ -14,7 +14,8 @@ public record Plan(
 	IEnumerable<Contribution> Contributions,
 	TaxPolicy TaxPolicy,
 	Burndown Burndown,
-	IEnumerable<Inheritance> Inheritance
+	IEnumerable<Inheritance> Inheritance,
+	IEnumerable<Expenditure> Expenditures
 ) {
 	public static readonly Plan None = new Plan(
 		DateOnly.MinValue,
@@ -30,6 +31,7 @@ public record Plan(
 		[],
 		TaxPolicy.None,
 		Burndown.None,
+		[],
 		[]
 	);
 }

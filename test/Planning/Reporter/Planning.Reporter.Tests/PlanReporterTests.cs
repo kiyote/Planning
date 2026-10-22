@@ -11,6 +11,44 @@ namespace Planning.Reporter.Tests;
 public class PlanReporterTests {
 
 	[Test]
+	[TestCase( false )]
+	[TestCase( true )]
+	[SetCulture( "en-US" )]
+	public void WriteToCsv_Expense_IsIncludedInExistingRetirementIncomeColumnWithoutChangingLayout(
+		bool calculated
+	) {
+		Plan baselinePlan = CreateReportPlan();
+		Plan plan = baselinePlan with { Expenditures = [
+			new Expenditure( 1_000m, Indexed: false, Repeats: false, IntervalYears: null, StartYear: 2034, Name: "Roof" )
+		] };
+		CompiledPlan baseline = CompilePlan( baselinePlan );
+		CompiledPlan compiled = CompilePlan( plan );
+		using StringWriter baselineWriter = new StringWriter();
+		using StringWriter expenseWriter = new StringWriter();
+		PlanReporter reporter = new PlanReporter();
+		if( calculated ) {
+			reporter.WriteToCsv( baselineWriter, baseline, CalculatePlan( baselinePlan, baseline ) );
+			reporter.WriteToCsv( expenseWriter, compiled, CalculatePlan( plan, compiled ) );
+		} else {
+			reporter.WriteToCsv( baselineWriter, baseline );
+			reporter.WriteToCsv( expenseWriter, compiled );
+		}
+
+		string[] baselineLines = baselineWriter.ToString().Split( Environment.NewLine );
+		string[] expenseLines = expenseWriter.ToString().Split( Environment.NewLine );
+		int incomeColumn = Array.IndexOf( expenseLines[0].Split( ',' ), "Retirement Income" );
+		string[] baselineJanuary = baselineLines.Single( l => l.StartsWith( "Jan 2034," ) ).Split( ',' );
+		string[] expenseJanuary = expenseLines.Single( l => l.StartsWith( "Jan 2034," ) ).Split( ',' );
+
+		using( Assert.EnterMultipleScope() ) {
+			Assert.That( expenseLines[0], Is.EqualTo( baselineLines[0] ) );
+			Assert.That( expenseJanuary, Has.Length.EqualTo( baselineJanuary.Length ) );
+			Assert.That( decimal.Parse( expenseJanuary[incomeColumn] ) - decimal.Parse( baselineJanuary[incomeColumn] ),
+				Is.EqualTo( 1_000m ) );
+		}
+	}
+
+	[Test]
 	[SetCulture( "en-US" )]
 	public void WriteCompiledToCSV_WritesExpectedContent() {
 		Plan plan = CreateReportPlan();

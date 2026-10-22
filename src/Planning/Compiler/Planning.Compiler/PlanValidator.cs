@@ -24,6 +24,7 @@ public sealed class PlanValidator {
 		ValidateLifeInsurance( plan, members, result );
 		ValidateContributions( plan, members, result );
 		ValidateInheritance( plan, members, result );
+		ValidateExpenditures( plan, result );
 		ValidateBurndown( plan, result );
 		ValidateTaxPolicy( plan, result );
 
@@ -298,6 +299,39 @@ public sealed class PlanValidator {
 				&& !memberNames.Contains( contribution.Spousal )
 			) {
 				result.AddError( $"Contribution for '{contribution.Member}' references unknown spousal contributor '{contribution.Spousal}'." );
+			}
+		}
+	}
+
+	private static void ValidateExpenditures(
+		Plan plan,
+		PlanValidationResult result
+	) {
+		if( plan.Expenditures is null ) {
+			result.AddError( "The plan must specify Expenditures; use an empty array when there are none." );
+			return;
+		}
+
+		foreach( Expenditure? expenditure in plan.Expenditures ) {
+			if( expenditure is null ) {
+				result.AddError( "An expenditure must not be null." );
+				continue;
+			}
+
+			if( string.IsNullOrWhiteSpace( expenditure.Name ) ) {
+				result.AddError( "An expenditure has an empty name." );
+			}
+
+			if( expenditure.Amount < 0m ) {
+				result.AddError( $"Expenditure '{expenditure.Name}' amount ({expenditure.Amount}) must be nonnegative." );
+			}
+
+			if( expenditure.StartYear < DateOnly.MinValue.Year || expenditure.StartYear > DateOnly.MaxValue.Year ) {
+				result.AddError( $"Expenditure '{expenditure.Name}' start year ({expenditure.StartYear}) must be a valid calendar year (1-9999)." );
+			}
+
+			if( expenditure.Repeats && ( !expenditure.IntervalYears.HasValue || expenditure.IntervalYears.Value <= 0 ) ) {
+				result.AddError( $"Repeating expenditure '{expenditure.Name}' must specify a positive IntervalYears." );
 			}
 		}
 	}

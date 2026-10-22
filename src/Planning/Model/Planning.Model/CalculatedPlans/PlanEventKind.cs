@@ -14,5 +14,10 @@ public enum PlanEventKind {
 	/// <summary>
 	/// A retirement-income lifestyle phase transition (Go-Go, Slow-Go, or No-Go).
 	/// </summary>
-	RetirementPhase
+	RetirementPhase,
+
+	/// <summary>
+	/// A one-off or repeating household expenditure.
+	/// </summary>
+	Expenditure
 }

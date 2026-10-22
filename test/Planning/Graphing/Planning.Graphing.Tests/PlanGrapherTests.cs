@@ -39,6 +39,62 @@ public class PlanGrapherTests {
 	}
 
 	[Test]
+	public void AddEventMarkers_Expenditures_AreRedDottedNamedAndCombinedByYear() {
+		ChartFont.EnsureRegistered();
+		using ScottPlot.Plot plot = new ScottPlot.Plot();
+
+		PlanGrapher.AddEventMarkers( plot, firstYear: 2026, lastYear: 2050, labelY: 10_000, events: [
+			new PlanEvent( new DateOnly( 2035, 1, 1 ), "Vehicle", PlanEventKind.Expenditure ),
+			new PlanEvent( new DateOnly( 2035, 1, 1 ), "Roof", PlanEventKind.Expenditure ),
+			new PlanEvent( new DateOnly( 2050, 1, 1 ), "Vehicle", PlanEventKind.Expenditure ),
+			new PlanEvent( new DateOnly( 2020, 1, 1 ), "Already paid", PlanEventKind.Expenditure ),
+			new PlanEvent( new DateOnly( 2051, 1, 1 ), "Outside plan", PlanEventKind.Expenditure )
+		] );
+
+		ScottPlot.Plottables.VerticalLine[] lines = [.. plot.GetPlottables<ScottPlot.Plottables.VerticalLine>()];
+		ScottPlot.Plottables.Text[] labels = [.. plot.GetPlottables<ScottPlot.Plottables.Text>()];
+
+		using( Assert.EnterMultipleScope() ) {
+			Assert.That( lines, Has.Length.EqualTo( 2 ) );
+			Assert.That( lines.Select( l => l.X ), Is.EqualTo( new[] { 9.0, 24.0 } ) );
+			Assert.That( lines.Select( l => l.Color ), Is.All.EqualTo( ScottPlot.Colors.Red ) );
+			Assert.That( lines.Select( l => l.LinePattern ), Is.All.EqualTo( ScottPlot.LinePattern.Dotted ) );
+			Assert.That( labels.Select( t => t.LabelText ), Is.EqualTo( new[] { "Vehicle, Roof", "Vehicle" } ) );
+			Assert.That( labels.Select( t => t.LabelFontColor ), Is.All.EqualTo( ScottPlot.Colors.Red ) );
+			Assert.That( labels.Select( t => t.LabelRotation ), Is.All.EqualTo( -90 ) );
+		}
+	}
+
+	[Test]
+	public void AddEventMarkers_ExistingEventStyles_AreUnchangedAlongsideExpenses() {
+		ChartFont.EnsureRegistered();
+		using ScottPlot.Plot plot = new ScottPlot.Plot();
+
+		PlanGrapher.AddEventMarkers( plot, firstYear: 2026, lastYear: 2050, labelY: 10_000, events: [
+			new PlanEvent( new DateOnly( 2035, 1, 1 ), "Todd retires", PlanEventKind.Lifecycle ),
+			new PlanEvent( new DateOnly( 2035, 1, 1 ), "Tina retires", PlanEventKind.Lifecycle ),
+			new PlanEvent( new DateOnly( 2035, 1, 1 ), "Go-Go", PlanEventKind.RetirementPhase ),
+			new PlanEvent( new DateOnly( 2035, 1, 1 ), "Vehicle", PlanEventKind.Expenditure )
+		] );
+
+		ScottPlot.Plottables.VerticalLine[] lines = [.. plot.GetPlottables<ScottPlot.Plottables.VerticalLine>()];
+		ScottPlot.Plottables.Text[] labels = [.. plot.GetPlottables<ScottPlot.Plottables.Text>()];
+
+		using( Assert.EnterMultipleScope() ) {
+			Assert.That( lines.Select( l => l.Color ), Is.EqualTo( new[] {
+				ScottPlot.Colors.Green, ScottPlot.Colors.Green, ScottPlot.Colors.Red
+			} ) );
+			Assert.That( lines.Select( l => l.LinePattern ), Is.EqualTo( new[] {
+				ScottPlot.LinePattern.Dashed, ScottPlot.LinePattern.Dotted, ScottPlot.LinePattern.Dotted
+			} ) );
+			Assert.That( labels.Select( t => t.LabelText ), Is.EqualTo( new[] { "Todd retires, Tina retires", "Go-Go", "Vehicle" } ) );
+			Assert.That( labels[0].LabelBackgroundColor, Is.EqualTo( ScottPlot.Colors.Green ) );
+			Assert.That( labels[0].LabelFontColor, Is.EqualTo( ScottPlot.Colors.White ) );
+			Assert.That( labels[1].LabelFontColor, Is.EqualTo( ScottPlot.Colors.Green ) );
+		}
+	}
+
+	[Test]
 	public void SaveTotalAssetsByYear_NullPlan_Throws() {
 		Assert.That(
 			() => new PlanGrapher().SaveTotalAssetsByYear( null!, "graph.png" ),

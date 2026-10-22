@@ -16,13 +16,14 @@ public record CompiledPlan(
 
 	/// <summary>
 	/// The after-tax income the plan is trying to deliver in each period, inflated forward from
-	/// the go-go/slow-go/no-go amounts. Any part of this not met by <see cref="ScheduledIncome"/>
-	/// has to be funded by drawing on assets.
+	/// the go-go/slow-go/no-go amounts, plus any expenditures due that period. Any part of this
+	/// not met by <see cref="ScheduledIncome"/> has to be funded by drawing on assets.
 	/// </summary>
 	IDictionary<CompiledPeriod, decimal> DesiredIncome,
 
 	IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> Contribution,
 	TaxPolicy TaxPolicy,
 	RetirementPhaseSchedule RetirementPhaseSchedule,
-	CompiledBurndown Burndown
+	CompiledBurndown Burndown,
+	IReadOnlyList<CompiledExpenditure> Expenditures
 );

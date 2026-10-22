@@ -137,7 +137,14 @@ public class PlanGrapher {
 		withdrawalLine.Axes.YAxis = taxAxis;
 
 		// Annotate the timeline with labelled vertical lines for the plan's events.
-		AddEventMarkers( plot, yearlyTotals, calculatedPlan.Events );
+		if( yearlyTotals.Count > 0 ) {
+			AddEventMarkers(
+				plot,
+				yearlyTotals[0].Year,
+				yearlyTotals[^1].Year,
+				yearlyTotals.Max( t => t.TotalAssets ),
+				calculatedPlan.Events );
+		}
 
 		ScottPlot.Tick[] ticks = [.. yearlyTotals.Select( ( total, index ) =>
 			new ScottPlot.Tick( index, total.Year.ToString() ) )];
@@ -184,24 +191,16 @@ public class PlanGrapher {
 	/// Adds labelled vertical lines for the plan's timeline events. Lifecycle events (retirement,
 	/// CPP start, OAS start, and death) are drawn as dashed lines with boxed labels, combining
 	/// events that fall within the same calendar month. Retirement-income phase transitions
-	/// (Go-Go, Slow-Go, No-Go) are drawn as dotted lines with green text labels.
+	/// (Go-Go, Slow-Go, No-Go) are drawn as dotted lines with green text labels. Expenditures
+	/// are drawn as dotted lines with red text labels, combined by year.
 	/// </summary>
-	private static void AddEventMarkers(
+	internal static void AddEventMarkers(
 		ScottPlot.Plot plot,
-		IReadOnlyList<YearlyTotal> yearlyTotals,
+		int firstYear,
+		int lastYear,
+		double labelY,
 		IReadOnlyList<PlanEvent> events
 	) {
-		if( yearlyTotals.Count == 0 ) {
-			return;
-		}
-
-		int firstYear = yearlyTotals[0].Year;
-		int lastYear = yearlyTotals[^1].Year;
-
-		// Anchor the rotated labels near the top of the plot area so they run down alongside
-		// each line rather than overlapping the title.
-		double labelY = yearlyTotals.Max( t => t.TotalAssets );
-
 		ScottPlot.Color eventColor = ScottPlot.Colors.Green;
 
 		IEnumerable<PlanEvent> visibleEvents = events
@@ -222,7 +221,15 @@ public class PlanGrapher {
 
 		// Retirement-income phase transitions: dotted lines with green text labels (no box).
 		foreach( PlanEvent phaseEvent in visibleEvents.Where( e => e.Kind == PlanEventKind.RetirementPhase ) ) {
-			AddPhaseMarker( plot, firstYear, labelY, phaseEvent.Date, phaseEvent.Name, eventColor );
+			AddDottedEventMarker( plot, firstYear, labelY, phaseEvent.Date, phaseEvent.Name, eventColor );
+		}
+
+		foreach( IGrouping<int, PlanEvent> group in visibleEvents
+			.Where( e => e.Kind == PlanEventKind.Expenditure )
+			.GroupBy( e => e.Date.Year )
+		) {
+			string combinedLabel = string.Join( ", ", group.Select( e => e.Name ) );
+			AddDottedEventMarker( plot, firstYear, labelY, group.Min( e => e.Date ), combinedLabel, ScottPlot.Colors.Red );
 		}
 	}
 
@@ -258,11 +265,10 @@ public class PlanGrapher {
 	}
 
 	/// <summary>
-	/// Adds a single labelled dotted vertical line marking a retirement-income phase transition.
-	/// The label is drawn as green text with no background box to distinguish it from the
-	/// boxed lifecycle event markers.
+	/// Adds a single labelled dotted vertical line for a phase transition or expenditure.
+	/// The label uses the event's color with no background box.
 	/// </summary>
-	private static void AddPhaseMarker(
+	private static void AddDottedEventMarker(
 		ScottPlot.Plot plot,
 		int firstYear,
 		double labelY,
@@ -277,7 +283,6 @@ public class PlanGrapher {
 		line.LineWidth = 1;
 		line.LinePattern = ScottPlot.LinePattern.Dotted;
 
-		// Draw the label rotated 90 degrees as green text with no background box.
 		ScottPlot.Plottables.Text text = plot.Add.Text( label, position, labelY );
 		text.LabelFontName = ChartFont.FamilyName;
 		text.LabelFontColor = color;

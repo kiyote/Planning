@@ -21,6 +21,10 @@ public class PlanCompiler {
 		DesiredIncomeCompiler desiredIncomeCompiler = new DesiredIncomeCompiler();
 		RetirementPhaseSchedule retirementPhaseSchedule = desiredIncomeCompiler.CompileSchedule( plan, members, periods );
 		IDictionary<CompiledPeriod, decimal> desiredIncome = desiredIncomeCompiler.Compile( plan, periods, retirementPhaseSchedule );
+		IReadOnlyList<CompiledExpenditure> expenditures = new ExpenditureCompiler().Compile( plan, periods, retirementPhaseSchedule );
+		foreach( CompiledExpenditure expenditure in expenditures ) {
+			desiredIncome[expenditure.Period] += expenditure.Amount;
+		}
 		IDictionary<CompiledPeriod, IEnumerable<CompiledContribution>> contributions = new ContributionCompiler().Compile( plan, members, periods );
 		CompiledBurndown burndown = new BurndownCompiler().Compile( plan, members, assets, periods );
 
@@ -33,7 +37,8 @@ public class PlanCompiler {
 			contributions,
 			plan.TaxPolicy,
 			retirementPhaseSchedule,
-			burndown
+			burndown,
+			expenditures
 		);
 	}
 }

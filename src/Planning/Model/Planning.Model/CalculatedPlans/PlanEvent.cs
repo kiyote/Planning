@@ -2,7 +2,7 @@ namespace Planning.Model.CalculatedPlans;
 
 /// <summary>
 /// A dated, named event that occurs over the timeline of a calculated plan, such as a member
-/// retiring, taking CPP or OAS, dying, or a retirement-income phase transition.
+/// retiring, taking CPP or OAS, dying, a retirement-income phase transition, or an expenditure.
 /// </summary>
 public record PlanEvent(
 	DateOnly Date,
