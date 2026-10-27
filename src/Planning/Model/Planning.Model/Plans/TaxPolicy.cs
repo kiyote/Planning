@@ -9,9 +9,13 @@ namespace Planning.Model.Plans;
 /// <param name="FederalBrackets">Federal progressive tax brackets, ordered ascending by lower bound.</param>
 /// <param name="ProvincialBrackets">Provincial progressive tax brackets, ordered ascending by lower bound.</param>
 /// <param name="AllowPensionSplitting">
-/// When enabled, up to 50% of a member's RRSP withdrawal income may be reallocated to their
-/// spouse before progressive tax is computed, provided both members are age 65 or older at
-/// year end. Only RRSP (Taxable-status) withdrawal income is eligible for splitting.
+/// When enabled for a two-member household with both spouses alive, up to 50% of the higher
+/// earner's RRSP withdrawal income may be reallocated to their spouse, capped at the amount
+/// needed to equalize taxable incomes. The transferring spouse must be at least 65 at year
+/// end; the receiving spouse may be younger. Only RRSP (Taxable-status) withdrawal income is
+/// eligible, under the model's RRIF assumption. The proposed allocation is applied only if it
+/// reduces combined tax, including credits and OAS recovery tax; it is not a full optimization
+/// over all possible split amounts.
 /// </param>
 /// <param name="AgeAmountBase">
 /// The federal Age Amount base credit amount (non-refundable), in nominal start-year dollars.

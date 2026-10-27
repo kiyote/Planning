@@ -22,9 +22,9 @@
     { "Member": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
-    "GoGo": 5800,
-    "SlowGo": 4600,
-    "NoGo": 5200,
+    "GoGo": 6500,
+    "SlowGo": 5400,
+    "NoGo": 6000,
     "SlowGoYears": 10,
     "NoGoYears": 10
   },
@@ -36,15 +36,13 @@
     { "Member": "Todd", "Amount": 0, "AgeReceived": 63 }
   ],
   "Expenditures": [
-    { "Amount": 50000, "Indexed": true, "Repeats": true, "IntervalYears": 15, "StartYear": 2020, "Name": "Vehicle" },
-    { "Amount": 25000, "Indexed": true, "Repeats": true, "IntervalYears": 25, "StartYear": 2020, "Name": "Roof" }
   ],
   "Burndown": {
     "BurndownYears": 0
   },
   "TaxPolicy": {
     "Year": 2026,
-    "AllowPensionSplitting": false,
+    "AllowPensionSplitting": true,
     "BasicPersonalAmount": 16452,
     "BasicPersonalAmountMinimum": 14829,
     "BasicPersonalAmountPhaseOutStart": 181440,

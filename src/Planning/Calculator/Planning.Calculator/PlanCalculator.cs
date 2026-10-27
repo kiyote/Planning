@@ -640,13 +640,15 @@ public class PlanCalculator {
 	/// tax policy allows it, both members are alive, the member giving up income is age 65 or
 	/// older at year end, and they have eligible RRSP income. Up to 50% of the higher earner's
 	/// eligible income is transferred to the lower earner, capped at the amount needed to
-	/// equalize their taxable bases.
+	/// equalize their taxable bases. The transfer is applied only if it reduces combined tax.
 	/// </summary>
 	private Dictionary<MemberId, decimal> ApplyPensionSplitting(
 		CompiledPlan compiledPlan,
 		Dictionary<MemberId, decimal> yearlyTaxableByMember,
 		Dictionary<MemberId, decimal> yearlySplittableByMember,
-		DateOnly periodDate
+		Dictionary<MemberId, decimal> yearlyOasByMember,
+		DateOnly periodDate,
+		decimal inflationIndex
 	) {
 		Dictionary<MemberId, decimal> result = new( yearlyTaxableByMember );
 
@@ -658,7 +660,7 @@ public class PlanCalculator {
 		CompiledMember first = members[0];
 		CompiledMember second = members[1];
 
-		// Both spouses must still be alive for there to be a joint return to split across.
+		// Both spouses must still be alive to split income in this model.
 		if( first.DeathDate <= periodDate || second.DeathDate <= periodDate ) {
 			return result;
 		}
@@ -674,7 +676,7 @@ public class PlanCalculator {
 		// Only the transferring pensioner's age matters: RRIF income qualifies for splitting once
 		// its recipient is 65 at year end. The receiving spouse's age is irrelevant to the CRA,
 		// so a younger spouse can still be allocated a share.
-		if( periodDate < higher.BirthDate.AddYears( 65 ) ) {
+		if( periodDate.Year - higher.BirthDate.Year < 65 ) {
 			return result;
 		}
 
@@ -687,6 +689,19 @@ public class PlanCalculator {
 		// what equalizes the two taxable bases.
 		decimal maxTransfer = Math.Min( higherEligible * 0.5m, ( higherTaxable - lowerTaxable ) / 2m );
 		if( maxTransfer <= 0m ) {
+			return result;
+		}
+
+		decimal CombinedTax( decimal higherIncome, decimal lowerIncome ) {
+			return ComputeMemberTax(
+				compiledPlan, higher, higherIncome, yearlySplittableByMember, yearlyOasByMember, periodDate, inflationIndex ).TotalTax
+				+ ComputeMemberTax(
+					compiledPlan, lower, lowerIncome, yearlySplittableByMember, yearlyOasByMember, periodDate, inflationIndex ).TotalTax;
+		}
+
+		if( CombinedTax( higherTaxable - maxTransfer, lowerTaxable + maxTransfer )
+			>= CombinedTax( higherTaxable, lowerTaxable )
+		) {
 			return result;
 		}
 
@@ -708,9 +723,9 @@ public class PlanCalculator {
 	) {
 		decimal inflationIndex = InflationIndex( annualInflationPercent, periodDate, compiledPlan.TaxPolicy );
 
-		// Reallocate eligible RRSP income between spouses to minimize combined tax.
+		// Reallocate eligible RRSP income between spouses when it reduces combined tax.
 		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
-			compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate );
+			compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, periodDate, inflationIndex );
 
 		List<CalculatedTax> taxes = [];
 		decimal totalFunded = 0m;
@@ -810,9 +825,6 @@ public class PlanCalculator {
 		// Reduce federal tax by the non-refundable federal Age Amount credit for members who
 		// are old enough at year end. The credit can only reduce federal tax to zero.
 		int ageAtYearEnd = periodDate.Year - member.BirthDate.Year;
-		if( periodDate < member.BirthDate.AddYears( ageAtYearEnd ) ) {
-			ageAtYearEnd--;
-		}
 		bool ageAmountEligible = ageAtYearEnd >= compiledPlan.TaxPolicy.AgeAmountEligibilityAge;
 		decimal ageAmountCredit = _taxCalculator.CalculateAgeAmountCredit(
 			compiledPlan.TaxPolicy, taxableAmount, ageAmountEligible, inflationIndex );
@@ -865,10 +877,9 @@ public class PlanCalculator {
 	}
 
 	/// <summary>
-	/// Calculates the per-member tax attributable to the burndown withdrawal as the difference
-	/// between the year's full tax bill including the burndown income and the tax bill that would
-	/// have been owed without it. The full tax calculator is used on both bases so that bracket
-	/// progression, credits, and pension splitting are all reflected in the marginal cost.
+	/// Allocates the household's marginal burndown tax across members whose tax increases. The
+	/// full tax calculator is used with and without the burndown income so that bracket
+	/// progression, credits, and pension splitting are all reflected in the net marginal cost.
 	/// </summary>
 	private Dictionary<MemberId, decimal> CalculateBurndownTax(
 		CompiledPlan compiledPlan,
@@ -895,6 +906,14 @@ public class PlanCalculator {
 			}
 		}
 
+		// A changed splitting decision can lower one spouse's tax. Offset that saving before
+		// retaining the other spouse's increase from the burndown proceeds.
+		decimal marginalTax = Math.Max( 0m, withBurndown.Values.Sum() - withoutBurndown.Values.Sum() );
+		decimal totalIncrease = delta.Values.Sum();
+		if( totalIncrease > marginalTax ) {
+			return delta.ToDictionary( entry => entry.Key, entry => entry.Value * marginalTax / totalIncrease );
+		}
+
 		return delta;
 	}
 
@@ -907,7 +926,7 @@ public class PlanCalculator {
 		decimal inflationIndex
 	) {
 		Dictionary<MemberId, decimal> taxableByMember = ApplyPensionSplitting(
-			compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, periodDate );
+			compiledPlan, yearlyTaxableByMember, yearlySplittableByMember, yearlyOasByMember, periodDate, inflationIndex );
 
 		Dictionary<MemberId, decimal> result = [];
 		foreach( CompiledMember member in compiledPlan.Members ) {

@@ -21,6 +21,25 @@ In the `Planning.Cli` directory, execute `dotnet run sample-plan.json [OPTION]`,
 * `--sweepages` finds the youngest age that the retirement can begin and the plan will remain solvent.
 * `--sweepannualpercents` finds the lowest annual rate of return at the given inflation percentage that the plan will remain solvent.  It will also find the highest inflation percentage at the given annual rate of return that the plan will remain solvent.
 
+## Pension splitting
+
+The sample plan enables `"AllowPensionSplitting": true` in `TaxPolicy`. Set it to `false`
+to compare against a no-splitting projection.
+
+When enabled, the calculator proposes reallocating eligible registered-account withdrawal
+income from the higher-income spouse to the lower-income spouse for tax purposes. It transfers
+at most 50% of the higher earner's eligible withdrawals, and no more than is needed to equalize
+their taxable incomes. The split is applied only if it lowers combined federal and provincial
+tax, including modeled credits, Ontario surtax and Health Premium, and OAS clawback. Equal-cost
+or higher-cost splits leave the original allocation unchanged. This is a guarded equalization
+heuristic, not a search for the optimal split amount.
+
+Splitting requires exactly two members, both still alive at settlement. The transferring
+spouse must turn 65 by December 31 of the tax year; the receiving spouse may be younger.
+The model treats RRSP assets as RRIFs at retirement. Only withdrawals from `Taxable` assets
+are splittable; CPP, OAS, capital gains, and TFSA withdrawals are not. This setting changes
+taxable-income attribution, not account ownership or desired household spending.
+
 ## Expenditures
 
 Every plan must include an `Expenditures` array. Use `"Expenditures": []` when there are none.
