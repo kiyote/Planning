@@ -207,8 +207,8 @@ public class RrifMinimumTests {
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
 				// Already past the mandatory conversion age at the plan start.
-				new Member( "Todd", new DateOnly( 1950, 1, 1 ), 85, 60, 70, 90m, 65 ),
-				new Member( "Tina", new DateOnly( 1951, 1, 1 ), 80, 60, 65, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1950, 1, 1 ), 85, 60, 70, 90m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1951, 1, 1 ), 80, 60, 65, 50m, 65, 0m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 500_000m, 0m, 0m ),

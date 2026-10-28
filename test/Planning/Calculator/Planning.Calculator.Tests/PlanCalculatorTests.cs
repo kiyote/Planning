@@ -275,8 +275,8 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2025, 2, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65 ),
-				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65 )
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65, 0m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -508,8 +508,8 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65, 0m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -552,9 +552,9 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 70, 60, 65, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1960, 1, 1 ), 90, 60, 65, 50m, 65 ),
-				new Member( "Theo", new DateOnly( 1960, 1, 1 ), 90, 60, 65, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1960, 1, 1 ), 70, 60, 65, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1960, 1, 1 ), 90, 60, 65, 50m, 65, 0m, 0m ),
+				new Member( "Theo", new DateOnly( 1960, 1, 1 ), 90, 60, 65, 50m, 65, 0m, 0m )
 			],
 			annualInflationPercent: 0m,
 			assets: [
@@ -579,8 +579,8 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2025, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m, 65 ),
-				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65 )
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m, 65, 100m, 0m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65, 100m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -621,8 +621,8 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2025, 1, 1 ),
 			members: [
-				new Member( MemberTodd, new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m, 65 ),
-				new Member( MemberTina, new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65 )
+				new Member( MemberTodd, new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m, 65, 0m, 0m ),
+				new Member( MemberTina, new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65, 0m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -678,8 +678,8 @@ public sealed class PlanCalculatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2024, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m, 65 ),
-				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65 )
+				new Member( "Todd", new DateOnly( 1955, 1, 1 ), 70, 65, 65, 100m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1955, 1, 1 ), 90, 65, 65, 100m, 65, 0m, 0m )
 			],
 			annualInflationPercent: 0m,
 			annualReturnPercent: 0m,
@@ -820,8 +820,8 @@ public sealed class PlanCalculatorTests {
 			cppMaximum: 0m,
 			cppCombinedSurvivorMaximum: 0m,
 			members: [
-				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
-				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65 )
+				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65, 0m, 0m ),
+				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( AssetNonReg, AssetTaxStatus.CapitalGains, MemberTodd, 100_000m, hasUnlimitedContributionRoom: true ),
@@ -872,8 +872,8 @@ public sealed class PlanCalculatorTests {
 			return TestPlanFactory.Create(
 				startDate: new DateOnly( 2026, 1, 1 ),
 				members: [
-					new Member( "Todd", new DateOnly( 1955, 1, 1 ), 90, 60, 70, 80m, 65 ),
-					new Member( "Tina", new DateOnly( 1956, 1, 1 ), 90, 60, 70, 50m, 65 )
+					new Member( "Todd", new DateOnly( 1955, 1, 1 ), 90, 60, 70, 80m, 65, 0m, 0m ),
+					new Member( "Tina", new DateOnly( 1956, 1, 1 ), 90, 60, 70, 50m, 65, 0m, 0m )
 				],
 				assets: [
 					TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 2_000_000m ),
@@ -1003,8 +1003,8 @@ public sealed class PlanCalculatorTests {
 			cppMaximum: 0m,
 			cppCombinedSurvivorMaximum: 0m,
 			members: [
-				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
-				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65 )
+				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65, 0m, 0m ),
+				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( AssetRRSP, AssetTaxStatus.Taxable, MemberTodd, 500_000m ),
@@ -1036,8 +1036,8 @@ public sealed class PlanCalculatorTests {
 			cppMaximum: 0m,
 			cppCombinedSurvivorMaximum: 0m,
 			members: [
-				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
-				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65 )
+				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65, 0m, 0m ),
+				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65, 0m, 0m )
 			],
 			assets: assets,
 			annualInflationPercent: 0m,

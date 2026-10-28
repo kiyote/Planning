@@ -40,8 +40,8 @@ public sealed class PlanCompilerTests {
 				RetirementDate: new DateOnly( 2034, 1, 1 ),
 				CPPStartDate: new DateOnly( 2044, 1, 1 ),
 					OASStartDate: new DateOnly( 2039, 1, 1 ),
-					// Todd defers CPP to 70, so his 80% age-65 entitlement is uplifted by 42%.
-					CPPPercent: 113.6m,
+					CPPEntitlement: new CompiledCPPEntitlement( 1206.12m, 0m, 0m ),
+					CPPAdjustmentFactor: 1.42m,
 					OASMultiplier: 1.0m
 				) ) );
 			Assert.That( members[1].MemberId.Value, Is.EqualTo( 2 ) );
@@ -387,8 +387,8 @@ public sealed class PlanCompilerTests {
 	public void Compile_MemberWithoutRetirementAge_RetiresWithHousehold() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, 60, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, null, 70, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, 60, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, null, 70, 50m, 65, 0m, 0m )
 			]
 		);
 
@@ -407,8 +407,8 @@ public sealed class PlanCompilerTests {
 	public void Compile_NoMemberSpecifiesRetirementAge_Throws() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, null, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, null, 70, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, null, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, null, 70, 50m, 65, 0m, 0m )
 			]
 		);
 
@@ -454,30 +454,32 @@ public sealed class PlanCompilerTests {
 		// 0.6% per month before 65 and 0.7% per month after.
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, 60, cppStartInYears, 100m, 65 ),
-				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, 57, 65, 100m, 65 )
+				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, 60, cppStartInYears, 100m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, 57, 65, 100m, 65, 0m, 0m )
 			]
 		);
 
 		CompiledMember todd = new PlanCompiler().Compile( plan ).Members.Single( m => m.Name == "Todd" );
 
-		Assert.That( todd.CPPPercent, Is.EqualTo( (decimal)expectedPercent ).Within( 0.0001m ) );
+		Assert.That( todd.CPPAdjustmentFactor * 100m, Is.EqualTo( (decimal)expectedPercent ).Within( 0.0001m ) );
 	}
 
 	[Test]
 	public void Compile_CPPStartAge_ScalesTheConfiguredEntitlementRatherThanReplacingIt() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, 60, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, 57, 60, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1973, 12, 25 ), 85, 60, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1977, 6, 20 ), 95, 57, 60, 50m, 65, 0m, 0m )
 			]
 		);
 
 		CompiledMember[] members = [.. new PlanCompiler().Compile( plan ).Members];
 
 		Assert.Multiple( () => {
-			Assert.That( members.Single( m => m.Name == "Todd" ).CPPPercent, Is.EqualTo( 113.6m ) );
-			Assert.That( members.Single( m => m.Name == "Tina" ).CPPPercent, Is.EqualTo( 32m ) );
+			CompiledMember todd = members.Single( m => m.Name == "Todd" );
+			CompiledMember tina = members.Single( m => m.Name == "Tina" );
+			Assert.That( todd.CPPEntitlement.BaseMonthlyAt65 * todd.CPPAdjustmentFactor, Is.EqualTo( 1712.6904m ) );
+			Assert.That( tina.CPPEntitlement.BaseMonthlyAt65 * tina.CPPAdjustmentFactor, Is.EqualTo( 482.448m ) );
 		} );
 	}
 
@@ -551,8 +553,8 @@ public sealed class PlanCompilerTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2025, 2, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1950, 1, 1 ), 75, 60, 65, 100m, 65 ),
-				new Member( "Tina", new DateOnly( 1950, 1, 1 ), 90, 60, 65, 100m, 65 )
+				new Member( "Todd", new DateOnly( 1950, 1, 1 ), 75, 60, 65, 100m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1950, 1, 1 ), 90, 60, 65, 100m, 65, 0m, 0m )
 			],
 			annualInflationPercent: 0m,
 			assets: [
@@ -574,9 +576,7 @@ public sealed class PlanCompilerTests {
 		CompiledIncome survivorIncome = compiledPlan.ScheduledIncome[afterToddDeath]
 			.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP Survivor" );
 
-		// Full base entitlement leaves no base survivor benefit, but the enhanced
-		// survivor component is not capped.
-		Assert.That( survivorIncome.Amount, Is.EqualTo( 23.91m ).Within( 0.0000001m ) );
+		Assert.That( survivorIncome.Amount, Is.Zero );
 	}
 
 	[Test]

@@ -226,8 +226,8 @@ public sealed class PensionSplittingTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 12, 1 ),
 			members: [
-				new Member( "Todd", pensionerBirthDate, 90, 60, 70, 0m, 70 ),
-				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 90, 55, 70, 0m, 70 )
+				new Member( "Todd", pensionerBirthDate, 90, 60, 70, 0m, 70, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 90, 55, 70, 0m, 70, 0m, 0m )
 			],
 			cppMaximum: 0m,
 			oasMaximum: 0m,

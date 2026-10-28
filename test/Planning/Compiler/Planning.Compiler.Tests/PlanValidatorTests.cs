@@ -5,6 +5,26 @@ namespace Planning.Compiler.Tests;
 
 public class PlanValidatorTests {
 
+	[TestCase( "CPPBasePercent", -1 )]
+	[TestCase( "CPPBasePercent", 101 )]
+	[TestCase( "CPPFirstAdditionalPercent", -1 )]
+	[TestCase( "CPPFirstAdditionalPercent", 101 )]
+	[TestCase( "CPPSecondAdditionalPercent", -1 )]
+	[TestCase( "CPPSecondAdditionalPercent", 101 )]
+	public void Validate_CppPercentageOutsideRange_ReportsField( string field, int percent ) {
+		Member[] members = TestPlanFactory.CreateMembers();
+		Member member = field switch {
+			"CPPBasePercent" => members[0] with { CPPBasePercent = percent },
+			"CPPFirstAdditionalPercent" => members[0] with { CPPFirstAdditionalPercent = percent },
+			_ => members[0] with { CPPSecondAdditionalPercent = percent }
+		};
+		Plan plan = TestPlanFactory.Create( members: [member, members[1]] );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( field ).And.Some.Contains( "between 0 and 100" ) );
+	}
+
 	[Test]
 	public void Validate_DefaultPlan_IsValid() {
 		PlanValidationResult result = new PlanValidator().Validate( TestPlanFactory.Create() );
@@ -14,7 +34,8 @@ public class PlanValidatorTests {
 
 	[TestCase( 999, false )]
 	[TestCase( 1000, true )]
-	[TestCase( 1360, true )]
+	[TestCase( 1359, true )]
+	[TestCase( 1360, false )]
 	[TestCase( 1361, false )]
 	public void Validate_CPPCombinedMaximum_MustRepresentNonnegativeComponents(
 		int combinedMaximum,
@@ -28,7 +49,7 @@ public class PlanValidatorTests {
 
 		Assert.That( result.IsValid, Is.EqualTo( expectedValid ), string.Join( "; ", result.Errors ) );
 		if( !expectedValid ) {
-			Assert.That( result.Errors, Has.Some.Contains( "nonnegative base and enhanced CPP components" ) );
+			Assert.That( result.Errors, Has.Some.Contains( "positive base CPP reference" ) );
 		}
 	}
 
@@ -162,7 +183,7 @@ public class PlanValidatorTests {
 	public void Validate_WrongHouseholdSize_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m, 65, 0m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 100m )
@@ -180,8 +201,8 @@ public class PlanValidatorTests {
 	public void Validate_DuplicateMemberNames_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m, 65 ),
-				new Member( "Todd", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 80m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, 70, 80m, 65, 0m, 0m ),
+				new Member( "Todd", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 80m, 65, 0m, 0m )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -197,8 +218,8 @@ public class PlanValidatorTests {
 	public void Validate_RetirementAgeNotBeforeTarget_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 60, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 60, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -217,8 +238,8 @@ public class PlanValidatorTests {
 	) {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, cppStartAge, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, 60, cppStartAge, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -234,8 +255,8 @@ public class PlanValidatorTests {
 	public void Validate_NoMemberSpecifiesRetirementAge_ReportsError() {
 		Plan plan = TestPlanFactory.Create(
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, null, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, null, 70, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 85, null, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, null, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [],
 			lifeInsurance: [],
@@ -388,8 +409,8 @@ public class PlanValidatorTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 2030, 1, 1 ), 85, 60, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65 )
+				new Member( "Todd", new DateOnly( 2030, 1, 1 ), 85, 60, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1972, 1, 1 ), 85, 60, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [],
 			lifeInsurance: [],

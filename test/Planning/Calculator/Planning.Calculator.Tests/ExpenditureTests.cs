@@ -160,8 +160,8 @@ public class ExpenditureTests {
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 55, 70, 0m, 65 ),
-				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 60, 55, 70, 0m, 65 )
+				new Member( "Todd", new DateOnly( 1970, 1, 1 ), 60, 55, 70, 0m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1970, 1, 1 ), 60, 55, 70, 0m, 65, 0m, 0m )
 			],
 			cppMaximum: 0m,
 			cppCombinedSurvivorMaximum: 0m,

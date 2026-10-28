@@ -6,8 +6,8 @@ namespace Planning.Model.Plans;
 /// </param>
 /// <param name="CPPCombinedSurvivorMaximum">
 /// The published maximum combined retirement/survivor pension at age 65 for the same period.
-/// Its excess over CPPMaximum estimates the enhanced component; it is not a universal cap
-/// on an individual's adjusted retirement pension plus survivor pension.
+/// Together with CPPMaximum, this estimates the plan-start base maximum. Future enhancements
+/// are accrued separately from member percentages and working months; this is not a payment cap.
 /// </param>
 public record Plan(
 	DateOnly StartDate,

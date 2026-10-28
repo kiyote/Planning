@@ -32,8 +32,8 @@ public class PlanDeserializationTests {
 	{
 		"StartDate": "2026-03-15",
 		"Members": [
-			{ "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90, "OASStartInYears": 65 },
-			{ "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": 62, "CPPStartInYears": 65, "CPPPercent": 50, "OASStartInYears": 65 }
+			{ "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPBasePercent": 90, "OASStartInYears": 65, "CPPFirstAdditionalPercent": 100, "CPPSecondAdditionalPercent": 75 },
+			{ "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": 62, "CPPStartInYears": 65, "CPPBasePercent": 50, "OASStartInYears": 65, "CPPFirstAdditionalPercent": 90, "CPPSecondAdditionalPercent": 25 }
 		],
 		"CPPMaximum": 1507.65,
 		"CPPCombinedSurvivorMaximum": 1531.56,
@@ -126,7 +126,9 @@ public class PlanDeserializationTests {
 			Assert.That( members[0].TargetAgeInYears, Is.EqualTo( 85 ) );
 			Assert.That( members[0].RetirementAgeInYears, Is.EqualTo( 60 ) );
 			Assert.That( members[0].CPPStartInYears, Is.EqualTo( 70 ) );
-			Assert.That( members[0].CPPPercent, Is.EqualTo( 90m ) );
+			Assert.That( members[0].CPPBasePercent, Is.EqualTo( 90m ) );
+			Assert.That( members[0].CPPFirstAdditionalPercent, Is.EqualTo( 100m ) );
+			Assert.That( members[0].CPPSecondAdditionalPercent, Is.EqualTo( 75m ) );
 			Assert.That( members[0].OASStartInYears, Is.EqualTo( 65 ) );
 
 			Assert.That( members[1].Name, Is.EqualTo( "Tina" ) );
@@ -134,9 +136,24 @@ public class PlanDeserializationTests {
 			Assert.That( members[1].TargetAgeInYears, Is.EqualTo( 95 ) );
 			Assert.That( members[1].RetirementAgeInYears, Is.EqualTo( 62 ) );
 			Assert.That( members[1].CPPStartInYears, Is.EqualTo( 65 ) );
-			Assert.That( members[1].CPPPercent, Is.EqualTo( 50m ) );
+			Assert.That( members[1].CPPBasePercent, Is.EqualTo( 50m ) );
+			Assert.That( members[1].CPPFirstAdditionalPercent, Is.EqualTo( 90m ) );
+			Assert.That( members[1].CPPSecondAdditionalPercent, Is.EqualTo( 25m ) );
 			Assert.That( members[1].OASStartInYears, Is.EqualTo( 65 ) );
 		}
+	}
+
+	[Test]
+	[TestCase( "CPPBasePercent" )]
+	[TestCase( "CPPFirstAdditionalPercent" )]
+	[TestCase( "CPPSecondAdditionalPercent" )]
+	public void Deserialize_MemberMissingCppPercentage_Throws( string property ) {
+		JsonNode root = JsonNode.Parse( PlanJson )!;
+		root["Members"]![0]!.AsObject().Remove( property );
+
+		Assert.That(
+			() => JsonSerializer.Deserialize<Plan>( root.ToJsonString(), SerializerOptions ),
+			Throws.InstanceOf<JsonException>() );
 	}
 
 	[Test]

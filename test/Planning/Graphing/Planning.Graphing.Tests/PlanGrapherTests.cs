@@ -114,8 +114,8 @@ public class PlanGrapherTests {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 31 ), 85, 60, 70, 90m, 65 ),
-				new Member( "Tina", new DateOnly( 1976, 7, 22 ), 95, null, 65, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1973, 12, 31 ), 85, 60, 70, 90m, 65, 100m, 100m ),
+				new Member( "Tina", new DateOnly( 1976, 7, 22 ), 95, null, 65, 50m, 65, 90m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 550000m ),

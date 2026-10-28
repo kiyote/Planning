@@ -2,9 +2,11 @@ using Planning.Model.Identifiers;
 
 namespace Planning.Model.CompiledPlans;
 
-/// <param name="CPPPercent">
-/// The share of the maximum CPP pension the member actually receives, with the actuarial
-/// adjustment for their chosen start age already applied.
+/// <param name="CPPEntitlement">
+/// Separate unadjusted CPP components, retained for the survivor calculation.
+/// </param>
+/// <param name="CPPAdjustmentFactor">
+/// The early/late-start multiplier applied to retirement CPP, not the deceased's survivor entitlement.
 /// </param>
 /// <param name="OASMultiplier">
 /// The permanent multiplier applied to the maximum OAS amount for deferring OAS past age 65,
@@ -18,6 +20,7 @@ public record CompiledMember(
 	DateOnly RetirementDate,
 	DateOnly CPPStartDate,
 	DateOnly OASStartDate,
-	decimal CPPPercent,
+	CompiledCPPEntitlement CPPEntitlement,
+	decimal CPPAdjustmentFactor,
 	decimal OASMultiplier
 );

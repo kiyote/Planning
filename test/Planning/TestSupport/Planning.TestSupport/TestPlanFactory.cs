@@ -8,7 +8,7 @@ public static class TestPlanFactory {
 		DateOnly? startDate = null,
 		IEnumerable<Member>? members = null,
 		decimal cppMaximum = 1507.65m,
-		decimal cppCombinedSurvivorMaximum = 1531.56m,
+		decimal? cppCombinedSurvivorMaximum = null,
 		decimal oasMaximum = 743.05m,
 		IEnumerable<Asset>? assets = null,
 		decimal annualInflationPercent = 2.6m,
@@ -25,7 +25,7 @@ public static class TestPlanFactory {
 			StartDate: startDate ?? new DateOnly( 2026, 7, 1 ),
 			Members: members ?? CreateMembers(),
 			CPPMaximum: cppMaximum,
-			CPPCombinedSurvivorMaximum: cppCombinedSurvivorMaximum,
+			CPPCombinedSurvivorMaximum: cppCombinedSurvivorMaximum ?? cppMaximum,
 			OASMaximum: oasMaximum,
 			Assets: assets ?? CreateAssets(),
 			AnnualInflationPercent: annualInflationPercent,
@@ -91,8 +91,8 @@ public static class TestPlanFactory {
 				TargetAgeInYears: 85,
 				RetirementAgeInYears: 60,
 				CPPStartInYears: 70,
-				CPPPercent: 80m,
-				OASStartInYears: 65
+				CPPBasePercent: 80m,
+				OASStartInYears: 65, CPPFirstAdditionalPercent: 0m, CPPSecondAdditionalPercent: 0m
 			),
 			new Member(
 				Name: "Tina",
@@ -100,8 +100,8 @@ public static class TestPlanFactory {
 				TargetAgeInYears: 95,
 				RetirementAgeInYears: 57,
 				CPPStartInYears: 70,
-				CPPPercent: 50m,
-				OASStartInYears: 65
+				CPPBasePercent: 50m,
+				OASStartInYears: 65, CPPFirstAdditionalPercent: 0m, CPPSecondAdditionalPercent: 0m
 			)
 		];
 	}

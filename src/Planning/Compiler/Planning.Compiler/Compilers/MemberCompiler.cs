@@ -50,22 +50,26 @@ internal sealed class MemberCompiler {
 			.Min( m => m.BirthDate.AddYears( m.RetirementAgeInYears!.Value ).StartOfNextMonth() );
 
 		List<CompiledMember> members = [];
+		CPPEntitlementCompiler cppCompiler = new CPPEntitlementCompiler();
 
 		foreach( Member member in plan.Members ) {
 			DateOnly retirementStart = member.RetirementAgeInYears.HasValue
 				? member.BirthDate.AddYears( member.RetirementAgeInYears.Value ).StartOfNextMonth()
 				: sharedRetirementStart;
+			DateOnly cppStart = member.BirthDate.AddYears( member.CPPStartInYears ).StartOfNextMonth();
+			DateOnly deathDate = member.BirthDate.AddYears( member.TargetAgeInYears ).EndOfMonth();
 
 			members.Add(
 				new CompiledMember(
 					MemberId: new( members.Count + 1 ),
 					Name: member.Name,
 					BirthDate: member.BirthDate,
-					DeathDate: member.BirthDate.AddYears( member.TargetAgeInYears ).EndOfMonth(),
+					DeathDate: deathDate,
 					RetirementDate: retirementStart,
-					CPPStartDate: member.BirthDate.AddYears( member.CPPStartInYears ).StartOfNextMonth(),
+					CPPStartDate: cppStart,
 					OASStartDate: member.BirthDate.AddYears( member.OASStartInYears ).StartOfNextMonth(),
-					CPPPercent: AdjustCPPForStartAge( member.CPPPercent, member.CPPStartInYears ),
+					CPPEntitlement: cppCompiler.Compile( plan, member, retirementStart, cppStart, deathDate ),
+					CPPAdjustmentFactor: CPPAdjustmentFactor( member.CPPStartInYears ),
 					OASMultiplier: AdjustOASForStartAge( member.OASStartInYears )
 				)
 			);
@@ -75,14 +79,9 @@ internal sealed class MemberCompiler {
 	}
 
 	/// <summary>
-	/// Applies the CPP actuarial adjustment to a member's entitlement. The configured
-	/// <see cref="Member.CPPPercent"/> is the share of the maximum pension the member has earned
-	/// as at <see cref="CPPStandardStartAge"/>; taking the pension earlier or later than that age
-	/// permanently scales it, so the effective percent carried on the compiled member already
-	/// includes the adjustment.
+	/// Keeps the actuarial adjustment separate from unadjusted component entitlements.
 	/// </summary>
-	private static decimal AdjustCPPForStartAge(
-		decimal cppPercent,
+	private static decimal CPPAdjustmentFactor(
 		int cppStartInYears
 	) {
 		int monthsFromStandard = ( cppStartInYears - CPPStandardStartAge ) * 12;
@@ -91,7 +90,7 @@ internal sealed class MemberCompiler {
 			? 1m - ( -monthsFromStandard * CPPEarlyReductionPercentPerMonth / 100m )
 			: 1m + ( monthsFromStandard * CPPDeferralIncreasePercentPerMonth / 100m );
 
-		return cppPercent * factor;
+		return factor;
 	}
 
 	/// <summary>

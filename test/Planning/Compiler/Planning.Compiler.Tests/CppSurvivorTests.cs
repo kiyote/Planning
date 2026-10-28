@@ -54,13 +54,13 @@ public class CppSurvivorTests {
 			Is.EqualTo( (decimal)expectedSurvivor ) );
 	}
 
-	[TestCase( 65, 1100.0 )]
-	[TestCase( 70, 1562.0 )]
-	public void Compile_FullEntitlement_LeavesEnhancedSurvivorPensionUncapped(
+	[TestCase( 65, 1000.0 )]
+	[TestCase( 70, 1420.0 )]
+	public void Compile_PublishedMaxima_OnlySupplyBaseReferenceWithoutAccrual(
 		int startAge,
 		double expectedRetirement
 	) {
-		// 1,000 base + 100 enhanced; 36 enhanced survivor at full entitlement.
+		// The members stopped work before 2019, so only the 1,000 base reference applies.
 		Plan plan = CreatePlan( 65, startAge, deceasedPercent: 100m, survivorPercent: 100m ) with {
 			CPPMaximum = 1_100m,
 			CPPCombinedSurvivorMaximum = 1_136m
@@ -70,13 +70,13 @@ public class CppSurvivorTests {
 		DateOnly afterDeath = new DateOnly( 2025, 2, 1 );
 
 		Assert.Multiple( () => {
-			Assert.That( Income( compiled, afterDeath, "Tina", "CPP Survivor" ), Is.EqualTo( 36m ) );
+			Assert.That( Income( compiled, afterDeath, "Tina", "CPP Survivor" ), Is.Zero );
 			Assert.That( Income( compiled, afterDeath, "Tina", "CPP" ), Is.EqualTo( (decimal)expectedRetirement ) );
 		} );
 	}
 
 	[Test]
-	public void Compile_PartialEntitlements_ReducesEnhancedPensionWithoutCappingIt() {
+	public void Compile_PublishedReferenceEnhancement_IsNotAddedWithoutAccrual() {
 		Plan plan = CreatePlan( 65, 70, deceasedPercent: 80m, survivorPercent: 50m ) with {
 			CPPMaximum = 1_100m,
 			CPPCombinedSurvivorMaximum = 1_136m
@@ -86,11 +86,11 @@ public class CppSurvivorTests {
 
 		Assert.That(
 			Income( compiled, new DateOnly( 2025, 2, 1 ), "Tina", "CPP Survivor" ),
-			Is.EqualTo( 316.8m ) );
+			Is.EqualTo( 288m ) );
 	}
 
 	[Test]
-	public void Compile_BaseCapAndEnhancement_AdjustEarlyRetirementTogether() {
+	public void Compile_UnaccruedEnhancements_DoNotAffectEarlyAdjustment() {
 		Plan plan = CreatePlan( 65, 60, deceasedPercent: 100m, survivorPercent: 90m ) with {
 			CPPMaximum = 1_100m,
 			CPPCombinedSurvivorMaximum = 1_136m
@@ -100,8 +100,8 @@ public class CppSurvivorTests {
 		DateOnly afterDeath = new DateOnly( 2025, 2, 1 );
 
 		Assert.Multiple( () => {
-			Assert.That( Income( compiled, afterDeath, "Tina", "CPP Survivor" ), Is.EqualTo( 136m ) );
-			Assert.That( Income( compiled, afterDeath, "Tina", "CPP" ), Is.EqualTo( 822.24m ) );
+			Assert.That( Income( compiled, afterDeath, "Tina", "CPP Survivor" ), Is.EqualTo( 100m ) );
+			Assert.That( Income( compiled, afterDeath, "Tina", "CPP" ), Is.EqualTo( 756m ) );
 		} );
 	}
 
@@ -151,7 +151,7 @@ public class CppSurvivorTests {
 	}
 
 	[Test]
-	public void Compile_EnhancedComponents_InflateWithBaseComponents() {
+	public void Compile_NoAccruedEnhancements_LeavesNoSurvivorPensionAtFullBaseEntitlement() {
 		Plan plan = CreatePlan( 65, 65, deceasedPercent: 100m, survivorPercent: 100m ) with {
 			CPPMaximum = 1_100m,
 			CPPCombinedSurvivorMaximum = 1_136m,
@@ -160,7 +160,7 @@ public class CppSurvivorTests {
 
 		CompiledPlan compiled = new PlanCompiler().Compile( plan );
 
-		Assert.That( Income( compiled, new DateOnly( 2026, 1, 1 ), "Tina", "CPP Survivor" ), Is.EqualTo( 36.72m ) );
+		Assert.That( Income( compiled, new DateOnly( 2026, 1, 1 ), "Tina", "CPP Survivor" ), Is.Zero );
 	}
 
 	[Test]
@@ -229,8 +229,8 @@ public class CppSurvivorTests {
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2025, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1950, 1, 15 ), 75, 60, deceasedStartAge, deceasedPercent, 65 ),
-				new Member( "Tina", new DateOnly( 1950, 6, 15 ), 85, 60, survivorStartAge, survivorPercent, 65 )
+				new Member( "Todd", new DateOnly( 1950, 1, 15 ), 75, 60, deceasedStartAge, deceasedPercent, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1950, 6, 15 ), 85, 60, survivorStartAge, survivorPercent, 65, 0m, 0m )
 			],
 			cppMaximum: 1_000m,
 			cppCombinedSurvivorMaximum: 1_000m,

@@ -75,8 +75,14 @@ public sealed class PlanValidator {
 				result.AddError( $"Member '{member.Name}' CPP start age ({member.CPPStartInYears}) must be between {MinimumCPPStartAge} and {MaximumCPPStartAge} inclusive." );
 			}
 
-			if( member.CPPPercent < 0m || member.CPPPercent > 100m ) {
-				result.AddError( $"Member '{member.Name}' CPP percentage ({member.CPPPercent}) must be between 0 and 100 inclusive." );
+			foreach( (string name, decimal percent) in new[] {
+				(nameof( member.CPPBasePercent ), member.CPPBasePercent),
+				(nameof( member.CPPFirstAdditionalPercent ), member.CPPFirstAdditionalPercent),
+				(nameof( member.CPPSecondAdditionalPercent ), member.CPPSecondAdditionalPercent)
+			} ) {
+				if( percent < 0m || percent > 100m ) {
+					result.AddError( $"Member '{member.Name}' CPP percentage {name} ({percent}) must be between 0 and 100 inclusive." );
+				}
 			}
 
 			if( member.OASStartInYears < MinimumOASStartAge
@@ -94,7 +100,8 @@ public sealed class PlanValidator {
 			&& members.All( m => m.BirthDate != default && m.TargetAgeInYears > 0
 				&& m.TargetAgeInYears <= DateOnly.MaxValue.Year - m.BirthDate.Year
 				&& m.BirthDate.Year <= DateOnly.MaxValue.Year - MinimumCPPSurvivorAge ) ) {
-			foreach( Member deceased in members.Where( m => m.CPPPercent > 0m ) ) {
+			foreach( Member deceased in members.Where( m => m.CPPBasePercent > 0m
+				|| m.CPPFirstAdditionalPercent > 0m || m.CPPSecondAdditionalPercent > 0m ) ) {
 				Member survivor = members.Single( m => m != deceased );
 				DateOnly deathDate = deceased.BirthDate.AddYears( deceased.TargetAgeInYears ).EndOfMonth();
 				DateOnly survivorDeathDate = survivor.BirthDate.AddYears( survivor.TargetAgeInYears ).EndOfMonth();
@@ -133,10 +140,10 @@ public sealed class PlanValidator {
 
 		if( plan.CPPMaximum > 0m
 			&& ( plan.CPPCombinedSurvivorMaximum < plan.CPPMaximum
-				|| plan.CPPCombinedSurvivorMaximum > plan.CPPMaximum * ( 1m + GovernmentBenefitCompiler.EnhancedSurvivorRate ) ) ) {
+				|| plan.CPPCombinedSurvivorMaximum >= plan.CPPMaximum * ( 1m + GovernmentBenefitCompiler.EnhancedSurvivorRate ) ) ) {
 			result.AddError(
-				"CPP combined survivor maximum must be between the CPP maximum and 136% of it " +
-				"to estimate nonnegative base and enhanced CPP components." );
+				"CPP combined survivor maximum must be at least the CPP maximum and less than 136% of it " +
+				"to estimate a positive base CPP reference and nonnegative enhanced CPP." );
 		}
 
 		if( plan.OASMaximum < 0m ) {

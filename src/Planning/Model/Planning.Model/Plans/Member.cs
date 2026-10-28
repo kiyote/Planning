@@ -1,11 +1,16 @@
 namespace Planning.Model.Plans;
 
 
-/// <param name="CPPPercent">
-/// The share of the maximum CPP pension the member has earned as at age 65. The compiler applies
-/// the actuarial adjustment for <paramref name="CPPStartInYears"/> on top of this, so it should
-/// not be pre-adjusted for taking the pension early or late. Without a contribution history,
-/// the same share is assumed for the base and both enhanced components.
+/// <param name="CPPBasePercent">
+/// The estimated share of the base CPP maximum at age 65, before start-age adjustment.
+/// </param>
+/// <param name="CPPFirstAdditionalPercent">
+/// The estimated share of maximum first-additional accrual during eligible working months
+/// from 2019 until retirement or CPP commencement, whichever comes first.
+/// </param>
+/// <param name="CPPSecondAdditionalPercent">
+/// The estimated share of maximum second-additional accrual during eligible working months
+/// from 2024 until retirement or CPP commencement, whichever comes first.
 /// </param>
 /// <param name="OASStartInYears">
 /// The age at which the member begins receiving OAS. Unlike CPP, OAS has no early-start option;
@@ -18,8 +23,10 @@ public record Member(
 	int TargetAgeInYears,
 	int? RetirementAgeInYears,
 	int CPPStartInYears,
-	decimal CPPPercent,
-	int OASStartInYears
+	decimal CPPBasePercent,
+	int OASStartInYears,
+	decimal CPPFirstAdditionalPercent,
+	decimal CPPSecondAdditionalPercent
 ) {
 	public static readonly Member None = new Member(
 		Name: "",
@@ -27,7 +34,9 @@ public record Member(
 		TargetAgeInYears: 0,
 		RetirementAgeInYears: null,
 		CPPStartInYears: 0,
-		CPPPercent: 0.0m,
-		OASStartInYears: 65
+		CPPBasePercent: 0.0m,
+		OASStartInYears: 65,
+		CPPFirstAdditionalPercent: 0m,
+		CPPSecondAdditionalPercent: 0m
 	);
 }

@@ -23,30 +23,63 @@ In the `Planning.Cli` directory, execute `dotnet run sample-plan.json [OPTION]`,
 
 ## CPP retirement and survivor benefits
 
-`CPPPercent` remains each member's estimated age-65 entitlement as a percentage of
-`CPPMaximum`. Normal retirement CPP is unchanged: the compiler applies the chosen start-age
-adjustment and indexes payments using the plan's inflation assumption.
+Each member must specify three percentages, all between 0 and 100:
+
+* `CPPBasePercent`: estimated share of the base CPP maximum at age 65.
+* `CPPFirstAdditionalPercent`: estimated share of maximum first-additional accrual during
+  eligible working months from 2019 onward.
+* `CPPSecondAdditionalPercent`: estimated share of maximum second-additional accrual during
+  eligible working months from 2024 onward.
+
+The sample uses Todd 90/100/100 and Tina 50/90/0. These are planning assumptions, not verified
+benefit quotes. No salary or separately quoted enhancement payment is required. A value of
+100 means maximum accrual in the included working months, not a fully matured 40-year pension.
 
 Use the published **age-65 retirement maximum** for `CPPMaximum` and the published
 **age-65 combined retirement/survivor maximum** for `CPPCombinedSurvivorMaximum`, both for
 the same period and expressed in plan-start dollars. The latter is not a ceiling on every
 survivor's actual payment. For example, the January 2026 amounts are 1,507.65 and 1,531.56.
 
-No additional personal benefit estimates are required. For a ballpark enhancement allowance,
-the model assumes each member has earned the same `CPPPercent` of the base and both additional
-components. At full entitlement, the combined pension adds 60% of the deceased's enhanced
-pension, reduced by 40%, above the retirement maximum. Consequently:
+The two published maxima are used only to estimate the plan-start base reference. At full
+entitlement, the combined maximum exceeds the retirement maximum by 36% of the enhanced
+component:
 
 ```text
-Estimated enhanced maximum = (CPPCombinedSurvivorMaximum - CPPMaximum) / 0.36
-Estimated base maximum = CPPMaximum - Estimated enhanced maximum
+Reference enhanced maximum = (CPPCombinedSurvivorMaximum - CPPMaximum) / 0.36
+Reference base maximum = CPPMaximum - Reference enhanced maximum
 ```
 
-With the sample's maxima this estimates about 66.42 of enhanced CPP and 1,441.23 of base CPP
-per month. Published amounts are rounded, so this is an approximation, not a reconstruction of
-an individual's contribution history. It does not project extra enhancement accrual from future
-work; adjust the overall entitlement estimate if needed. The combined maximum must be between
-100% and 136% of the retirement maximum. A zero `CPPMaximum` disables CPP.
+With the sample's maxima, the reference base maximum is about 1,441.23 per month. Published
+amounts are rounded, so this remains an approximation. The combined maximum must be at least
+100% and less than 136% of the retirement maximum, leaving a positive base reference.
+A zero `CPPMaximum` disables every CPP component.
+
+The compiler builds separate monthly base, first-additional and second-additional entitlements,
+expressed in plan-start dollars before start-age adjustment. Enhancement contributions are
+assumed continuous from the later of age 18 eligibility and the enhancement's introduction,
+until retirement, CPP commencement, or death, whichever comes first. The death month is included.
+A member with no retirement age uses the household retirement date. The percentages can
+approximate reduced earnings or contribution gaps; individual employment histories are not inferred.
+
+First-additional accrual uses phase-in weights of 15%, 30%, 50%, 75% and 100% in 2019 through
+2023, then 100%. The fully accrued replacement rate is 8.33% of pensionable earnings.
+Second-additional accrual uses the higher earnings band: 4,700/68,500 in 2024, 9,900/71,300
+in 2025, 10,400/74,600 in 2026, and the fully phased 14% band thereafter. Its replacement rate
+is 33.33%. Each component uses its best 480 eligible months, divided by 480 even for shorter
+careers. The reference earnings level is inferred from base CPP's 25% replacement rate.
+
+No real growth in the wage reference is assumed: all components are subsequently indexed by
+the plan's inflation rate. Start-age adjustments apply to the sum of the three components.
+Deferring CPP after stopping work does not earn extra contribution years. Contributions after
+CPP commencement and their post-retirement benefits are not modelled. CSV layout is unchanged:
+the components are rolled into `CPP`, and survivor components into `CPP Survivor`.
+
+**Migration:** replace the old `CPPPercent` with `CPPBasePercent` and explicitly add both
+additional percentages (use zero where none is assumed). The sample retains the old proportional
+model's inferred base shares, 90% and 50%, then replaces its enhancement allowance with projected
+accrual. Do not retain the old total CPP amount and add the enhancements again. If the original
+percentage came from an official total pension estimate, reconcile that estimate and its future
+work assumptions before treating the base percentage as a verified entitlement.
 
 For a survivor aged 65 or older:
 
@@ -66,6 +99,9 @@ death, stop when the survivor dies, and remain taxable. The same calculation fee
 graphs and value sweeps, including `--sweepcpp`, which maximizes estate among solvent plans.
 
 Sources: [Service Canada payment amounts](https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html),
+[CPP enhancement](https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-enhancement.html),
+[CPP Act section 48.1](https://laws-lois.justice.gc.ca/eng/acts/C-8/section-48.1.html),
+[section 48.2](https://laws-lois.justice.gc.ca/eng/acts/C-8/section-48.2.html),
 [CPP Act section 58](https://laws-lois.justice.gc.ca/eng/acts/C-8/section-58.html), and
 [section 46(5)](https://laws-lois.justice.gc.ca/eng/acts/C-8/section-46.html).
 

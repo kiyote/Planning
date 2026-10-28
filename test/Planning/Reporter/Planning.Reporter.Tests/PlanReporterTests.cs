@@ -11,6 +11,38 @@ namespace Planning.Reporter.Tests;
 public class PlanReporterTests {
 
 	[Test]
+	[SetCulture( "en-US" )]
+	public void WriteCalculatedToCsv_EnhancementsRemainInExistingCppColumn() {
+		Plan baseline = CreateReportPlan();
+		Plan plan = baseline with {
+			Members = [.. baseline.Members.Select( m => m with {
+				CPPFirstAdditionalPercent = 100m, CPPSecondAdditionalPercent = 100m
+			} )]
+		};
+		CompiledPlan compiled = CompilePlan( plan );
+		CalculatedPlan calculated = CalculatePlan( plan, compiled );
+		using StringWriter writer = new StringWriter();
+		new PlanReporter().WriteToCsv( writer, compiled, calculated );
+
+		string[] lines = writer.ToString().Split( Environment.NewLine );
+		string[] header = lines[0].Split( ',' );
+		int cppColumn = Array.IndexOf( header, "CPP (Todd)" );
+		CompiledMember todd = compiled.Members.Single( m => m.Name == "Todd" );
+		CalculatedPeriod period = calculated.Periods.Single( p => p.PeriodDate == todd.CPPStartDate );
+		string[] row = lines.Single( l => l.StartsWith( "Jan 2044," ) ).Split( ',' );
+		decimal amount = period.TaxableIncome.Single( i => i.MemberId == todd.MemberId && i.Name == "CPP" ).Amount;
+
+		Assert.Multiple( () => {
+			Assert.That( cppColumn, Is.GreaterThanOrEqualTo( 0 ) );
+			Assert.That( row, Has.Length.EqualTo( header.Length ) );
+			Assert.That( header.Any( h => h.Contains( "Additional", StringComparison.Ordinal ) ), Is.False );
+			Assert.That( todd.CPPEntitlement.FirstAdditionalMonthlyAt65, Is.GreaterThan( 0m ) );
+			Assert.That( todd.CPPEntitlement.SecondAdditionalMonthlyAt65, Is.GreaterThan( 0m ) );
+			Assert.That( decimal.Parse( row[cppColumn] ), Is.EqualTo( Math.Round( amount, 2, MidpointRounding.ToEven ) ) );
+		} );
+	}
+
+	[Test]
 	[TestCase( false )]
 	[TestCase( true )]
 	[SetCulture( "en-US" )]
@@ -125,8 +157,8 @@ public class PlanReporterTests {
 			cppMaximum: 0m,
 			cppCombinedSurvivorMaximum: 0m,
 			members: [
-				new Member( "Todd, \"TJ\"", new DateOnly( 1976, 1, 15 ), 50, 40, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1976, 3, 15 ), 50, 40, 70, 50m, 65 )
+				new Member( "Todd, \"TJ\"", new DateOnly( 1976, 1, 15 ), 50, 40, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1976, 3, 15 ), 50, 40, 70, 50m, 65, 0m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd, \"TJ\"", 100m ),
@@ -277,8 +309,8 @@ public class PlanReporterTests {
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
 			members: [
-				new Member( "Todd", new DateOnly( 1973, 12, 31 ), 85, 60, 70, 80m, 65 ),
-				new Member( "Tina", new DateOnly( 1976, 7, 22 ), 95, null, 65, 50m, 65 )
+				new Member( "Todd", new DateOnly( 1973, 12, 31 ), 85, 60, 70, 80m, 65, 0m, 0m ),
+				new Member( "Tina", new DateOnly( 1976, 7, 22 ), 95, null, 65, 50m, 65, 0m, 0m )
 			],
 			assets: [
 				TestPlanFactory.CreateAsset( "RRSP", AssetTaxStatus.Taxable, "Todd", 550000m, 219_081m, 22_000m ),
