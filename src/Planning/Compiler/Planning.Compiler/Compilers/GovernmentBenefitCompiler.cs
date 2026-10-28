@@ -5,6 +5,10 @@ namespace Planning.Compiler.Compilers;
 
 internal sealed class GovernmentBenefitCompiler {
 
+	private const decimal SurvivorPensionRate = 0.6m;
+	private const decimal CombinedPensionReductionRate = 0.4m;
+	internal const decimal EnhancedSurvivorRate = SurvivorPensionRate * ( 1m - CombinedPensionReductionRate );
+
 	public IDictionary<CompiledPeriod, IDictionary<CompiledMember, decimal>> CompileCPP(
 		Plan plan,
 		IEnumerable<CompiledPeriod> periods,
@@ -31,6 +35,10 @@ internal sealed class GovernmentBenefitCompiler {
 		return result;
 	}
 
+	/// <summary>
+	/// Compiles survivor pensions and applies any resulting early-retirement adjustment
+	/// to the supplied retirement-income schedule.
+	/// </summary>
 	public IDictionary<CompiledPeriod, IDictionary<CompiledMember, decimal>> CompileCPPSurvivor(
 		Plan plan,
 		IEnumerable<CompiledPeriod> periods,
@@ -39,43 +47,74 @@ internal sealed class GovernmentBenefitCompiler {
 	) {
 		IDictionary<CompiledPeriod, IDictionary<CompiledMember, decimal>> result = new Dictionary<CompiledPeriod, IDictionary<CompiledMember, decimal>>();
 
-		decimal regularCPP = plan.CPPMaximum;
-		decimal potentialBenefit = plan.CPPCombinedSurvivorMaximum;
+		IReadOnlyDictionary<string, decimal> entitlementByName = plan.Members
+			.ToDictionary( m => m.Name, m => m.CPPPercent / 100m );
+		decimal maximumCPP = plan.CPPMaximum;
+		// At full entitlement the base is capped, leaving only 60% * 60% of the
+		// enhanced pension above the retirement maximum. Both maxima include enhancements.
+		decimal enhancedMaximum = maximumCPP == 0m
+			? 0m
+			: ( plan.CPPCombinedSurvivorMaximum - maximumCPP ) / EnhancedSurvivorRate;
+		decimal baseMaximum = maximumCPP - enhancedMaximum;
+
 		foreach( CompiledPeriod period in periods ) {
-			result[period] = new Dictionary<CompiledMember, decimal>();
-			foreach( CompiledMember member in members ) {
-				if( member.DeathDate <= period.PeriodDate ) {
+			result[period] = members.ToDictionary( m => m, _ => 0m );
+			foreach( CompiledMember survivor in members ) {
+				CompiledMember deceased = members.Single( m => m != survivor );
+				if( survivor.DeathDate <= period.PeriodDate || deceased.DeathDate > period.PeriodDate ) {
+					continue;
+				}
 
-					// If someone has died, find the survivor
-					CompiledMember survivor = members.Single( m => m != member );
-					// If that person isn't already dead....
-					if( survivor.DeathDate > period.PeriodDate ) {
-						// Their CPP needs to be topped up to the survivor limit
-						decimal partnerBenefit = regularCPP * ( member.CPPPercent / 100 ) * 0.6m;
-						decimal survivorCPP = memberCPP[period][survivor];
-						decimal toppedUp = survivorCPP + partnerBenefit;
-						toppedUp = Math.Min( toppedUp, potentialBenefit );
-						decimal actualBenefit = Math.Max( 0, toppedUp - survivorCPP );
+				decimal deceasedEntitlement = entitlementByName[deceased.Name];
+				decimal fullSurvivorPension = maximumCPP * deceasedEntitlement * SurvivorPensionRate;
+				if( survivor.CPPStartDate > period.PeriodDate ) {
+					result[period][survivor] = fullSurvivorPension;
+					continue;
+				}
 
-						result[period][survivor] = actualBenefit;
-					}
-					result[period][member] = 0.0m;
+				decimal survivorEntitlement = entitlementByName[survivor.Name];
+				decimal basePension = CalculateCombinedComponent(
+					baseMaximum * deceasedEntitlement,
+					baseMaximum * survivorEntitlement );
+				basePension = Math.Min( basePension, baseMaximum * ( 1m - survivorEntitlement ) );
+				// The same entitlement share is assumed for both additional components.
+				// Their overlap reductions can therefore be combined, but they are not capped.
+				decimal enhancedPension = CalculateCombinedComponent(
+					enhancedMaximum * deceasedEntitlement,
+					enhancedMaximum * survivorEntitlement );
+				decimal survivorPension = basePension + enhancedPension;
+				result[period][survivor] = survivorPension;
 
-				} else {
-					// If they don't have a value, ensure one exists at $0.00
-					if( !result[period].ContainsKey( member ) ) {
-						result[period][member] = 0.0m;
-					}
+				// CPP Act 46(5): a reduction of the survivor pension also exempts that
+				// amount of the retirement pension from an early-start reduction.
+				decimal unadjustedRetirement = maximumCPP * survivorEntitlement;
+				if( unadjustedRetirement > 0m ) {
+					decimal earlyReduction = Math.Max(
+						1m - memberCPP[period][survivor] / unadjustedRetirement, 0m );
+					memberCPP[period][survivor] +=
+						( fullSurvivorPension - survivorPension ) * earlyReduction;
 				}
 			}
 
 			if( period.PeriodDate.Month == 12 ) {
-				potentialBenefit *= 1 + ( plan.AnnualInflationPercent / 100 );
-				regularCPP *= 1 + ( plan.AnnualInflationPercent / 100 );
+				decimal inflation = 1m + plan.AnnualInflationPercent / 100m;
+				maximumCPP *= inflation;
+				baseMaximum *= inflation;
+				enhancedMaximum *= inflation;
 			}
 		}
 
 		return result;
+	}
+
+	private static decimal CalculateCombinedComponent(
+		decimal deceasedPension,
+		decimal survivorPension
+	) {
+		decimal fullSurvivorPension = deceasedPension * SurvivorPensionRate;
+		return fullSurvivorPension - Math.Min(
+			fullSurvivorPension * CombinedPensionReductionRate,
+			survivorPension * CombinedPensionReductionRate );
 	}
 
 	public IDictionary<CompiledPeriod, IDictionary<CompiledMember, decimal>> CompileOAS(

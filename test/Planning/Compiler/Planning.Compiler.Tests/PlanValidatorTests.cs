@@ -12,6 +12,56 @@ public class PlanValidatorTests {
 		Assert.That( result.IsValid, Is.True, string.Join( "; ", result.Errors ) );
 	}
 
+	[TestCase( 999, false )]
+	[TestCase( 1000, true )]
+	[TestCase( 1360, true )]
+	[TestCase( 1361, false )]
+	public void Validate_CPPCombinedMaximum_MustRepresentNonnegativeComponents(
+		int combinedMaximum,
+		bool expectedValid
+	) {
+		Plan plan = TestPlanFactory.Create(
+			cppMaximum: 1_000m,
+			cppCombinedSurvivorMaximum: combinedMaximum );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.EqualTo( expectedValid ), string.Join( "; ", result.Errors ) );
+		if( !expectedValid ) {
+			Assert.That( result.Errors, Has.Some.Contains( "nonnegative base and enhanced CPP components" ) );
+		}
+	}
+
+	[Test]
+	public void Validate_SurvivorUnder65_ReportsUnsupportedBenefit() {
+		Member[] members = TestPlanFactory.CreateMembers();
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2026, 1, 1 ),
+			members: [
+				members[0] with { BirthDate = new DateOnly( 1950, 1, 1 ), TargetAgeInYears = 75 },
+				members[1] with { BirthDate = new DateOnly( 1965, 1, 1 ) }
+			] );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.Errors, Has.Some.Contains( "CPP survivor benefits before age 65 are not modelled" ) );
+	}
+
+	[Test]
+	public void Validate_SurvivorTurns65WhenBenefitStarts_IsValid() {
+		Member[] members = TestPlanFactory.CreateMembers();
+		Plan plan = TestPlanFactory.Create(
+			startDate: new DateOnly( 2025, 1, 1 ),
+			members: [
+				members[0] with { BirthDate = new DateOnly( 1950, 1, 1 ), TargetAgeInYears = 75 },
+				members[1] with { BirthDate = new DateOnly( 1960, 2, 1 ) }
+			] );
+
+		PlanValidationResult result = new PlanValidator().Validate( plan );
+
+		Assert.That( result.IsValid, Is.True, string.Join( "; ", result.Errors ) );
+	}
+
 	[Test]
 	public void Validate_TaxPolicyYearAfterPlanStart_ReportsError() {
 		// A future-dated policy would be indexed by a negative exponent, silently deflating

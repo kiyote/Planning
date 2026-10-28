@@ -817,6 +817,8 @@ public sealed class PlanCalculatorTests {
 	public void Calculate_CapitalGainsAsset_TaxesFiftyPercentInclusion() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
+			cppMaximum: 0m,
+			cppCombinedSurvivorMaximum: 0m,
 			members: [
 				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
 				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65 )
@@ -998,6 +1000,8 @@ public sealed class PlanCalculatorTests {
 		// observable at all.
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
+			cppMaximum: 0m,
+			cppCombinedSurvivorMaximum: 0m,
 			members: [
 				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
 				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65 )
@@ -1029,6 +1033,8 @@ public sealed class PlanCalculatorTests {
 	) {
 		return TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
+			cppMaximum: 0m,
+			cppCombinedSurvivorMaximum: 0m,
 			members: [
 				new Member( MemberTodd, new DateOnly( 1970, 1, 1 ), 60, 50, 70, 80m, 65 ),
 				new Member( MemberTina, new DateOnly( 1971, 1, 1 ), 60, 50, 70, 50m, 65 )

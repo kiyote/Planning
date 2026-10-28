@@ -1,7 +1,7 @@
 {
   "StartDate": "2026-11-01",
   "Members": [
-    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 80, "OASStartInYears": 65 },
+    { "Name": "Todd", "BirthDate": "1973-12-31", "TargetAgeInYears": 85, "RetirementAgeInYears": 60, "CPPStartInYears": 70, "CPPPercent": 90, "OASStartInYears": 65 },
     { "Name": "Tina", "BirthDate": "1976-07-22", "TargetAgeInYears": 95, "RetirementAgeInYears": null, "CPPStartInYears": 65, "CPPPercent": 50, "OASStartInYears": 65 }
   ],
   "CPPMaximum": 1507.65,
@@ -22,7 +22,7 @@
     { "Member": "Tina", "Amount": 250000 }
   ],
   "RetirementIncome": {
-    "GoGo": 6500,
+    "GoGo": 6700,
     "SlowGo": 5400,
     "NoGo": 6000,
     "SlowGoYears": 10,

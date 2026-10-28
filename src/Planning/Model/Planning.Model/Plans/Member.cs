@@ -4,7 +4,8 @@ namespace Planning.Model.Plans;
 /// <param name="CPPPercent">
 /// The share of the maximum CPP pension the member has earned as at age 65. The compiler applies
 /// the actuarial adjustment for <paramref name="CPPStartInYears"/> on top of this, so it should
-/// not be pre-adjusted for taking the pension early or late.
+/// not be pre-adjusted for taking the pension early or late. Without a contribution history,
+/// the same share is assumed for the base and both enhanced components.
 /// </param>
 /// <param name="OASStartInYears">
 /// The age at which the member begins receiving OAS. Unlike CPP, OAS has no early-start option;

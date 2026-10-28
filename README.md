@@ -21,6 +21,54 @@ In the `Planning.Cli` directory, execute `dotnet run sample-plan.json [OPTION]`,
 * `--sweepages` finds the youngest age that the retirement can begin and the plan will remain solvent.
 * `--sweepannualpercents` finds the lowest annual rate of return at the given inflation percentage that the plan will remain solvent.  It will also find the highest inflation percentage at the given annual rate of return that the plan will remain solvent.
 
+## CPP retirement and survivor benefits
+
+`CPPPercent` remains each member's estimated age-65 entitlement as a percentage of
+`CPPMaximum`. Normal retirement CPP is unchanged: the compiler applies the chosen start-age
+adjustment and indexes payments using the plan's inflation assumption.
+
+Use the published **age-65 retirement maximum** for `CPPMaximum` and the published
+**age-65 combined retirement/survivor maximum** for `CPPCombinedSurvivorMaximum`, both for
+the same period and expressed in plan-start dollars. The latter is not a ceiling on every
+survivor's actual payment. For example, the January 2026 amounts are 1,507.65 and 1,531.56.
+
+No additional personal benefit estimates are required. For a ballpark enhancement allowance,
+the model assumes each member has earned the same `CPPPercent` of the base and both additional
+components. At full entitlement, the combined pension adds 60% of the deceased's enhanced
+pension, reduced by 40%, above the retirement maximum. Consequently:
+
+```text
+Estimated enhanced maximum = (CPPCombinedSurvivorMaximum - CPPMaximum) / 0.36
+Estimated base maximum = CPPMaximum - Estimated enhanced maximum
+```
+
+With the sample's maxima this estimates about 66.42 of enhanced CPP and 1,441.23 of base CPP
+per month. Published amounts are rounded, so this is an approximation, not a reconstruction of
+an individual's contribution history. It does not project extra enhancement accrual from future
+work; adjust the overall entitlement estimate if needed. The combined maximum must be between
+100% and 136% of the retirement maximum. A zero `CPPMaximum` disables CPP.
+
+For a survivor aged 65 or older:
+
+* The deceased's unadjusted entitlement is used, not their early/late-start-adjusted payment.
+* Until the survivor starts their own CPP, the survivor benefit is 60% of that entitlement.
+* Once both pensions are payable, each component's survivor benefit is reduced by the lesser
+  of 40% of itself and 40% of the survivor's own unadjusted component.
+* Only the base component is capped against the survivor's **unadjusted** base entitlement.
+  The enhanced components are not capped, and deferral increases to the survivor's own CPP
+  remain intact.
+* For CPP started before 65, the applicable special retirement-pension adjustment is included
+  in the `CPP` income column, rather than the `CPP Survivor` column.
+
+Plans requiring a CPP survivor pension before age 65 are rejected explicitly; under-65 and
+historical grandfather rules are not modelled. Survivor payments begin in the month after
+death, stop when the survivor dies, and remain taxable. The same calculation feeds reports,
+graphs and value sweeps, including `--sweepcpp`, which maximizes estate among solvent plans.
+
+Sources: [Service Canada payment amounts](https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html),
+[CPP Act section 58](https://laws-lois.justice.gc.ca/eng/acts/C-8/section-58.html), and
+[section 46(5)](https://laws-lois.justice.gc.ca/eng/acts/C-8/section-46.html).
+
 ## Pension splitting
 
 The sample plan enables `"AllowPensionSplitting": true` in `TaxPolicy`. Set it to `false`

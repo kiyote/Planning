@@ -1,3 +1,5 @@
+using Planning.Compiler.Compilers;
+using Planning.Model;
 using Planning.Model.Plans;
 
 namespace Planning.Compiler;
@@ -8,6 +10,7 @@ public sealed class PlanValidator {
 	private const int MaximumCPPStartAge = 70;
 	private const int MinimumOASStartAge = 65;
 	private const int MaximumOASStartAge = 70;
+	private const int MinimumCPPSurvivorAge = 65;
 	private const int RequiredHouseholdSize = 2;
 	private const int MaximumTaxPolicyAgeInYears = 5;
 
@@ -85,6 +88,31 @@ public sealed class PlanValidator {
 		if( members.Length > 0 && !members.Any( m => m.RetirementAgeInYears.HasValue ) ) {
 			result.AddError( "At least one household member must specify a retirement age." );
 		}
+
+		if( members.Length == RequiredHouseholdSize && plan.CPPMaximum > 0m
+			&& members.Select( m => m.Name ).Distinct().Count() == RequiredHouseholdSize
+			&& members.All( m => m.BirthDate != default && m.TargetAgeInYears > 0
+				&& m.TargetAgeInYears <= DateOnly.MaxValue.Year - m.BirthDate.Year
+				&& m.BirthDate.Year <= DateOnly.MaxValue.Year - MinimumCPPSurvivorAge ) ) {
+			foreach( Member deceased in members.Where( m => m.CPPPercent > 0m ) ) {
+				Member survivor = members.Single( m => m != deceased );
+				DateOnly deathDate = deceased.BirthDate.AddYears( deceased.TargetAgeInYears ).EndOfMonth();
+				DateOnly survivorDeathDate = survivor.BirthDate.AddYears( survivor.TargetAgeInYears ).EndOfMonth();
+				if( deathDate >= survivorDeathDate ) {
+					continue;
+				}
+				DateOnly firstSurvivorPeriod = deathDate.StartOfNextMonth();
+				if( firstSurvivorPeriod < plan.StartDate.StartOfMonth() ) {
+					firstSurvivorPeriod = plan.StartDate.StartOfMonth();
+				}
+				if( firstSurvivorPeriod < survivorDeathDate
+					&& firstSurvivorPeriod < survivor.BirthDate.AddYears( MinimumCPPSurvivorAge ) ) {
+					result.AddError(
+						$"CPP survivor benefits before age 65 are not modelled; member '{survivor.Name}' " +
+						$"would be under 65 after '{deceased.Name}' dies." );
+				}
+			}
+		}
 	}
 
 	private static void ValidatePlanAssumptions(
@@ -101,6 +129,14 @@ public sealed class PlanValidator {
 
 		if( plan.CPPCombinedSurvivorMaximum < 0m ) {
 			result.AddError( "CPP combined survivor maximum must be nonnegative." );
+		}
+
+		if( plan.CPPMaximum > 0m
+			&& ( plan.CPPCombinedSurvivorMaximum < plan.CPPMaximum
+				|| plan.CPPCombinedSurvivorMaximum > plan.CPPMaximum * ( 1m + GovernmentBenefitCompiler.EnhancedSurvivorRate ) ) ) {
+			result.AddError(
+				"CPP combined survivor maximum must be between the CPP maximum and 136% of it " +
+				"to estimate nonnegative base and enhanced CPP components." );
 		}
 
 		if( plan.OASMaximum < 0m ) {

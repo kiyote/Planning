@@ -93,7 +93,9 @@ public sealed class PlanCompilerTests {
 		CompiledIncome survivorIncome = compiledPlan.ScheduledIncome[january]
 			.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP Survivor" );
 
-		Assert.That( survivorIncome.Amount, Is.EqualTo( 473.117841m ) );
+		// 60% of Todd's unadjusted 80% entitlement, less the 40% overlap reduction,
+		// indexed once at December year-end. Tina's deferral does not shrink the top-up.
+		Assert.That( survivorIncome.Amount, Is.EqualTo( 445.4924832m ).Within( 0.0000001m ) );
 	}
 
 	[Test]
@@ -572,9 +574,9 @@ public sealed class PlanCompilerTests {
 		CompiledIncome survivorIncome = compiledPlan.ScheduledIncome[afterToddDeath]
 			.Single( i => i.MemberId == tinaCompiled.MemberId && i.Name == "CPP Survivor" );
 
-		// Survivor already receives the full CPP (1507.65); the partner top-up is capped
-		// by the combined survivor maximum (1531.56), leaving 23.91.
-		Assert.That( survivorIncome.Amount, Is.EqualTo( 23.91m ) );
+		// Full base entitlement leaves no base survivor benefit, but the enhanced
+		// survivor component is not capped.
+		Assert.That( survivorIncome.Amount, Is.EqualTo( 23.91m ).Within( 0.0000001m ) );
 	}
 
 	[Test]

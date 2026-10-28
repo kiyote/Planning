@@ -1,5 +1,14 @@
 namespace Planning.Model.Plans;
 
+/// <param name="CPPMaximum">
+/// The published maximum monthly CPP retirement pension at age 65, including enhancements,
+/// expressed in plan-start dollars.
+/// </param>
+/// <param name="CPPCombinedSurvivorMaximum">
+/// The published maximum combined retirement/survivor pension at age 65 for the same period.
+/// Its excess over CPPMaximum estimates the enhanced component; it is not a universal cap
+/// on an individual's adjusted retirement pension plus survivor pension.
+/// </param>
 public record Plan(
 	DateOnly StartDate,
 	IEnumerable<Member> Members,

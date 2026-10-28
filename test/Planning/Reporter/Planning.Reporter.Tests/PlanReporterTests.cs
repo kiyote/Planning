@@ -103,17 +103,17 @@ public class PlanReporterTests {
 					Environment.NewLine,
 					"Insufficient Funds Summary",
 					"Has Shortfall,True",
-					"First Shortfall Date,Jul 2069",
-					"First Shortfall Period,523",
-					"Shortfall Period Count,24",
-					"Total Unfunded Shortfall,365848.02" ) ) );
+					"First Shortfall Date,Nov 2068",
+					"First Shortfall Period,515",
+					"Shortfall Period Count,32",
+					"Total Unfunded Shortfall,521106.55" ) ) );
 			Assert.That( output, Does.Contain(
 				string.Join(
 					Environment.NewLine,
 					"Tax Summary",
-					"Total Federal Tax,677431.35",
-					"Total Provincial Tax,335746.61",
-					"Total Tax,1013177.96" ) ) );
+					"Total Federal Tax,653132.15",
+					"Total Provincial Tax,326163.28",
+					"Total Tax,979295.42" ) ) );
 		}
 	}
 
@@ -122,6 +122,8 @@ public class PlanReporterTests {
 	public void WriteCalculatedToCsv_EscapesSpecialCharactersInNames() {
 		Plan plan = TestPlanFactory.Create(
 			startDate: new DateOnly( 2026, 1, 1 ),
+			cppMaximum: 0m,
+			cppCombinedSurvivorMaximum: 0m,
 			members: [
 				new Member( "Todd, \"TJ\"", new DateOnly( 1976, 1, 15 ), 50, 40, 70, 80m, 65 ),
 				new Member( "Tina", new DateOnly( 1976, 3, 15 ), 50, 40, 70, 50m, 65 )
